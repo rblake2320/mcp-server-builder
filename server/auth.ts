@@ -4,12 +4,18 @@ import { Express } from "express";
 import session from "express-session";
 import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
-import { storage } from "./storage-db";
+import { storage } from "./db-storage";
 import { User } from "@shared/schema";
 
+// Define the actual user structure for Express
 declare global {
   namespace Express {
-    interface User extends User {}
+    // Define the User interface explicitly instead of extending
+    interface User {
+      id: number;
+      username: string;
+      createdAt: Date;
+    }
   }
 }
 
@@ -67,7 +73,7 @@ export function setupAuth(app: Express) {
     }),
   );
 
-  passport.serializeUser((user, done) => done(null, user.id));
+  passport.serializeUser((user: any, done) => done(null, user.id));
   passport.deserializeUser(async (id: number, done) => {
     try {
       const user = await storage.getUser(id);
@@ -107,11 +113,11 @@ export function setupAuth(app: Express) {
   });
 
   app.post("/api/login", (req, res, next) => {
-    passport.authenticate("local", (err, user, info) => {
+    passport.authenticate("local", (err: any, user: any, info: any) => {
       if (err) return next(err);
       if (!user) return res.status(401).json({ error: "Invalid username or password" });
       
-      req.login(user, (err) => {
+      req.login(user, (err: any) => {
         if (err) return next(err);
         // Return user info without password
         const { password, ...userInfo } = user;

@@ -1,14 +1,18 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
-import { storage } from "./storage";
+import { storage } from "./db-storage"; // Using database storage instead of memory storage
+import { setupAuth } from "./auth"; // Import auth setup
 import fs from "fs-extra";
 import path from "path";
 import archiver from "archiver";
 import { v4 as uuidv4 } from "uuid";
-import { insertServerSchema } from "@shared/schema";
+import { insertServerSchema, User } from "@shared/schema";
 import { pythonTemplate, typescriptTemplate, readmeTemplate, dockerfileTemplate, installScriptTemplate, packageJsonTemplate } from "../client/src/lib/templates";
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Set up authentication
+  setupAuth(app);
+  
   // Ensure directories exist
   fs.ensureDirSync(path.join(process.cwd(), 'builds'));
   fs.ensureDirSync(path.join(process.cwd(), 'downloads'));
@@ -91,7 +95,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         serverType,
         description,
         tools: JSON.stringify(tools),
-        createdAt: Math.floor(Date.now() / 1000)
+        // Associate with logged-in user if available
+        userId: req.isAuthenticated() ? (req.user as User).id : undefined
       };
 
       try {
@@ -127,6 +132,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
     
     res.download(zipFilePath);
+  });
+  
+  // List all servers endpoint
+  app.get('/api/servers', async (req, res) => {
+    try {
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : undefined;
+      const servers = await storage.listServers(limit);
+      res.json(servers);
+    } catch (error) {
+      console.error('Error listing servers:', error);
+      res.status(500).json({ error: 'Failed to list servers' });
+    }
+  });
+  
+  // List user's servers endpoint (auth required)
+  app.get('/api/my-servers', async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ error: 'Authentication required' });
+      }
+      
+      const userId = (req.user as User).id;
+      const servers = await storage.getUserServers(userId);
+      res.json(servers);
+    } catch (error) {
+      console.error('Error listing user servers:', error);
+      res.status(500).json({ error: 'Failed to list servers' });
+    }
   });
 
   const httpServer = createServer(app);

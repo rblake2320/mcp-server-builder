@@ -63,7 +63,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Create Dockerfile
       fs.writeFileSync(
         path.join(buildDir, 'Dockerfile'),
-        dockerfileTemplate()
+        dockerfileTemplate(serverType)
       );
       
       // Create install script

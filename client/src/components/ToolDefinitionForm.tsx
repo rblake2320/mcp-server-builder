@@ -2,6 +2,8 @@ import { Tool, Parameter } from "@/types";
 import { v4 as uuidv4 } from "uuid";
 import ParameterForm from "./ParameterForm";
 import { useState, useEffect } from "react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { HelpCircle } from "lucide-react";
 
 interface ToolDefinitionFormProps {
   tools: Tool[];
@@ -114,18 +116,51 @@ const ToolDefinitionForm = ({ tools, onToolsChange }: ToolDefinitionFormProps) =
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
               <div>
-                <label className="block text-sm font-medium text-neutral-700 mb-1">Tool Name</label>
+                <div className="flex items-center mb-1">
+                  <label className="block text-sm font-medium text-neutral-700">Tool Name</label>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className="ml-1 cursor-help">
+                          <HelpCircle className="h-4 w-4 text-neutral-400" />
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p className="w-80">Use a descriptive name in snake_case format (e.g., get_weather_data). This will be the function name that Claude calls.</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </div>
                 <input 
                   type="text" 
                   value={tool.name}
-                  onChange={(e) => handleToolChange(tool.id, 'name', e.target.value)}
+                  onChange={(e) => {
+                    // Validate tool name to follow snake_case format
+                    const value = e.target.value.replace(/\s+/g, '_').toLowerCase();
+                    handleToolChange(tool.id, 'name', value);
+                  }}
                   className="w-full px-3 py-2 border border-neutral-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary" 
                   placeholder="e.g., get_weather_forecast"
                 />
+                <p className="mt-1 text-xs text-neutral-500">Use snake_case (lowercase with underscores)</p>
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-neutral-700 mb-1">Description</label>
+                <div className="flex items-center mb-1">
+                  <label className="block text-sm font-medium text-neutral-700">Description</label>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className="ml-1 cursor-help">
+                          <HelpCircle className="h-4 w-4 text-neutral-400" />
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p className="w-80">A clear description of what this tool does. Be specific about inputs and outputs to help Claude understand when to use this tool.</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </div>
                 <input 
                   type="text" 
                   value={tool.description}

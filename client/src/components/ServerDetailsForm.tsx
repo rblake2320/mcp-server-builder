@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
 import { ServerConfig, ServerType } from "@/types";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { HelpCircle } from "lucide-react";
 
 interface ServerDetailsFormProps {
   serverConfig: ServerConfig;
@@ -26,7 +28,21 @@ const ServerDetailsForm = ({ serverConfig, onConfigChange }: ServerDetailsFormPr
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div>
-          <label htmlFor="serverName" className="block text-sm font-medium text-neutral-700 mb-1">Server Name</label>
+          <div className="flex items-center mb-1">
+            <label htmlFor="serverName" className="block text-sm font-medium text-neutral-700">Server Name</label>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="ml-1 cursor-help">
+                    <HelpCircle className="h-4 w-4 text-neutral-400" />
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p className="w-80">The name of your MCP server that will be used in generated code and documentation. Choose something descriptive and relevant to its function.</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
           <input 
             type="text" 
             id="serverName" 
@@ -39,7 +55,21 @@ const ServerDetailsForm = ({ serverConfig, onConfigChange }: ServerDetailsFormPr
         </div>
 
         <div>
-          <label htmlFor="serverType" className="block text-sm font-medium text-neutral-700 mb-1">Server Type</label>
+          <div className="flex items-center mb-1">
+            <label htmlFor="serverType" className="block text-sm font-medium text-neutral-700">Server Type</label>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="ml-1 cursor-help">
+                    <HelpCircle className="h-4 w-4 text-neutral-400" />
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p className="w-80">The programming language your MCP server will be implemented in. Python is generally easier for beginners, while TypeScript (Node.js) may offer better performance for complex applications.</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
           <select 
             id="serverType" 
             value={type}
@@ -53,7 +83,21 @@ const ServerDetailsForm = ({ serverConfig, onConfigChange }: ServerDetailsFormPr
         </div>
 
         <div className="md:col-span-2">
-          <label htmlFor="serverDescription" className="block text-sm font-medium text-neutral-700 mb-1">Description</label>
+          <div className="flex items-center mb-1">
+            <label htmlFor="serverDescription" className="block text-sm font-medium text-neutral-700">Description</label>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="ml-1 cursor-help">
+                    <HelpCircle className="h-4 w-4 text-neutral-400" />
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p className="w-80">A clear description of your server's purpose and capabilities. This helps Claude and other AI assistants understand when and how to use the tools provided by your server.</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
           <textarea 
             id="serverDescription" 
             rows={3} 

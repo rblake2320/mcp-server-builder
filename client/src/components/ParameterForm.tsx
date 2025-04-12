@@ -1,5 +1,7 @@
 import { Parameter } from "@/types";
 import { useState, useEffect } from "react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { HelpCircle } from "lucide-react";
 
 interface ParameterFormProps {
   parameter: Parameter;
@@ -22,20 +24,56 @@ const ParameterForm = ({ parameter, onUpdate, onRemove }: ParameterFormProps) =>
     });
   }, [name, type, description]);
 
+  // Handle parameter name change with validation
+  const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    // Convert to snake_case (lowercase with underscores)
+    const value = e.target.value.replace(/\s+/g, '_').toLowerCase();
+    setName(value);
+  };
+
   return (
     <div className="p-3 bg-white">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
         <div>
-          <label className="block text-xs font-medium text-neutral-700 mb-1">Name</label>
+          <div className="flex items-center mb-1">
+            <label className="block text-xs font-medium text-neutral-700">Name</label>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="ml-1 cursor-help">
+                    <HelpCircle className="h-3 w-3 text-neutral-400" />
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p className="w-80">Parameter name in snake_case format. This will be used as a variable name in the code.</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
           <input 
             type="text" 
             value={name}
-            onChange={(e) => setName(e.target.value)}
+            onChange={handleNameChange}
             className="w-full px-2 py-1 text-sm border border-neutral-300 rounded shadow-sm focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary" 
+            placeholder="e.g., location"
           />
         </div>
         <div>
-          <label className="block text-xs font-medium text-neutral-700 mb-1">Type</label>
+          <div className="flex items-center mb-1">
+            <label className="block text-xs font-medium text-neutral-700">Type</label>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="ml-1 cursor-help">
+                    <HelpCircle className="h-3 w-3 text-neutral-400" />
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p className="w-80">The data type of this parameter. String for text, number for numerical values, boolean for true/false, object for JSON objects, array for lists.</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
           <select 
             value={type}
             onChange={(e) => setType(e.target.value as Parameter['type'])}
@@ -50,12 +88,27 @@ const ParameterForm = ({ parameter, onUpdate, onRemove }: ParameterFormProps) =>
         </div>
         <div className="flex">
           <div className="flex-grow">
-            <label className="block text-xs font-medium text-neutral-700 mb-1">Description</label>
+            <div className="flex items-center mb-1">
+              <label className="block text-xs font-medium text-neutral-700">Description</label>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span className="ml-1 cursor-help">
+                      <HelpCircle className="h-3 w-3 text-neutral-400" />
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p className="w-80">A clear description of what this parameter does, its purpose, and expected values. This helps Claude understand how to use this parameter.</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
             <input 
               type="text" 
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               className="w-full px-2 py-1 text-sm border border-neutral-300 rounded shadow-sm focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary" 
+              placeholder="e.g., City name or zip code"
             />
           </div>
           <button 

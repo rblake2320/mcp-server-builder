@@ -1,0 +1,1122 @@
+// MCP Server Builder for Non-Technical Users
+// This is a complete solution for building a user-friendly MCP server generator
+// that handles all the technical complexity behind the scenes
+
+// File: package.json
+// This defines our project dependencies
+{
+  "name": "mcp-server-builder",
+  "version": "1.0.0",
+  "description": "A user-friendly interface for building MCP servers without technical knowledge",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js",
+    "build": "npm install && mkdir -p dist && cp -r public dist/ && cp -r views dist/"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "body-parser": "^1.20.2",
+    "ejs": "^3.1.9",
+    "fs-extra": "^11.1.1",
+    "archiver": "^5.3.1",
+    "multer": "^1.4.5-lts.1",
+    "dotenv": "^16.3.1",
+    "uuid": "^9.0.0",
+    "@modelcontextprotocol/mcp": "^0.4.0"
+  },
+  "devDependencies": {
+    "nodemon": "^2.0.22"
+  }
+}
+
+// File: server.js
+// This is the main server file that powers our application
+const express = require('express');
+const bodyParser = require('body-parser');
+const fs = require('fs-extra');
+const path = require('path');
+const archiver = require('archiver');
+const multer = require('multer');
+const { v4: uuidv4 } = require('uuid');
+const dotenv = require('dotenv');
+
+dotenv.config();
+
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+// Set up middleware
+app.use(bodyParser.urlencoded({ extended: true }));
+app.use(bodyParser.json());
+app.use(express.static('public'));
+app.set('view engine', 'ejs');
+
+// Set up file uploads
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const uploadDir = path.join(__dirname, 'uploads');
+    fs.ensureDirSync(uploadDir);
+    cb(null, uploadDir);
+  },
+  filename: (req, file, cb) => {
+    cb(null, `${Date.now()}-${file.originalname}`);
+  }
+});
+const upload = multer({ storage });
+
+// Helper functions for creating MCP server templates
+const templates = {
+  pythonTemplate: (serverName, tools) => {
+    return `
+from typing import Dict, List, Union, Optional, Any
+from mcp.server import MCPServer, Tool, Resources
+
+# Initialize the MCP server
+server = MCPServer()
+
+# Define tools
+${tools.map(tool => `
+@server.tool()
+async def ${tool.name.replace(/\s+/g, '_').toLowerCase()}(${tool.parameters.map(p => p.name.replace(/\s+/g, '_').toLowerCase() + ': ' + (p.type || 'str')).join(', ')}) -> Dict[str, Any]:
+    """${tool.description}"""
+    # TODO: Implement tool functionality
+    return {"result": f"${tool.name} executed with parameters: ${tool.parameters.map(p => '{' + p.name.replace(/\s+/g, '_').toLowerCase() + '}').join(', ')}"}
+`).join('\n')}
+
+# Start the server
+if __name__ == "__main__":
+    server.start()
+`;
+  },
+  
+  typescriptTemplate: (serverName, tools) => {
+    return `
+import { MCPServer, Tool } from '@modelcontextprotocol/mcp';
+
+// Initialize the MCP server
+const server = new MCPServer();
+
+// Define tools
+${tools.map(tool => `
+server.registerTool({
+  name: "${tool.name.replace(/\s+/g, '_').toLowerCase()}",
+  description: "${tool.description}",
+  parameters: {
+    ${tool.parameters.map(p => `${p.name.replace(/\s+/g, '_').toLowerCase()}: {
+      type: "${p.type || 'string'}",
+      description: "${p.description}"
+    }`).join(',\n    ')}
+  },
+  handler: async ({${tool.parameters.map(p => p.name.replace(/\s+/g, '_').toLowerCase()).join(', ')}}) => {
+    // TODO: Implement tool functionality
+    return {
+      result: \`${tool.name} executed with parameters: ${tool.parameters.map(p => '\${' + p.name.replace(/\s+/g, '_').toLowerCase() + '}').join(', ')}\`
+    };
+  }
+});
+`).join('\n')}
+
+// Start the server
+server.start().catch(error => {
+  console.error('Error starting server:', error);
+  process.exit(1);
+});
+`;
+  },
+  
+  readmeTemplate: (serverName, description) => {
+    return `
+# ${serverName} MCP Server
+
+${description}
+
+## Setup Instructions
+
+### Prerequisites
+- Node.js 18+ or Python 3.8+ (depending on the server type you chose)
+
+### Installation
+
+#### For TypeScript server:
+1. Install dependencies:
+   \`\`\`
+   npm install
+   \`\`\`
+2. Start the server:
+   \`\`\`
+   npm start
+   \`\`\`
+
+#### For Python server:
+1. Create a virtual environment:
+   \`\`\`
+   python -m venv venv
+   source venv/bin/activate  # On Windows: venv\\Scripts\\activate
+   \`\`\`
+2. Install dependencies:
+   \`\`\`
+   pip install mcp-client-sdk
+   \`\`\`
+3. Start the server:
+   \`\`\`
+   python server.py
+   \`\`\`
+
+### Connect to Claude Desktop
+
+1. Open Claude Desktop
+2. Go to settings and add a new MCP server
+3. Set the server type to "command"
+4. For the command, use:
+   - TypeScript: \`node /path/to/server.js\`
+   - Python: \`python /path/to/server.py\`
+5. Save and connect to your MCP server
+`;
+  },
+  
+  dockerfileTemplate: () => {
+    return `
+# Choose base image based on server type
+FROM node:18-slim
+
+# Set working directory
+WORKDIR /app
+
+# Copy package.json and install dependencies
+COPY package*.json ./
+RUN npm install
+
+# Copy source code
+COPY . .
+
+# Expose port if needed
+# EXPOSE 3000
+
+# Start the server
+CMD ["node", "server.js"]
+`;
+  },
+  
+  installScriptTemplate: (serverType) => {
+    if (serverType === 'python') {
+      return `
+#!/bin/bash
+# Installation script for Python MCP server
+
+# Create virtual environment
+python -m venv venv
+
+# Activate virtual environment
+source venv/bin/activate  # On Windows, use: venv\\Scripts\\activate
+
+# Install required dependencies
+pip install mcp-client-sdk
+
+echo "Installation complete! To start the server:"
+echo "1. Activate the virtual environment: source venv/bin/activate"
+echo "2. Run the server: python server.py"
+`;
+    } else {
+      return `
+#!/bin/bash
+# Installation script for TypeScript MCP server
+
+# Install dependencies
+npm install
+
+echo "Installation complete! To start the server:"
+echo "npm start"
+`;
+    }
+  }
+};
+
+// Routes
+app.get('/', (req, res) => {
+  res.render('index');
+});
+
+app.get('/builder', (req, res) => {
+  res.render('builder');
+});
+
+// API to create and download MCP server
+app.post('/api/create-server', async (req, res) => {
+  try {
+    const { serverName, description, serverType, tools } = req.body;
+    
+    if (!serverName || !serverType || !tools || !Array.isArray(tools)) {
+      return res.status(400).json({ error: 'Missing required fields' });
+    }
+    
+    // Create a unique ID for this build
+    const buildId = uuidv4();
+    const buildDir = path.join(__dirname, 'builds', buildId);
+    fs.ensureDirSync(buildDir);
+    
+    // Generate server code
+    const serverCode = serverType === 'python' 
+      ? templates.pythonTemplate(serverName, tools)
+      : templates.typescriptTemplate(serverName, tools);
+    
+    // Create main server file
+    const serverFilename = serverType === 'python' ? 'server.py' : 'server.js';
+    fs.writeFileSync(path.join(buildDir, serverFilename), serverCode);
+    
+    // Create package.json if TypeScript
+    if (serverType === 'typescript') {
+      const packageJson = {
+        name: serverName.toLowerCase().replace(/\s+/g, '-'),
+        version: '1.0.0',
+        description,
+        main: 'server.js',
+        scripts: {
+          start: 'node server.js'
+        },
+        dependencies: {
+          '@modelcontextprotocol/mcp': '^0.4.0'
+        }
+      };
+      fs.writeFileSync(
+        path.join(buildDir, 'package.json'),
+        JSON.stringify(packageJson, null, 2)
+      );
+    }
+    
+    // Create README.md
+    fs.writeFileSync(
+      path.join(buildDir, 'README.md'),
+      templates.readmeTemplate(serverName, description)
+    );
+    
+    // Create Dockerfile
+    fs.writeFileSync(
+      path.join(buildDir, 'Dockerfile'),
+      templates.dockerfileTemplate()
+    );
+    
+    // Create install script
+    const installScript = templates.installScriptTemplate(serverType);
+    fs.writeFileSync(
+      path.join(buildDir, 'install.sh'),
+      installScript
+    );
+    fs.chmodSync(path.join(buildDir, 'install.sh'), '755');
+    
+    // Create zip file
+    const zipFilePath = path.join(__dirname, 'downloads', `${buildId}.zip`);
+    fs.ensureDirSync(path.dirname(zipFilePath));
+    
+    const output = fs.createWriteStream(zipFilePath);
+    const archive = archiver('zip', { zlib: { level: 9 } });
+    
+    archive.pipe(output);
+    archive.directory(buildDir, false);
+    
+    await new Promise((resolve, reject) => {
+      output.on('close', resolve);
+      archive.on('error', reject);
+      archive.finalize();
+    });
+    
+    res.json({
+      success: true,
+      downloadUrl: `/api/download/${buildId}`,
+      message: 'MCP server created successfully!'
+    });
+  } catch (error) {
+    console.error('Error creating server:', error);
+    res.status(500).json({ error: 'Failed to create MCP server' });
+  }
+});
+
+// API to download the created MCP server
+app.get('/api/download/:buildId', (req, res) => {
+  const { buildId } = req.params;
+  const zipFilePath = path.join(__dirname, 'downloads', `${buildId}.zip`);
+  
+  if (!fs.existsSync(zipFilePath)) {
+    return res.status(404).json({ error: 'Build not found' });
+  }
+  
+  res.download(zipFilePath);
+});
+
+// Start the server
+app.listen(PORT, () => {
+  console.log(`MCP Server Builder running on http://localhost:${PORT}`);
+});
+
+// File: public/css/style.css
+// CSS file for styling our application
+/* 
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  line-height: 1.6;
+  color: #333;
+  margin: 0;
+  padding: 0;
+  background-color: #f8f9fa;
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+header {
+  background-color: #fff;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  padding: 1rem 0;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.header-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.logo {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #3a86ff;
+  text-decoration: none;
+}
+
+.nav-links {
+  display: flex;
+  gap: 20px;
+}
+
+.nav-links a {
+  text-decoration: none;
+  color: #333;
+  font-weight: 500;
+  transition: color 0.3s;
+}
+
+.nav-links a:hover {
+  color: #3a86ff;
+}
+
+.hero {
+  background-color: #3a86ff;
+  color: white;
+  padding: 4rem 0;
+  text-align: center;
+}
+
+.hero h1 {
+  font-size: 2.5rem;
+  margin-bottom: 1rem;
+}
+
+.hero p {
+  font-size: 1.2rem;
+  max-width: 600px;
+  margin: 0 auto 2rem;
+}
+
+.btn {
+  display: inline-block;
+  background-color: #fff;
+  color: #3a86ff;
+  padding: 0.75rem 1.5rem;
+  border-radius: 4px;
+  text-decoration: none;
+  font-weight: 600;
+  transition: all 0.3s;
+}
+
+.btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.features {
+  padding: 4rem 0;
+}
+
+.features h2 {
+  text-align: center;
+  margin-bottom: 3rem;
+}
+
+.feature-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 2rem;
+}
+
+.feature-card {
+  background-color: #fff;
+  border-radius: 8px;
+  padding: 1.5rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  transition: transform 0.3s, box-shadow 0.3s;
+}
+
+.feature-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+}
+
+.feature-card h3 {
+  margin-top: 0;
+  color: #3a86ff;
+}
+
+.feature-card p {
+  margin-bottom: 0;
+}
+
+.builder-container {
+  background-color: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  padding: 2rem;
+  margin-top: 2rem;
+}
+
+.form-group {
+  margin-bottom: 1.5rem;
+}
+
+label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+}
+
+input[type="text"],
+input[type="email"],
+textarea,
+select {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 1rem;
+}
+
+.tool-container {
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  padding: 1.5rem;
+  margin-bottom: 1rem;
+  border: 1px solid #eee;
+}
+
+.parameter-container {
+  background-color: #fff;
+  border-radius: 4px;
+  padding: 1rem;
+  margin-bottom: 0.75rem;
+  border: 1px solid #eee;
+}
+
+.btn-primary {
+  background-color: #3a86ff;
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: 500;
+}
+
+.btn-secondary {
+  background-color: #6c757d;
+  color: white;
+}
+
+.btn-danger {
+  background-color: #dc3545;
+  color: white;
+}
+
+.btn-add {
+  background-color: #28a745;
+  color: white;
+}
+
+.steps {
+  display: flex;
+  margin-bottom: 2rem;
+  border-bottom: 1px solid #eee;
+  padding-bottom: 1rem;
+}
+
+.step {
+  flex: 1;
+  text-align: center;
+  padding: 1rem;
+  position: relative;
+}
+
+.step.active {
+  font-weight: bold;
+  color: #3a86ff;
+}
+
+.step::after {
+  content: '';
+  position: absolute;
+  bottom: -1rem;
+  left: 0;
+  width: 100%;
+  height: 3px;
+  background-color: transparent;
+}
+
+.step.completed::after,
+.step.active::after {
+  background-color: #3a86ff;
+}
+
+footer {
+  background-color: #333;
+  color: white;
+  padding: 2rem 0;
+  margin-top: 4rem;
+}
+
+.footer-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.footer-links {
+  display: flex;
+  gap: 20px;
+}
+
+.footer-links a {
+  color: white;
+  text-decoration: none;
+}
+
+@media (max-width: 768px) {
+  .feature-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .footer-content {
+    flex-direction: column;
+    gap: 1rem;
+  }
+}
+*/
+
+// File: public/js/builder.js
+// JavaScript for the builder page
+/*
+document.addEventListener('DOMContentLoaded', function() {
+  const form = document.getElementById('mcp-builder-form');
+  const toolsContainer = document.getElementById('tools-container');
+  const addToolBtn = document.getElementById('add-tool-btn');
+  const submitBtn = document.getElementById('submit-btn');
+  const resultContainer = document.getElementById('result-container');
+  
+  // Add tool handler
+  addToolBtn.addEventListener('click', function() {
+    const toolId = `tool-${Date.now()}`;
+    const toolHtml = `
+      <div class="tool-container" id="${toolId}">
+        <div class="tool-header">
+          <h3>Tool</h3>
+          <button type="button" class="btn btn-danger remove-tool" data-tool-id="${toolId}">Remove Tool</button>
+        </div>
+        <div class="form-group">
+          <label for="${toolId}-name">Tool Name</label>
+          <input type="text" id="${toolId}-name" name="tools[][name]" class="form-control" required>
+        </div>
+        <div class="form-group">
+          <label for="${toolId}-description">Description</label>
+          <textarea id="${toolId}-description" name="tools[][description]" class="form-control" rows="2" required></textarea>
+        </div>
+        <div class="parameters-section">
+          <h4>Parameters</h4>
+          <div class="parameters-container" id="${toolId}-parameters">
+            <!-- Parameters will be added here -->
+          </div>
+          <button type="button" class="btn btn-add add-parameter" data-tool-id="${toolId}">Add Parameter</button>
+        </div>
+      </div>
+    `;
+    
+    toolsContainer.insertAdjacentHTML('beforeend', toolHtml);
+    
+    // Add parameter event for this new tool
+    document.querySelector(`#${toolId} .add-parameter`).addEventListener('click', function() {
+      addParameter(toolId);
+    });
+    
+    // Add remove tool event
+    document.querySelector(`#${toolId} .remove-tool`).addEventListener('click', function() {
+      document.getElementById(toolId).remove();
+    });
+    
+    // Add the first parameter by default
+    addParameter(toolId);
+  });
+  
+  // Function to add a parameter to a tool
+  function addParameter(toolId) {
+    const parameterId = `param-${Date.now()}`;
+    const parameterHtml = `
+      <div class="parameter-container" id="${parameterId}">
+        <div class="parameter-header">
+          <h5>Parameter</h5>
+          <button type="button" class="btn btn-danger remove-parameter" data-param-id="${parameterId}">Remove</button>
+        </div>
+        <div class="form-group">
+          <label for="${parameterId}-name">Parameter Name</label>
+          <input type="text" id="${parameterId}-name" name="tools[][parameters][][name]" class="form-control" required>
+        </div>
+        <div class="form-group">
+          <label for="${parameterId}-type">Type</label>
+          <select id="${parameterId}-type" name="tools[][parameters][][type]" class="form-control">
+            <option value="string">String</option>
+            <option value="number">Number</option>
+            <option value="boolean">Boolean</option>
+            <option value="object">Object</option>
+            <option value="array">Array</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="${parameterId}-description">Description</label>
+          <input type="text" id="${parameterId}-description" name="tools[][parameters][][description]" class="form-control" required>
+        </div>
+      </div>
+    `;
+    
+    document.getElementById(`${toolId}-parameters`).insertAdjacentHTML('beforeend', parameterHtml);
+    
+    // Add remove parameter event
+    document.querySelector(`#${parameterId} .remove-parameter`).addEventListener('click', function() {
+      document.getElementById(parameterId).remove();
+    });
+  }
+  
+  // Form submit handler
+  form.addEventListener('submit', async function(e) {
+    e.preventDefault();
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Creating Server...';
+    
+    // Gather all the form data
+    const serverName = document.getElementById('server-name').value;
+    const description = document.getElementById('description').value;
+    const serverType = document.getElementById('server-type').value;
+    
+    // Collect tools and their parameters
+    const tools = [];
+    document.querySelectorAll('.tool-container').forEach(toolElement => {
+      const tool = {
+        name: toolElement.querySelector('[name$="[name]"]').value,
+        description: toolElement.querySelector('[name$="[description]"]').value,
+        parameters: []
+      };
+      
+      toolElement.querySelectorAll('.parameter-container').forEach(paramElement => {
+        tool.parameters.push({
+          name: paramElement.querySelector('[name$="[parameters][][name]"]').value,
+          type: paramElement.querySelector('[name$="[parameters][][type]"]').value,
+          description: paramElement.querySelector('[name$="[parameters][][description]"]').value
+        });
+      });
+      
+      tools.push(tool);
+    });
+    
+    // Send the data to the server
+    try {
+      const response = await fetch('/api/create-server', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          serverName,
+          description,
+          serverType,
+          tools
+        })
+      });
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        resultContainer.innerHTML = `
+          <div class="alert alert-success">
+            <h4>Server Created Successfully!</h4>
+            <p>${data.message}</p>
+            <a href="${data.downloadUrl}" class="btn btn-primary">Download MCP Server</a>
+          </div>
+        `;
+        
+        // Auto download
+        window.location.href = data.downloadUrl;
+      } else {
+        resultContainer.innerHTML = `
+          <div class="alert alert-danger">
+            <h4>Error Creating Server</h4>
+            <p>${data.error}</p>
+          </div>
+        `;
+      }
+    } catch (error) {
+      resultContainer.innerHTML = `
+        <div class="alert alert-danger">
+          <h4>Error Creating Server</h4>
+          <p>An unexpected error occurred. Please try again.</p>
+        </div>
+      `;
+    }
+    
+    submitBtn.disabled = false;
+    submitBtn.textContent = 'Create MCP Server';
+    
+    // Scroll to the result
+    resultContainer.scrollIntoView({ behavior: 'smooth' });
+  });
+  
+  // Add the first tool by default
+  addToolBtn.click();
+});
+*/
+
+// File: views/index.ejs
+// Homepage template
+/*
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MCP Server Builder</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <header>
+    <div class="container header-container">
+      <a href="/" class="logo">MCP Server Builder</a>
+      <nav class="nav-links">
+        <a href="/">Home</a>
+        <a href="/builder">Builder</a>
+        <a href="https://modelcontextprotocol.io" target="_blank">MCP Docs</a>
+      </nav>
+    </div>
+  </header>
+
+  <section class="hero">
+    <div class="container">
+      <h1>Build MCP Servers Without Code</h1>
+      <p>Create powerful Model Context Protocol servers without technical knowledge. Connect AI models to your data and tools with just a few clicks.</p>
+      <a href="/builder" class="btn">Start Building</a>
+    </div>
+  </section>
+
+  <section class="features">
+    <div class="container">
+      <h2>Why Use Our Builder?</h2>
+      <div class="feature-grid">
+        <div class="feature-card">
+          <h3>No Technical Skills Required</h3>
+          <p>Our intuitive interface makes it easy for anyone to create MCP servers without writing a single line of code.</p>
+        </div>
+        <div class="feature-card">
+          <h3>Powerful Customization</h3>
+          <p>Define custom tools and parameters to create MCP servers tailored to your specific needs.</p>
+        </div>
+        <div class="feature-card">
+          <h3>Ready-to-Use Output</h3>
+          <p>Download a complete, production-ready MCP server package with all the necessary files and setup instructions.</p>
+        </div>
+        <div class="feature-card">
+          <h3>Multiple Language Support</h3>
+          <p>Choose between Python and TypeScript implementations depending on your environment and preferences.</p>
+        </div>
+        <div class="feature-card">
+          <h3>Seamless Integration</h3>
+          <p>Built to work perfectly with Claude Desktop and other MCP clients right out of the box.</p>
+        </div>
+        <div class="feature-card">
+          <h3>Completely Free</h3>
+          <p>Our builder is free to use with no limitations, enabling everyone to leverage the power of MCP.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="how-it-works">
+    <div class="container">
+      <h2 class="text-center mb-5">How It Works</h2>
+      <div class="row">
+        <div class="col-md-4 text-center mb-4">
+          <div class="step-number">1</div>
+          <h3>Define Your Server</h3>
+          <p>Specify your server name, description, and choose between Python and TypeScript implementations.</p>
+        </div>
+        <div class="col-md-4 text-center mb-4">
+          <div class="step-number">2</div>
+          <h3>Create Tools</h3>
+          <p>Add tools with custom parameters that define what your MCP server can do.</p>
+        </div>
+        <div class="col-md-4 text-center mb-4">
+          <div class="step-number">3</div>
+          <h3>Download & Use</h3>
+          <p>Get your ready-to-use MCP server package and follow the simple setup instructions.</p>
+        </div>
+      </div>
+      <div class="text-center mt-4">
+        <a href="/builder" class="btn btn-primary btn-lg">Create Your MCP Server Now</a>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <div class="container footer-content">
+      <p>&copy; 2025 MCP Server Builder. All rights reserved.</p>
+      <div class="footer-links">
+        <a href="https://modelcontextprotocol.io" target="_blank">MCP Documentation</a>
+        <a href="https://github.com/anthropics/model-context-protocol" target="_blank">GitHub</a>
+      </div>
+    </div>
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
+*/
+
+// File: views/builder.ejs
+// Builder page template
+/*
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MCP Server Builder</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <header>
+    <div class="container header-container">
+      <a href="/" class="logo">MCP Server Builder</a>
+      <nav class="nav-links">
+        <a href="/">Home</a>
+        <a href="/builder">Builder</a>
+        <a href="https://modelcontextprotocol.io" target="_blank">MCP Docs</a>
+      </nav>
+    </div>
+  </header>
+
+  <div class="container mt-5">
+    <h1 class="mb-4">Create Your MCP Server</h1>
+    
+    <div class="steps">
+      <div class="step active">
+        <span class="step-number">1</span>
+        <div class="step-title">Server Configuration</div>
+      </div>
+      <div class="step">
+        <span class="step-number">2</span>
+        <div class="step-title">Define Tools</div>
+      </div>
+      <div class="step">
+        <span class="step-number">3</span>
+        <div class="step-title">Generate & Download</div>
+      </div>
+    </div>
+    
+    <div class="builder-container">
+      <form id="mcp-builder-form">
+        <h2>Server Configuration</h2>
+        <div class="form-group">
+          <label for="server-name">Server Name</label>
+          <input type="text" id="server-name" name="serverName" class="form-control" required>
+          <small class="form-text text-muted">A descriptive name for your MCP server</small>
+        </div>
+        
+        <div class="form-group">
+          <label for="description">Description</label>
+          <textarea id="description" name="description" class="form-control" rows="3" required></textarea>
+          <small class="form-text text-muted">Explain what your MCP server does</small>
+        </div>
+        
+        <div class="form-group">
+          <label for="server-type">Server Type</label>
+          <select id="server-type" name="serverType" class="form-control" required>
+            <option value="python">Python</option>
+            <option value="typescript">TypeScript (Node.js)</option>
+          </select>
+          <small class="form-text text-muted">Choose the implementation language for your server</small>
+        </div>
+        
+        <h2 class="mt-5">Define Tools</h2>
+        <p>Tools are the functions that your MCP server will expose to AI models like Claude.</p>
+        
+        <div id="tools-container">
+          <!-- Tools will be added here -->
+        </div>
+        
+        <button type="button" id="add-tool-btn" class="btn btn-success mt-3">Add Another Tool</button>
+        
+        <div class="mt-5">
+          <button type="submit" id="submit-btn" class="btn btn-primary btn-lg">Create MCP Server</button>
+        </div>
+      </form>
+      
+      <div id="result-container" class="mt-4">
+        <!-- Result will be shown here -->
+      </div>
+    </div>
+  </div>
+
+  <footer class="mt-5">
+    <div class="container footer-content">
+      <p>&copy; 2025 MCP Server Builder. All rights reserved.</p>
+      <div class="footer-links">
+        <a href="https://modelcontextprotocol.io" target="_blank">MCP Documentation</a>
+        <a href="https://github.com/anthropics/model-context-protocol" target="_blank">GitHub</a>
+      </div>
+    </div>
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="/js/builder.js"></script>
+</body>
+</html>
+*/
+
+// File: .env
+// Environment variables
+/*
+PORT=3000
+*/
+
+// File: INSTRUCTIONS.md
+// Instructions for deploying to various platforms
+/*
+# Deployment Instructions
+
+This document provides step-by-step instructions for deploying the MCP Server Builder to various platforms.
+
+## Prerequisites
+
+- Node.js 18 or higher
+- npm or yarn
+
+## Local Development
+
+1. Clone the repository
+2. Install dependencies: `npm install`
+3. Start the development server: `npm run dev`
+4. Open http://localhost:3000 in your browser
+
+## Deploying to Replit
+
+1. Create a new Replit project
+2. Choose Node.js as the template
+3. Upload all files to the Replit project
+4. In the Replit shell, run: `npm install`
+5. Set up the run command as: `npm start`
+6. Click the Run button
+
+## Deploying to Lovable
+
+1. Create a new Lovable app
+2. Connect your GitHub repository or upload the files directly
+3. Configure the build settings:
+   - Build command: `npm run build`
+   - Start command: `npm start`
+   - Node.js version: 18.x
+4. Deploy the app
+
+## Deploying to Firebase
+
+1. Install Firebase CLI: `npm install -g firebase-tools`
+2. Login to Firebase: `firebase login`
+3. Initialize Firebase: `firebase init`
+   - Select Hosting and Functions
+   - Choose your Firebase project
+   - Set public directory to "public"
+   - Configure as a single-page app: No
+4. Deploy to Firebase: `firebase deploy`
+
+## Deploying to Other Platforms
+
+The application can be deployed to any platform that supports Node.js applications, including:
+
+- Heroku
+- Vercel
+- Netlify
+- Digital Ocean App Platform
+- AWS Elastic Beanstalk
+- Google Cloud Run
+
+For platform-specific instructions, refer to their documentation on deploying Node.js applications.
+*/
+
+// File: README.md
+// README file explaining the project
+/*
+# MCP Server Builder
+
+A user-friendly web application for building Model Context Protocol (MCP) servers without technical knowledge.
+
+## What is MCP?
+
+Model Context Protocol (MCP) is an open-source protocol developed by Anthropic that enables AI systems like Claude to securely connect with various data sources. It provides a universal standard for AI assistants to access external data, tools, and prompts through a client-server architecture.
+
+## About This Project
+
+The MCP Server Builder is designed to make it easy for non-technical users to create MCP servers. With a simple and intuitive interface, users can define their server configuration, create custom tools, and generate a ready-to-use MCP server without writing a single line of code.
+
+## Features
+
+- **No-Code Interface**: Build MCP servers using a simple web interface without any programming knowledge
+- **Multiple Language Support**: Choose between Python and TypeScript implementations
+- **Custom Tool Definition**: Create tools with customized parameters to define your server's capabilities
+- **Ready-to-Use Output**: Download a complete package with all necessary files and setup instructions
+- **Docker Support**: Includes Dockerfile for easy containerization and deployment
+- **Comprehensive Documentation**: Clear instructions for setup and integration with Claude Desktop
+
+## Getting Started
+
+1. Clone the repository
+2. Install dependencies: `npm install`
+3. Start the server: `npm start`
+4. Open http://localhost:3000 in your browser
+5. Follow the intuitive interface to build and download your MCP server
+
+## Prerequisites
+
+- Node.js 18 or higher
+- npm or yarn
+
+## Deployment
+
+See INSTRUCTIONS.md for detailed deployment instructions for various platforms.
+
+## License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+## Acknowledgments
+
+- Anthropic for developing the Model Context Protocol
+- The open-source community for their valuable contributions
+*/

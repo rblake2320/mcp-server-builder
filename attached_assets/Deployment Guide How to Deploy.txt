@@ -1,0 +1,251 @@
+# Deployment Guide: How to Deploy Your MCP Server on Different Platforms
+
+This guide provides detailed instructions for deploying your generated MCP server on various platforms, from local development to cloud services. Choose the platform that best suits your needs and technical comfort level.
+
+## Table of Contents
+
+1. [Local Deployment](#local-deployment)
+2. [Replit Deployment](#replit-deployment)
+3. [Lovable Deployment](#lovable-deployment)
+4. [Firebase Deployment](#firebase-deployment)
+5. [Docker Deployment](#docker-deployment)
+6. [Cloud Platform Deployments](#cloud-platform-deployments)
+   - [Heroku](#heroku)
+   - [Render](#render)
+   - [DigitalOcean App Platform](#digitalocean-app-platform)
+   - [AWS Lambda](#aws-lambda)
+7. [Keeping Your Server Online](#keeping-your-server-online)
+
+## Local Deployment
+
+The simplest way to run your MCP server is locally on your own computer.
+
+### Python Server
+
+1. Extract your downloaded server package
+2. Open a terminal/command prompt
+3. Navigate to the extracted folder
+4. Create a virtual environment (recommended):
+   ```bash
+   python -m venv venv
+   source venv/bin/activate  # On Windows: venv\Scripts\activate
+   ```
+5. Install dependencies:
+   ```bash
+   pip install mcp-client-sdk
+   ```
+6. Start the server:
+   ```bash
+   python server.py
+   ```
+
+### TypeScript/Node.js Server
+
+1. Extract your downloaded server package
+2. Open a terminal/command prompt
+3. Navigate to the extracted folder
+4. Install dependencies:
+   ```bash
+   npm install
+   ```
+5. Start the server:
+   ```bash
+   npm start
+   ```
+
+**Note**: When running locally, your server will only be available while your computer is on and the terminal window is open.
+
+## Replit Deployment
+
+Replit is a browser-based development platform that makes it easy to deploy and host applications without managing servers.
+
+### For Python Server
+
+1. Create a free account at [replit.com](https://replit.com)
+2. Click "Create Repl"
+3. Choose "Python" as your template
+4. Name your Repl (e.g., "my-mcp-server")
+5. Click "Create Repl"
+6. In the Files panel, upload your `server.py` file
+7. Create a new file called `requirements.txt` with the following content:
+   ```
+   mcp-client-sdk
+   ```
+8. Click the "Run" button
+
+### For TypeScript/Node.js Server
+
+1. Create a free account at [replit.com](https://replit.com)
+2. Click "Create Repl"
+3. Choose "Node.js" as your template
+4. Name your Repl (e.g., "my-mcp-server")
+5. Click "Create Repl"
+6. In the Files panel, upload your `server.js` file and `package.json`
+7. Click the "Run" button
+
+Replit will keep your server running even after you close the browser tab. To connect to it from Claude Desktop:
+
+1. In Claude Desktop, add a new MCP server with:
+   - Type: "stdio"
+   - Command: Reference to your Replit URL
+
+## Lovable Deployment
+
+Lovable is a platform designed for easy application deployment.
+
+1. Create an account at [lovable.dev](https://lovable.dev) or similar platform
+2. Create a new project
+3. Choose the appropriate project type (Python or Node.js)
+4. Upload your server files
+5. Configure the deployment settings:
+   - For Python: Set the start command to `python server.py`
+   - For Node.js: The platform should automatically detect the start command from package.json
+6. Deploy your application
+
+## Firebase Deployment
+
+Firebase works well for deploying Node.js MCP servers.
+
+### For TypeScript/Node.js Server
+
+1. Install Firebase CLI:
+   ```bash
+   npm install -g firebase-tools
+   ```
+2. Login to Firebase:
+   ```bash
+   firebase login
+   ```
+3. Initialize Firebase in your project folder:
+   ```bash
+   firebase init functions
+   ```
+   - Select your Firebase project
+   - Choose JavaScript
+   - Say yes to ESLint
+   - Say yes to installing dependencies
+4. Modify `functions/index.js` to include your server code
+5. Deploy to Firebase:
+   ```bash
+   firebase deploy --only functions
+   ```
+
+## Docker Deployment
+
+Your MCP server package includes a Dockerfile for easy containerization.
+
+1. Install [Docker](https://www.docker.com/get-started) if you haven't already
+2. Navigate to your server folder in the terminal
+3. Build the Docker image:
+   ```bash
+   docker build -t my-mcp-server .
+   ```
+4. Run the container:
+   ```bash
+   docker run -p 3000:3000 my-mcp-server
+   ```
+
+Docker containers can be deployed to any platform that supports Docker, including:
+- [Amazon ECS](https://aws.amazon.com/ecs/)
+- [Google Cloud Run](https://cloud.google.com/run)
+- [Azure Container Instances](https://azure.microsoft.com/en-us/products/container-instances/)
+- [DigitalOcean Container Registry](https://www.digitalocean.com/products/container-registry/)
+
+## Cloud Platform Deployments
+
+### Heroku
+
+1. Create a free account at [heroku.com](https://heroku.com)
+2. Install the [Heroku CLI](https://devcenter.heroku.com/articles/heroku-cli)
+3. Login to Heroku:
+   ```bash
+   heroku login
+   ```
+4. Navigate to your server folder
+5. Initialize a Git repository:
+   ```bash
+   git init
+   git add .
+   git commit -m "Initial commit"
+   ```
+6. Create a Heroku app:
+   ```bash
+   heroku create my-mcp-server
+   ```
+7. Deploy your application:
+   ```bash
+   git push heroku main
+   ```
+
+### Render
+
+Render is a unified platform to build and run all your apps, websites, and services.
+
+1. Create an account at [render.com](https://render.com)
+2. Click "New" and select "Web Service"
+3. Connect your GitHub repository or use the manual deploy option
+4. Configure your service:
+   - Name: my-mcp-server
+   - Runtime: Node.js or Python
+   - Build Command: `npm install` or `pip install -r requirements.txt`
+   - Start Command: `node server.js` or `python server.py`
+5. Click "Create Web Service"
+
+### DigitalOcean App Platform
+
+1. Create an account at [digitalocean.com](https://digitalocean.com)
+2. Navigate to the App Platform section
+3. Click "Create App"
+4. Connect your GitHub repository or upload your files directly
+5. Configure your app:
+   - Type: Web Service
+   - Environment: Node.js or Python
+   - Build Command: `npm install` or `pip install -r requirements.txt`
+   - Run Command: `node server.js` or `python server.py`
+6. Choose your plan (Starter plans are available for simple applications)
+7. Click "Launch App"
+
+### AWS Lambda
+
+For event-driven MCP servers that don't need to run continuously:
+
+1. Create an [AWS account](https://aws.amazon.com/)
+2. Navigate to the Lambda console
+3. Click "Create function"
+4. Choose "Author from scratch"
+5. Configure your function:
+   - Name: my-mcp-server
+   - Runtime: Node.js or Python
+6. Upload your code as a ZIP file
+7. Set the handler to point to your main function
+8. Configure environment variables if needed
+9. Click "Create function"
+
+## Keeping Your Server Online
+
+For your MCP server to be useful, it needs to stay online. Here are some options:
+
+1. **Free Tier Cloud Services**: Platforms like Render, Heroku, and Replit offer free tiers that can keep your service running.
+
+2. **Paid Hosting**: For more reliable performance, consider a paid plan on any of the platforms mentioned. Prices typically start at $5-10 per month.
+
+3. **Always-On Local Device**: You can run your server on a Raspberry Pi or old computer that stays on 24/7.
+
+4. **Scheduled Restarts**: Some free services put applications to sleep after periods of inactivity. Set up a service like [UptimeRobot](https://uptimerobot.com/) to ping your application regularly and keep it awake.
+
+## Connecting Your Deployed Server to Claude Desktop
+
+Once your server is deployed, you'll need to connect it to Claude Desktop:
+
+1. In Claude Desktop settings, add a new MCP server
+2. For the server type:
+   - If your server is running locally: Use "command" type with the appropriate command
+   - If your server is deployed to the web: Use "sse" type with the URL of your server
+
+## Conclusion
+
+Your MCP server is now deployed and ready to use! You can now extend Claude's capabilities with custom tools and integrations.
+
+Remember that the base server generated by the MCP Server Builder provides the structure, but you'll need to implement the actual functionality for each tool. This might require some programming knowledge or help from a developer.
+
+For more advanced deployments or customizations, consider consulting with a developer or DevOps professional.

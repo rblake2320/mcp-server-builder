@@ -9,14 +9,20 @@ import Home from "@/pages/Home";
 import Builder from "@/pages/Builder";
 import Documentation from "@/pages/Documentation";
 import About from "@/pages/About";
+import AuthPage from "@/pages/AuthPage";
+import MyServers from "@/pages/MyServers";
+import { AuthProvider } from "@/hooks/use-auth";
+import { ProtectedRoute } from "@/lib/protected-route";
 
 function Router() {
   return (
     <Switch>
       <Route path="/" component={Home} />
-      <Route path="/builder" component={Builder} />
+      <ProtectedRoute path="/builder" component={Builder} />
+      <ProtectedRoute path="/my-servers" component={MyServers} />
       <Route path="/documentation" component={Documentation} />
       <Route path="/about" component={About} />
+      <Route path="/auth" component={AuthPage} />
       <Route component={NotFound} />
     </Switch>
   );
@@ -25,14 +31,16 @@ function Router() {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <div className="flex flex-col min-h-screen">
-        <NavBar />
-        <main className="flex-grow">
-          <Router />
-        </main>
-        <Footer />
-      </div>
-      <Toaster />
+      <AuthProvider>
+        <div className="flex flex-col min-h-screen">
+          <NavBar />
+          <main className="flex-grow">
+            <Router />
+          </main>
+          <Footer />
+        </div>
+        <Toaster />
+      </AuthProvider>
     </QueryClientProvider>
   );
 }

@@ -303,24 +303,37 @@ const Builder = () => {
       const toolName = toolNameRaw.replace(/^get_/, '').replace(/_params$/, '');
       const toolDescription = toolDescMatch[1].trim();
       
-      // Extract parameters from the code
-      const paramMatches = [...toolCode.matchAll(/(\w+):\s*(str|int|bool|float|dict|list)\s*=\s*Field\(description="([^"]+)"\)/g)];
+      // Extract parameters from the code - use regular for loop to avoid downlevelIteration issues
+      const regex = /(\w+):\s*(str|int|bool|float|dict|list)\s*=\s*Field\(description="([^"]+)"\)/g;
+      const paramMatches: Array<RegExpExecArray> = [];
+      let match: RegExpExecArray | null;
+      
+      while ((match = regex.exec(toolCode)) !== null) {
+        paramMatches.push(match);
+      }
       
       if (paramMatches.length === 0) {
         throw new Error("No parameters found in the generated tool");
       }
       
-      // Create parameters from the parsed information
-      const parameters = paramMatches.map(match => ({
-        id: uuidv4(),
-        name: match[1],
-        type: match[2] === 'str' ? 'string' : 
-              match[2] === 'int' ? 'number' : 
-              match[2] === 'bool' ? 'boolean' : 
-              match[2] === 'dict' ? 'object' : 
-              match[2] === 'list' ? 'array' : 'string',
-        description: match[3]
-      }));
+      // Create parameters from the parsed information with correct typing
+      const parameters: Parameter[] = paramMatches.map(match => {
+        let paramType: Parameter['type'] = 'string'; // Default
+        
+        // Map Python types to our parameter types
+        if (match[2] === 'str') paramType = 'string';
+        else if (match[2] === 'int') paramType = 'number';
+        else if (match[2] === 'bool') paramType = 'boolean';
+        else if (match[2] === 'dict') paramType = 'object';
+        else if (match[2] === 'list') paramType = 'array';
+        
+        return {
+          id: uuidv4(),
+          name: match[1],
+          type: paramType,
+          description: match[3]
+        };
+      });
       
       // Create the new tool
       const newTool: Tool = {

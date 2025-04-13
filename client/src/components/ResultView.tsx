@@ -72,27 +72,76 @@ const ResultView = ({ generatedServer, onEditServer, onCreateAnother }: ResultVi
       
       <div className="bg-neutral-50 border border-neutral-200 rounded-lg p-4 mb-6">
         <h3 className="font-heading font-medium text-lg text-neutral-800 mb-2">Connect to AI Assistants</h3>
-        <div className="space-y-3 text-neutral-700 text-sm">
-          <div className="mb-2">
-            <h4 className="font-medium">Claude Desktop</h4>
-            <ol className="list-decimal list-inside ml-2 space-y-1">
-              <li>Open Claude Desktop and go to Settings {`>`} MCP section</li>
-              <li>Click "Add Server" and enter:
-                <ul className="list-disc list-inside ml-4 mt-1">
-                  <li>Name: <code className="bg-neutral-200 px-1 py-0.5 rounded">{generatedServer.serverName}</code></li>
-                  <li>Type: <code className="bg-neutral-200 px-1 py-0.5 rounded">command</code></li>
-                  <li>Command: <code className="bg-neutral-200 px-1 py-0.5 rounded">{isTypescript ? 'node' : 'python'} /absolute/path/to/server.{isTypescript ? 'js' : 'py'}</code></li>
-                </ul>
-              </li>
-            </ol>
+        <div className="space-y-4 text-neutral-700 text-sm">
+          <div className="mb-3">
+            <h4 className="font-medium mb-1">Claude Desktop</h4>
+            <p className="mb-2">Claude Desktop requires manual configuration file editing:</p>
+            
+            <div className="mb-2">
+              <h5 className="font-medium text-xs">1. Locate Configuration File:</h5>
+              <ul className="list-disc list-inside ml-2 space-y-1">
+                <li>macOS: <code className="bg-neutral-200 px-1 py-0.5 rounded">~/Library/Application Support/Claude/claude_desktop_config.json</code></li>
+                <li>Windows: <code className="bg-neutral-200 px-1 py-0.5 rounded">%APPDATA%\Claude\claude_desktop_config.json</code></li>
+              </ul>
+            </div>
+            
+            <div className="mb-2">
+              <h5 className="font-medium text-xs">2. Edit JSON File:</h5>
+              <p className="mb-1">Add the following to your configuration:</p>
+              <pre className="bg-neutral-200 p-2 rounded text-xs font-mono overflow-auto max-h-32">
+{`{
+  "mcpServers": {
+    "${generatedServer.serverName.toLowerCase().replace(/\s+/g, '-')}": {
+      "command": "${isTypescript ? 'node' : 'python'}",
+      "args": ["/absolute/path/to/server.${isTypescript ? 'js' : 'py'}"]
+    }
+  }
+}`}
+              </pre>
+            </div>
+            
+            <div className="mb-2">
+              <h5 className="font-medium text-xs">3. Docker Alternative (Recommended):</h5>
+              <p className="mb-1">For better isolation, use Docker:</p>
+              <pre className="bg-neutral-200 p-2 rounded text-xs font-mono overflow-auto max-h-32">
+{`# Build the Docker image
+docker build -t ${generatedServer.serverName.toLowerCase().replace(/\s+/g, '-')} /path/to/extracted/folder
+
+# Add to claude_desktop_config.json
+{
+  "mcpServers": {
+    "${generatedServer.serverName.toLowerCase().replace(/\s+/g, '-')}": {
+      "command": "docker",
+      "args": ["run", "-i", "--rm", "${generatedServer.serverName.toLowerCase().replace(/\s+/g, '-')}"]
+    }
+  }
+}`}
+              </pre>
+            </div>
+            
+            <div>
+              <h5 className="font-medium text-xs">4. Restart Claude Desktop</h5>
+              <p>Close and reopen Claude Desktop to apply changes.</p>
+            </div>
           </div>
           
           <div>
-            <h4 className="font-medium">Claude Web or Other Assistants</h4>
-            <p className="mb-1">Install the HTTP adapter (see README) and use:</p>
-            <p className="bg-neutral-200 p-2 rounded text-xs font-mono">
-              {isTypescript ? 'npm install mcp-http-adapter' : 'pip install mcp-http-adapter'}
-            </p>
+            <h4 className="font-medium mb-1">Claude Web or Other Assistants</h4>
+            <p className="mb-1">Install the HTTP adapter to expose your server via API:</p>
+            <pre className="bg-neutral-200 p-2 rounded text-xs font-mono">
+{isTypescript 
+  ? `# Install the adapter
+npm install -g mcp-http-adapter
+
+# Run the adapter
+npx mcp-http-adapter --command "node /path/to/server.js" --port 8080` 
+  : `# Install the adapter
+pip install mcp-http-adapter
+
+# Run the adapter
+mcp-http-adapter --command "python /path/to/server.py" --port 8080`}
+            </pre>
+            <p className="mt-1">This creates an HTTP endpoint at <code className="bg-neutral-200 px-1 py-0.5 rounded">http://localhost:8080</code> that you can reference in web-based assistants.</p>
           </div>
         </div>
       </div>

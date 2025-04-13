@@ -1,0 +1,75 @@
+The process for adding MCP servers to Claude Desktop differs significantly from typical application extension methods. Here's the precise implementation based on official documentation and verified configurations:
+
+## Core Implementation Method
+Claude Desktop **does not have an in-app UI** for server management. Instead, servers are added through direct configuration file edits:
+
+1. **Locate Configuration File**:
+   - macOS: `~/Library/Application Support/Claude/claude_desktop_config.json`
+   - Windows: `%APPDATA%\Claude\claude_desktop_config.json`
+
+2. **Edit JSON Structure**:
+```json
+{
+  "mcpServers": {
+    "your-server-name": {
+      "command": "executable-name",
+      "args": ["argument1", "argument2"]
+    }
+  }
+}
+```
+
+## Supported Server Types
+| Server Type        | Example Configuration                          | Requirements               |
+|--------------------|------------------------------------------------|----------------------------|
+| **Node.js/npx**    | `"command": "npx", "args": ["-y", "package"]`  | Node.js installed          |
+| **Docker**         | `"command": "docker", "args": ["run","image"]` | Docker Desktop running     |
+| **Native Binary**  | `"command": "/path/to/binary"`                 | Executable permissions     |
+| **WSL Integration**| `"command": "wsl.exe", "args": [...]`          | Windows Subsystem for Linux|
+
+## Key Implementation Details
+1. **Security Model**:
+   - Servers run with **user-level permissions**
+   - Each server startup requires explicit user confirmation
+   - Configuration changes require app restart
+
+2. **Validation Process**:
+   - Claude Desktop checks for:
+     - Valid JSON syntax
+     - Executable existence
+     - MCP protocol handshake on server launch
+
+3. **Common Errors**:
+   - `ECONNREFUSED`: Server failed to start
+   - `ENOENT`: Invalid executable path
+   - `ETIMEDOUT`: Server didn't respond within 30s
+
+## Workflow Comparison
+| Step                | Expected Workflow          | Actual Claude Desktop Workflow |
+|---------------------|----------------------------|---------------------------------|
+| Server Discovery    | App-integrated marketplace | Manual configuration           |
+| Installation        | One-click install          | Edit JSON + restart app        |
+| Updates             | Automatic notifications    | Manual version management      |
+| Permission Control  | Granular per-tool settings | All-or-nothing file access     |
+
+This implementation reflects Claude Desktop's security-first approach, where manual configuration acts as an intentional friction point against unauthorized tool access. While this differs from more user-friendly extension systems, it aligns with MCP's design philosophy requiring explicit user consent for server operations[1][4].
+
+Citations:
+[1] https://modelcontextprotocol.io/quickstart/user
+[2] https://scottspence.com/posts/getting-mcp-server-working-with-claude-desktop-in-wsl
+[3] https://docs.anthropic.com/en/docs/agents-and-tools/claude-code/tutorials
+[4] https://modelcontextprotocol.io/quickstart/server
+[5] https://www.youtube.com/watch?v=Nw0V51w0paU
+[6] https://dev.to/suzuki0430/the-easiest-way-to-set-up-mcp-with-claude-desktop-and-docker-desktop-5o
+[7] https://github.com/aliargun/mcp-server-gemini/blob/main/docs/claude-desktop-setup.md
+[8] https://apidog.com/blog/mcp-server-claude/
+[9] https://www.youtube.com/watch?v=A151Nk_nN_U
+[10] https://www.reddit.com/r/ClaudeAI/comments/1ji8ruv/my_claude_workflow_guide_advanced_setup_with_mcp/
+[11] https://www.reddit.com/r/ClaudeAI/comments/1iztm9b/how_to_get_mcp_servers_running_on_claude_code/
+[12] https://neon.tech/guides/neon-mcp-server
+[13] https://www.youtube.com/watch?v=zw6pxv0hvXY
+[14] https://www.reddit.com/r/ClaudeAI/comments/1h9lau7/is_there_a_step_by_step_guide_to_set_up_mcp_with/
+[15] https://nishtahir.com/notes-on-setting-up-claude-desktop-mcp-servers/
+
+---
+Answer from Perplexity: pplx.ai/share

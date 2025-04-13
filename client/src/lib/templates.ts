@@ -343,18 +343,38 @@ server = MCPServer(
 ### Connect to Claude or Other MCP-Compatible AI Assistants
 
 #### Claude Desktop
-1. Open Claude Desktop
-2. Go to Settings and navigate to the MCP section
-3. Click "Add Server"
-4. Configure the server:
-   - Name: Enter a descriptive name for your server
-   - Type: Select "command"
-   - Command: Enter the full path to run your server
-     - For TypeScript: \`node /full/path/to/server.js\`
-     - For Python: \`python /full/path/to/server.py\`
-     - Tip: Use absolute paths to avoid issues
-5. Save the configuration
-6. Restart Claude Desktop if necessary
+Claude Desktop requires manual configuration file editing:
+
+1. Locate the configuration file:
+   - macOS: \`/Users/username/Library/Application Support/Claude/claude_desktop_config.json\`
+   - Windows: \`%APPDATA%\\Claude\\claude_desktop_config.json\`
+
+2. Edit the JSON file (create it if it doesn't exist) to add your server:
+   \`\`\`
+   {
+     "mcpServers": {
+       "your-server-name": {
+         "command": "python",
+         "args": ["/absolute/path/to/server.py"]
+       }
+     }
+   }
+   \`\`\`
+   Note: Use "node" for TypeScript servers and provide the full path to your server file.
+
+3. For Docker deployment (recommended for better isolation):
+   \`\`\`
+   {
+     "mcpServers": {
+       "your-server-name": {
+         "command": "docker",
+         "args": ["run", "-i", "--rm", "your-image-name"]
+       }
+     }
+   }
+   \`\`\`
+
+4. Save the file and restart Claude Desktop
 
 #### Claude on the Web or Other AI Assistants
 Many AI assistants now support connecting to MCP servers over HTTP. To support this:

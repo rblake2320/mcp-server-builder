@@ -262,6 +262,54 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
   
+  // URL Import endpoint - for importing MCP servers from GitHub/GitLab repos
+  app.post('/api/import-from-url', async (req, res) => {
+    try {
+      const { url } = req.body;
+      
+      if (!url) {
+        return res.status(400).json({ error: 'URL is required' });
+      }
+      
+      // For now, return a mock response
+      // In a production implementation, this would:
+      // 1. Clone the repository
+      // 2. Analyze the code to extract MCP server configuration
+      // 3. Return the configuration in a format compatible with the builder
+      
+      // Mock data for demonstration
+      const mockConfig = {
+        serverName: "Imported Server",
+        serverType: "python",
+        description: `Server imported from ${url}`,
+        tools: [
+          {
+            id: uuidv4(),
+            name: "imported_tool",
+            description: "Tool imported from repository",
+            parameters: [
+              {
+                id: uuidv4(),
+                name: "param1",
+                type: "string",
+                description: "Imported parameter"
+              }
+            ]
+          }
+        ]
+      };
+      
+      res.json({
+        success: true,
+        config: mockConfig,
+        message: "Server configuration imported successfully"
+      });
+    } catch (error) {
+      console.error('Error importing from URL:', error);
+      res.status(500).json({ error: 'Failed to import server from URL' });
+    }
+  });
+  
   // ===== Template Management API Endpoints =====
   
   // Get all public templates

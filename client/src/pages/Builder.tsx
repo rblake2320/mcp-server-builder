@@ -8,8 +8,19 @@ import { Step, ServerConfig, Tool, GeneratedServer } from "@/types";
 import { v4 as uuidv4 } from "uuid";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { Loader2, Save, Download } from "lucide-react";
+import { Loader2, Save, Download, Github } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogDescription, 
+  DialogFooter, 
+  DialogHeader, 
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 const Builder = () => {
   const { toast } = useToast();
@@ -34,6 +45,51 @@ const Builder = () => {
   
   // State for loading status
   const [isCreating, setIsCreating] = useState(false);
+  
+  // State for URL import
+  const [importUrl, setImportUrl] = useState("");
+  const [isImporting, setIsImporting] = useState(false);
+  const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
+  
+  // Handle importing server from URL
+  const handleImportFromUrl = async () => {
+    if (!importUrl.trim()) {
+      toast({
+        title: "Missing URL",
+        description: "Please enter a repository URL",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    setIsImporting(true);
+    
+    try {
+      const res = await apiRequest('POST', '/api/import-from-url', { url: importUrl });
+      const data = await res.json();
+      
+      if (data.success) {
+        setServerConfig(data.config);
+        setIsImportDialogOpen(false);
+        
+        toast({
+          title: "Import Successful",
+          description: "Server configuration has been imported successfully"
+        });
+      } else {
+        throw new Error(data.error || "Failed to import server configuration");
+      }
+    } catch (error) {
+      console.error("Error importing server:", error);
+      toast({
+        title: "Import Failed",
+        description: error instanceof Error ? error.message : "Failed to import server from URL",
+        variant: "destructive"
+      });
+    } finally {
+      setIsImporting(false);
+    }
+  };
   
   // Initialize with a default tool when the component mounts
   useEffect(() => {
@@ -285,6 +341,7 @@ const Builder = () => {
               <Download className="h-4 w-4 mr-2" />
               Load Template
             </Button>
+            <UrlImporter onImport={(config) => setServerConfig(config)} />
           </div>
           <button 
             id="createServer" 

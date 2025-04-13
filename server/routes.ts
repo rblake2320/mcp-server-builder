@@ -76,6 +76,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Ensure directories exist
   fs.ensureDirSync(path.join(process.cwd(), 'builds'));
   fs.ensureDirSync(path.join(process.cwd(), 'downloads'));
+  fs.ensureDirSync(path.join(process.cwd(), 'public/logos'));
+  
+  // API endpoint to get logo URLs
+  app.get('/api/get-logo', (req, res) => {
+    const { provider } = req.query;
+    
+    // Map of cloud providers and their logo file names
+    const logoMap: Record<string, string> = {
+      vercel: "/logos/vercel.svg",
+      railway: "/logos/railway.svg",
+      render: "/logos/render.svg",
+      netlify: "/logos/netlify.svg",
+      flyio: "/logos/flyio.svg",
+      cursor: "/logos/cursor.svg"
+    };
+    
+    // Return the correct logo URL or a default placeholder
+    const logoUrl = logoMap[provider as string]?.toLowerCase() || "/logos/default.svg";
+    res.json({ logoUrl });
+  });
 
   // Create MCP server
   app.post('/api/create-server', async (req, res) => {

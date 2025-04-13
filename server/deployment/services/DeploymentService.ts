@@ -18,6 +18,7 @@ export interface DeploymentResult {
   deploymentUrl?: string;
   platformId?: string;
   error?: string;
+  setupInstructions?: string[];
 }
 
 export interface DeploymentOptions {

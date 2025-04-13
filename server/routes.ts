@@ -19,6 +19,7 @@ import {
   VALIDATION_INFO
 } from "../client/src/lib/templates";
 import { platforms, generateDeploymentInstructions } from "./deployment/platforms";
+import { initiatePlatformDeployment, downloadDeployment, cleanupDeployments } from './deployment/deploymentController';
 
 // Validation function to ensure server templates are following protocol specifications
 function validateServerConfig(config: any): { valid: boolean; errors: string[] } {

@@ -69,13 +69,13 @@ YELLOW="\\033[0;33m"
 RED="\\033[0;31m"
 RESET="\\033[0m"
 
-echo -e "${BOLD}${BLUE}=== MCP Server Vercel Deployment Script ===${RESET}"
-echo -e "${BLUE}This script will deploy your MCP server to Vercel${RESET}"
+echo -e "\${BOLD}\${BLUE}=== MCP Server Vercel Deployment Script ===\${RESET}"
+echo -e "\${BLUE}This script will deploy your MCP server to Vercel\${RESET}"
 echo
 
 # Check if the Vercel CLI is installed
 if ! command -v vercel &> /dev/null; then
-    echo -e "${YELLOW}Vercel CLI not found. Installing...${RESET}"
+    echo -e "\${YELLOW}Vercel CLI not found. Installing...\${RESET}"
     npm install -g vercel
 fi
 
@@ -85,27 +85,27 @@ if [ -z "$VERCEL_TOKEN" ]; then
     if [ -f ".env" ] && grep -q "VERCEL_TOKEN" ".env"; then
         source .env
     else
-        echo -e "${YELLOW}No Vercel token found. Please provide your Vercel token:${RESET}"
+        echo -e "\${YELLOW}No Vercel token found. Please provide your Vercel token:\${RESET}"
         read -p "Vercel Token: " VERCEL_TOKEN
         echo "VERCEL_TOKEN=$VERCEL_TOKEN" > .env
     fi
 fi
 
 # Deploy to Vercel
-echo -e "${BLUE}Deploying to Vercel...${RESET}"
+echo -e "\${BLUE}Deploying to Vercel...\${RESET}"
 VERCEL_TOKEN=$VERCEL_TOKEN vercel deploy --token $VERCEL_TOKEN ${this.options.credentials.scope ? '--scope ' + this.options.credentials.scope : ''} --prod --yes
 
 if [ $? -eq 0 ]; then
-    echo -e "${GREEN}${BOLD}Deployment successful!${RESET}"
-    echo -e "${BLUE}Your MCP server is now deployed to Vercel.${RESET}"
-    echo -e "${BLUE}You can access your deployment details on the Vercel dashboard.${RESET}"
+    echo -e "\${GREEN}\${BOLD}Deployment successful!\${RESET}"
+    echo -e "\${BLUE}Your MCP server is now deployed to Vercel.\${RESET}"
+    echo -e "\${BLUE}You can access your deployment details on the Vercel dashboard.\${RESET}"
 else
-    echo -e "${RED}${BOLD}Deployment failed.${RESET}"
-    echo -e "${RED}Please check the error message above and try again.${RESET}"
+    echo -e "\${RED}\${BOLD}Deployment failed.\${RESET}"
+    echo -e "\${RED}Please check the error message above and try again.\${RESET}"
 fi
 
 echo
-echo -e "${BOLD}Thank you for using the MCP Server Builder!${RESET}"
+echo -e "\${BOLD}Thank you for using the MCP Server Builder!\${RESET}"
 `;
 
     // Write deployment script

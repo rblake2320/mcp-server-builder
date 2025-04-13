@@ -74,13 +74,13 @@ YELLOW="\\033[0;33m"
 RED="\\033[0;31m"
 RESET="\\033[0m"
 
-echo -e "${BOLD}${BLUE}=== MCP Server Railway Deployment Script ===${RESET}"
-echo -e "${BLUE}This script will deploy your MCP server to Railway${RESET}"
+echo -e "\${BOLD}\${BLUE}=== MCP Server Railway Deployment Script ===\${RESET}"
+echo -e "\${BLUE}This script will deploy your MCP server to Railway\${RESET}"
 echo
 
 # Check if the Railway CLI is installed
 if ! command -v railway &> /dev/null; then
-    echo -e "${YELLOW}Railway CLI not found. Installing...${RESET}"
+    echo -e "\${YELLOW}Railway CLI not found. Installing...\${RESET}"
     npm install -g @railway/cli
 fi
 
@@ -90,42 +90,42 @@ if [ -z "$RAILWAY_API_KEY" ]; then
     if [ -f ".env" ] && grep -q "RAILWAY_API_KEY" ".env"; then
         source .env
     else
-        echo -e "${YELLOW}No Railway API key found. Please provide your Railway API key:${RESET}"
+        echo -e "\${YELLOW}No Railway API key found. Please provide your Railway API key:\${RESET}"
         read -p "Railway API Key: " RAILWAY_API_KEY
         echo "RAILWAY_API_KEY=$RAILWAY_API_KEY" > .env
     fi
 fi
 
 # Login to Railway with API key
-echo -e "${BLUE}Logging in to Railway...${RESET}"
+echo -e "\${BLUE}Logging in to Railway...\${RESET}"
 railway login --apikey $RAILWAY_API_KEY
 
 if [ $? -ne 0 ]; then
-    echo -e "${RED}${BOLD}Login failed. Please check your API key and try again.${RESET}"
+    echo -e "\${RED}\${BOLD}Login failed. Please check your API key and try again.\${RESET}"
     exit 1
 fi
 
 # Initialize a new project
-echo -e "${BLUE}Initializing a new Railway project...${RESET}"
+echo -e "\${BLUE}Initializing a new Railway project...\${RESET}"
 railway init
 
 # Deploy to Railway
-echo -e "${BLUE}Deploying to Railway...${RESET}"
+echo -e "\${BLUE}Deploying to Railway...\${RESET}"
 railway up
 
 if [ $? -eq 0 ]; then
-    echo -e "${GREEN}${BOLD}Deployment successful!${RESET}"
-    echo -e "${BLUE}Your MCP server is now deploying to Railway.${RESET}"
+    echo -e "\${GREEN}\${BOLD}Deployment successful!\${RESET}"
+    echo -e "\${BLUE}Your MCP server is now deploying to Railway.\${RESET}"
     echo
-    echo -e "${BLUE}To open your project in the Railway dashboard, run:${RESET}"
-    echo -e "${YELLOW}railway open${RESET}"
+    echo -e "\${BLUE}To open your project in the Railway dashboard, run:\${RESET}"
+    echo -e "\${YELLOW}railway open\${RESET}"
 else
-    echo -e "${RED}${BOLD}Deployment failed.${RESET}"
-    echo -e "${RED}Please check the error message above and try again.${RESET}"
+    echo -e "\${RED}\${BOLD}Deployment failed.\${RESET}"
+    echo -e "\${RED}Please check the error message above and try again.\${RESET}"
 fi
 
 echo
-echo -e "${BOLD}Thank you for using the MCP Server Builder!${RESET}"
+echo -e "\${BOLD}Thank you for using the MCP Server Builder!\${RESET}"
 `;
 
     // Write deployment script

@@ -34,14 +34,24 @@ export async function initiatePlatformDeployment(req: Request, res: Response) {
 
     // Create deployment directory
     const tmpDir = path.join(process.cwd(), 'tmp');
-    const deploymentDir = path.join(tmpDir, 'builds', buildId);
     
-    // Ensure deployment directory exists
+    // First look in tmp/builds
+    let deploymentDir = path.join(tmpDir, 'builds', buildId);
+    
+    // If not found in tmp/builds, look in the main builds directory
     if (!fs.existsSync(deploymentDir)) {
-      return res.status(404).json({
-        success: false,
-        message: 'Build not found'
-      });
+      deploymentDir = path.join(process.cwd(), 'builds', buildId);
+      
+      // If still not found, return error
+      if (!fs.existsSync(deploymentDir)) {
+        console.error(`Build not found: ${buildId} not in tmp/builds or builds`);
+        return res.status(404).json({
+          success: false,
+          message: 'Build not found'
+        });
+      }
+      
+      console.log(`Found build in main builds directory: ${deploymentDir}`);
     }
 
     // Skip generating platform-specific files for now
@@ -85,7 +95,19 @@ export async function initiatePlatformDeployment(req: Request, res: Response) {
       });
 
       archive.pipe(output);
-      archive.directory(path.join(tmpDir, 'deployments', result.deploymentId), false);
+      
+      // Check if the path exists
+      const deploymentPath = path.join(tmpDir, 'deployments', result.deploymentId);
+      if (fs.existsSync(deploymentPath)) {
+        console.log(`Adding directory to archive: ${deploymentPath}`);
+        archive.directory(deploymentPath, false);
+      } else {
+        console.error(`Deployment directory not found: ${deploymentPath}`);
+        // Fall back to using the original build directory
+        console.log(`Falling back to build directory: ${deploymentDir}`);
+        archive.directory(deploymentDir, false);
+      }
+      
       await archive.finalize();
 
       // Store the deployment for download

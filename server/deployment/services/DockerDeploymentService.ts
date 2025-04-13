@@ -10,6 +10,22 @@ export class DockerDeploymentService extends DeploymentService {
    * Generate Docker-specific configuration files
    */
   protected async generateConfig(): Promise<void> {
+    // Get source build directory and make sure it exists
+    const sourceBuildDir = this.options.deploymentDir;
+    if (!fs.existsSync(sourceBuildDir)) {
+      throw new Error(`Source build directory does not exist: ${sourceBuildDir}`);
+    }
+    
+    // Create destination directory if it doesn't exist
+    if (!fs.existsSync(this.tempDir)) {
+      fs.mkdirSync(this.tempDir, { recursive: true });
+      console.log(`Created destination directory: ${this.tempDir}`);
+    }
+    
+    // Copy all build files to the deployment directory
+    fs.copySync(sourceBuildDir, this.tempDir);
+    console.log(`Copied build files from ${sourceBuildDir} to ${this.tempDir}`);
+    
     // Get server files
     const serverFiles = fs.readdirSync(this.tempDir);
     

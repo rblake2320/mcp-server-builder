@@ -222,14 +222,79 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Download API endpoint
-  app.get('/api/download/:buildId', (req, res) => {
+  app.get('/api/download/:buildId', async (req, res) => {
     const { buildId } = req.params;
+    const platformId = req.query.platform as string; // Optional platform ID for enhanced downloads
     const zipFilePath = path.join(process.cwd(), 'downloads', `${buildId}.zip`);
     
     if (!fs.existsSync(zipFilePath)) {
       return res.status(404).json({ error: 'Build not found' });
     }
     
+    // If a specific platform is requested, enhance the download with platform-specific files
+    if (platformId) {
+      try {
+        // Get server info
+        const server = await storage.getServerByBuildId(buildId);
+        if (!server) {
+          return res.status(404).json({ error: 'Server not found' });
+        }
+        
+        // Create temporary directory
+        const tmpDir = path.join(process.cwd(), 'tmp', 'enhanced_downloads', buildId);
+        if (!fs.existsSync(tmpDir)) {
+          fs.mkdirSync(tmpDir, { recursive: true });
+        }
+        
+        // Extract the original zip to the temporary directory
+        await new Promise<void>((resolve, reject) => {
+          const extract = require('extract-zip');
+          extract(zipFilePath, { dir: tmpDir })
+            .then(() => resolve())
+            .catch(reject);
+        });
+        
+        // Generate platform-specific files
+        await import('./deployment/platforms').then(({ generateDeploymentFiles }) => {
+          return generateDeploymentFiles(platformId, buildId, tmpDir);
+        });
+        
+        // Create a new zip file with enhanced content
+        const enhancedZipPath = path.join(process.cwd(), 'tmp', 'enhanced_downloads', `${buildId}_${platformId}.zip`);
+        
+        const output = fs.createWriteStream(enhancedZipPath);
+        const archive = archiver('zip', { zlib: { level: 9 } });
+        
+        archive.pipe(output);
+        archive.directory(tmpDir, false);
+        
+        await new Promise<void>((resolve, reject) => {
+          output.on('close', () => resolve());
+          archive.on('error', reject);
+          archive.finalize();
+        });
+        
+        // Send the enhanced zip
+        res.download(enhancedZipPath, `mcp-server-${platformId}.zip`);
+        
+        // Schedule cleanup
+        setTimeout(() => {
+          try {
+            fs.rmSync(tmpDir, { recursive: true, force: true });
+            fs.unlinkSync(enhancedZipPath);
+          } catch (error) {
+            console.error('Error cleaning up enhanced download:', error);
+          }
+        }, 60 * 60 * 1000); // Clean up after 1 hour
+        
+        return;
+      } catch (error) {
+        console.error('Error enhancing download:', error);
+        // Fall back to regular download
+      }
+    }
+    
+    // Regular download
     res.download(zipFilePath);
   });
   

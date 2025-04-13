@@ -10,12 +10,17 @@ export class DockerDeploymentService extends DeploymentService {
    * Generate Docker-specific configuration files
    */
   protected async generateConfig(): Promise<void> {
+    // Get server files
+    const serverFiles = fs.readdirSync(this.tempDir);
+    
     // Determine if this is a JavaScript or Python server
-    const isJavaScript = !this.options.serverName.toLowerCase().includes('python');
+    const isJavaScript = serverFiles.includes('server.js');
     const serverFile = isJavaScript ? 'server.js' : 'server.py';
     const normalizedServerName = this.options.serverName.toLowerCase().replace(/\s+/g, '-');
     
-    // Create Dockerfile
+    console.log(`Generating Docker config for ${isJavaScript ? 'JavaScript' : 'Python'} server`);
+    
+    // Create Dockerfile (or replace existing one with a better version)
     const dockerfile = isJavaScript 
       ? `FROM node:18-slim
 
@@ -195,7 +200,7 @@ read -p "Press Enter to exit..."
       console.error('Error making shell script executable:', error);
     }
     
-    // Create README with instructions
+    // Create comprehensive README with instructions
     const readmeContent = `# MCP Server Docker Deployment
 
 ## Automatic Deployment
@@ -243,6 +248,15 @@ If the automated scripts don't work, you can manually deploy using Docker:
 ## Customization
 
 You can customize the Docker configuration by editing the Dockerfile or docker-compose.yml files.
+
+## Troubleshooting
+
+If you encounter any issues:
+
+1. Make sure Docker is properly installed and running.
+2. Check that ports are not already in use (8080 is required).
+3. For permission issues on Linux/Mac, you may need to use \`sudo\` with Docker commands.
+4. If the container fails to start, check the logs with: \`docker logs ${normalizedServerName}\`
 `;
     
     fs.writeFileSync(path.join(this.tempDir, 'README.md'), readmeContent);
@@ -259,26 +273,43 @@ Dockerfile
 `;
     
     fs.writeFileSync(path.join(this.tempDir, '.dockerignore'), dockerignore);
+    
+    console.log('Docker configuration generated successfully');
   }
 
   /**
    * Deploy Docker package (local preparation only)
    */
   protected async deploy(): Promise<DeploymentResult> {
-    return {
-      success: true,
-      message: 'Docker deployment package created successfully!',
-      deploymentId: this.deploymentId,
-      platformId: this.options.platformId,
-      setupInstructions: [
+    try {
+      console.log('Preparing Docker deployment package');
+      
+      // Generate Docker-specific setup instructions
+      const setupInstructions = [
         'Extract the downloaded package to a local folder',
         'Make sure Docker is installed and running on your machine',
-        'Run the deployment script:',
+        'Run the Docker deployment script:',
         ' • Windows: run-docker-deploy.bat',
         ' • Mac/Linux: ./run-docker-deploy.sh',
-        'This will build and run your MCP server as a Docker container',
+        'The script will build and run your MCP server as a Docker container',
         'Your MCP server will be available at http://localhost:8080'
-      ]
-    };
+      ];
+      
+      return {
+        success: true,
+        message: 'Deployment package for Docker is ready',
+        deploymentId: this.deploymentId,
+        platformId: this.options.platformId,
+        setupInstructions
+      };
+    } catch (error) {
+      console.error('Docker deployment preparation failed:', error);
+      return {
+        success: false,
+        message: 'Docker deployment preparation failed',
+        error: error instanceof Error ? error.message : 'Unknown error',
+        platformId: this.options.platformId
+      };
+    }
   }
 }

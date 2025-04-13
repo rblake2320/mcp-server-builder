@@ -26,6 +26,13 @@ export const platforms: DeploymentPlatform[] = [
     requiresCredentials: false
   },
   {
+    id: 'docker',
+    name: 'Docker',
+    description: 'Package your MCP server as a Docker container for easy deployment anywhere',
+    logoUrl: '/logos/docker.svg',
+    requiresCredentials: false
+  },
+  {
     id: 'vercel',
     name: 'Vercel',
     description: 'Deploy your MCP server to Vercel for serverless hosting',
@@ -91,6 +98,17 @@ export function generateDeploymentInstructions(platformId: string, buildId: stri
         ' • Configure your Cursor IDE',
         ' • Set up the MCP server for immediate use',
         'Restart Cursor IDE to apply the changes'
+      ];
+      
+    case 'docker':
+      return [
+        'Extract the downloaded package to a local folder',
+        'Make sure Docker is installed on your machine',
+        'Run the Docker deployment script:',
+        ' • Windows: run-docker-deploy.bat',
+        ' • Mac/Linux: ./run-docker-deploy.sh',
+        'The script will build and run your MCP server as a Docker container',
+        'Your MCP server will be available at http://localhost:8080'
       ];
 
     case 'vercel':

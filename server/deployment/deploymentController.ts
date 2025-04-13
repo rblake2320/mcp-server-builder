@@ -44,8 +44,8 @@ export async function initiatePlatformDeployment(req: Request, res: Response) {
       });
     }
 
-    // Generate platform-specific files
-    await generateDeploymentFiles(platformId, buildId, deploymentDir);
+    // Skip generating platform-specific files for now
+    // We'll handle this in each deployment service's generateConfig method
 
     // Get deployment service
     const deploymentOptions: DeploymentOptions = {

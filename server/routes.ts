@@ -859,6 +859,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     // Default logo paths based on provider ID
     const logoMap: Record<string, string> = {
       'cursor': '/logos/cursor.svg',
+      'docker': '/logos/docker.svg',
       'vercel': '/logos/vercel.svg',
       'railway': '/logos/railway.svg',
       'heroku': '/logos/heroku.svg',

@@ -1,0 +1,393 @@
+# MCP Server Builder URL Import Feature Implementation
+
+The ability to import MCP servers directly from URLs would be a powerful addition to the MCP Server Builder interface. While this feature isn't currently visible in either version of the UI shown in the screenshots, it's technically feasible to implement. Here's a comprehensive solution for adding URL-based server importing to your MCP Server Builder.
+
+## Technical Feasibility Overview
+
+Adding a URL import feature would allow users to:
+1. Input a GitHub/GitLab repository URL containing an MCP server implementation
+2. Automatically extract server configuration, tools, and parameters
+3. Import these into the MCP Server Builder interface
+4. Generate a ready-to-use MCP server package
+
+## Implementation Code for Replit
+
+Below is a Python implementation you can copy-paste into a Replit project to add this functionality to the MCP Server Builder:
+
+```python
+# server_importer.py
+import os
+import requests
+import json
+import zipfile
+import tempfile
+import shutil
+from bs4 import BeautifulSoup
+from git import Repo
+from flask import Flask, request, jsonify
+
+app = Flask(__name__)
+
+class MCPServerImporter:
+    def __init__(self):
+        self.supported_platforms = ["github", "gitlab", "bitbucket"]
+        self.temp_dir = tempfile.mkdtemp()
+    
+    def detect_platform(self, url):
+        """Detect which code hosting platform the URL belongs to"""
+        if "github.com" in url:
+            return "github"
+        elif "gitlab.com" in url:
+            return "gitlab"
+        elif "bitbucket.org" in url:
+            return "bitbucket"
+        else:
+            return "unknown"
+    
+    def clone_repository(self, url):
+        """Clone the repository to a temporary directory"""
+        try:
+            Repo.clone_from(url, self.temp_dir)
+            return True
+        except Exception as e:
+            print(f"Error cloning repository: {e}")
+            return False
+    
+    def extract_mcp_config(self):
+        """Extract MCP configuration from the repository"""
+        # Look for common MCP server configuration files
+        config_paths = [
+            os.path.join(self.temp_dir, "mcp_config.json"),
+            os.path.join(self.temp_dir, "server_config.json"),
+            os.path.join(self.temp_dir, "config", "mcp.json")
+        ]
+        
+        for path in config_paths:
+            if os.path.exists(path):
+                with open(path, 'r') as f:
+                    return json.load(f)
+        
+        # If no config file found, try to infer from code
+        return self.infer_config_from_code()
+    
+    def infer_config_from_code(self):
+        """Try to infer MCP configuration by analyzing code files"""
+        config = {
+            "server_name": "Imported Server",
+            "tools": []
+        }
+        
+        # Look for Python files that might define tools
+        for root, _, files in os.walk(self.temp_dir):
+            for file in files:
+                if file.endswith(".py"):
+                    file_path = os.path.join(root, file)
+                    with open(file_path, 'r') as f:
+                        content = f.read()
+                        
+                        # Look for MCP tool definitions
+                        if "def run_tool" in content or "async def run_tool" in content:
+                            # Extract tool name
+                            tool_name = file.replace(".py", "")
+                            
+                            # Extract parameters using regex
+                            import re
+                            param_pattern = r'parameter\s*\(\s*name\s*=\s*["\']([^"\']+)["\']'
+                            params = re.findall(param_pattern, content)
+                            
+                            tool = {
+                                "name": tool_name,
+                                "parameters": [{"name": p, "type": "string"} for p in params]
+                            }
+                            
+                            config["tools"].append(tool)
+        
+        return config
+    
+    def extract_requirements(self):
+        """Extract dependencies from requirements.txt if available"""
+        req_path = os.path.join(self.temp_dir, "requirements.txt")
+        if os.path.exists(req_path):
+            with open(req_path, 'r') as f:
+                return f.read().splitlines()
+        return []
+    
+    def package_for_builder(self):
+        """Create a package that the MCP Server Builder can import"""
+        config = self.extract_mcp_config()
+        requirements = self.extract_requirements()
+        
+        # Create an import package
+        package = {
+            "server_config": config,
+            "requirements": requirements,
+            "files": {}
+        }
+        
+        # Include key files in the package
+        for root, _, files in os.walk(self.temp_dir):
+            for file in files:
+                if file.endswith((".py", ".json", ".md", ".txt", ".sh")):
+                    rel_path = os.path.relpath(os.path.join(root, file), self.temp_dir)
+                    with open(os.path.join(root, file), 'r') as f:
+                        package["files"][rel_path] = f.read()
+        
+        return package
+    
+    def cleanup(self):
+        """Remove temporary directory"""
+        shutil.rmtree(self.temp_dir)
+    
+    def import_from_url(self, url):
+        """Main method to import an MCP server from URL"""
+        platform = self.detect_platform(url)
+        
+        if platform == "unknown":
+            return {"error": "Unsupported platform. Please provide a GitHub, GitLab or Bitbucket URL."}
+        
+        if not self.clone_repository(url):
+            return {"error": "Failed to clone repository. Please check the URL and try again."}
+        
+        try:
+            package = self.package_for_builder()
+            self.cleanup()
+            return package
+        except Exception as e:
+            self.cleanup()
+            return {"error": f"Error processing repository: {str(e)}"}
+
+
+@app.route('/import-server', methods=['POST'])
+def import_server():
+    data = request.json
+    url = data.get('url')
+    
+    if not url:
+        return jsonify({"error": "URL is required"}), 400
+    
+    importer = MCPServerImporter()
+    result = importer.import_from_url(url)
+    
+    if "error" in result:
+        return jsonify(result), 400
+    
+    return jsonify(result), 200
+
+
+@app.route('/import-ui', methods=['GET'])
+def import_ui():
+    """Return a simple UI for the importer"""
+    html = """
+    
+    
+    
+        MCP Server Importer
+        
+            body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 20px; color: #333; }
+            .container { max-width: 800px; margin: 0 auto; background: #f9f9f9; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+            h1 { color: #2c3e50; margin-top: 0; }
+            input[type="text"] { width: 100%; padding: 8px; margin: 10px 0; border: 1px solid #ddd; border-radius: 4px; }
+            button { background: #3498db; color: white; border: none; padding: 10px 15px; border-radius: 4px; cursor: pointer; }
+            button:hover { background: #2980b9; }
+            #result { margin-top: 20px; background: #fff; padding: 15px; border-radius: 4px; border: 1px solid #ddd; display: none; white-space: pre-wrap; }
+            .error { color: #e74c3c; }
+        
+    
+    
+        
+            MCP Server URL Importer
+            Enter the URL of a GitHub, GitLab, or Bitbucket repository containing an MCP server implementation:
+            
+            
+            Import Server
+            
+            
+        
+        
+        
+            async function importServer() {
+                const url = document.getElementById('repoUrl').value;
+                const resultElement = document.getElementById('result');
+                
+                if (!url) {
+                    resultElement.innerHTML = 'Please enter a repository URL';
+                    resultElement.style.display = 'block';
+                    return;
+                }
+                
+                resultElement.innerHTML = 'Importing server from URL... This may take a moment.';
+                resultElement.style.display = 'block';
+                
+                try {
+                    const response = await fetch('/import-server', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ url })
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (response.ok) {
+                        resultElement.innerHTML = 'Server imported successfully! Server details:' + 
+                                                 JSON.stringify(data, null, 2) + '' +
+                                                 'You can now use this configuration in the MCP Server Builder.';
+                    } else {
+                        resultElement.innerHTML = 'Error: ' + data.error + '';
+                    }
+                } catch (error) {
+                    resultElement.innerHTML = 'Error: ' + error.message + '';
+                }
+            }
+        
+    
+    
+    """
+    return html
+
+
+if __name__ == "__main__":
+    app.run(host='0.0.0.0', port=8000)
+```
+
+## Integration Instructions for Replit
+
+To add this URL import functionality to your MCP Server Builder:
+
+1. Create a new Replit project using Python
+2. Add the following to the `.replit` configuration file:
+
+```
+entrypoint = "server_importer.py"
+modules = ["python-3.10:v18-20230807-322e88b"]
+
+[nix]
+channel = "stable-23_05"
+
+[deployment]
+run = ["python", "server_importer.py"]
+deploymentTarget = "cloudrun"
+```
+
+3. Install necessary dependencies by creating a `requirements.txt` file:
+
+```
+flask==2.2.3
+requests==2.28.2
+beautifulsoup4==4.11.2
+gitpython==3.1.31
+```
+
+4. Set up the environment in Replit's Shell:
+
+```bash
+pip install -r requirements.txt
+```
+
+5. Connect this importer to your main MCP Server Builder UI by adding a button in your HTML:
+
+```html
+Import Server from URL
+```
+
+## Frontend Integration Code
+
+To integrate this with your existing MCP Server Builder UI, add this JavaScript function to your main application:
+
+```javascript
+async function importFromUrl() {
+  const url = prompt("Enter the URL of the MCP server repository:");
+  if (!url) return;
+  
+  try {
+    // Show loading indicator
+    const loadingElement = document.createElement('div');
+    loadingElement.id = 'import-loading';
+    loadingElement.innerText = 'Importing server from URL...';
+    document.body.appendChild(loadingElement);
+    
+    const response = await fetch('/import-server', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ url })
+    });
+    
+    // Remove loading indicator
+    document.body.removeChild(loadingElement);
+    
+    if (response.ok) {
+      const data = await response.json();
+      
+      // Set server configuration in your builder
+      setServerConfig(data.server_config);
+      
+      // Populate tool definitions
+      populateToolDefinitions(data.server_config.tools);
+      
+      alert("Server imported successfully!");
+    } else {
+      const errorData = await response.json();
+      alert(`Error importing server: ${errorData.error}`);
+    }
+  } catch (error) {
+    alert(`Error: ${error.message}`);
+  }
+}
+
+// Helper functions to update your UI
+function setServerConfig(config) {
+  // Update your server configuration form fields
+  document.getElementById('server-name').value = config.server_name || '';
+  // Update other form fields accordingly
+}
+
+function populateToolDefinitions(tools) {
+  // Clear existing tools
+  const toolsContainer = document.getElementById('tools-container');
+  toolsContainer.innerHTML = '';
+  
+  // Add each tool to your UI
+  tools.forEach(tool => {
+    addToolToUI(tool);
+  });
+}
+
+function addToolToUI(tool) {
+  // Create and append tool UI elements based on your existing UI structure
+  // This would include name, description, parameters, etc.
+  console.log("Adding tool:", tool);
+  // Implementation depends on your existing UI structure
+}
+```
+
+## Advanced Features to Consider
+
+To enhance this URL import functionality further, consider adding:
+
+1. **Selective Import**: Allow users to choose which tools to import from a repository
+2. **Preview Mode**: Show what will be imported before finalizing
+3. **Version Selection**: For repositories with multiple branches/tags
+4. **Diff View**: When updating an existing server configuration
+5. **Schema Validation**: Ensure imported servers meet MCP specifications
+6. **Direct Import from MCP Registry**: Support importing from a centralized MCP server registry
+
+## Security Considerations
+
+When implementing this feature, be aware of these security concerns:
+
+1. **Code Execution Risk**: Validate all imported code to prevent malicious execution
+2. **Rate Limiting**: Prevent abuse of the import feature
+3. **Sanitization**: Ensure all imported content is properly sanitized
+4. **Authentication**: Require authentication for accessing private repositories
+
+This implementation gives you a solid foundation for adding URL-based MCP server importing to your builder, enhancing its functionality while maintaining security and user experience.
+
+Citations:
+[1] https://pplx-res.cloudinary.com/image/upload/v1744553193/user_uploads/zNQeVSyEmmXzajY/image.jpg
+[2] https://pplx-res.cloudinary.com/image/upload/v1744553762/user_uploads/GpgTdHILJHqVVrf/image.jpg
+
+---
+Answer from Perplexity: pplx.ai/share

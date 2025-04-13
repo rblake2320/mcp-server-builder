@@ -264,11 +264,15 @@ primary_region = "ewr"
     description: 'Deploy to Netlify for serverless MCP server functions with global CDN',
     logoUrl: '/logos/netlify.svg',
     setupInstructions: [
-      'Create a Netlify account at https://netlify.com',
-      'Install the Netlify CLI: npm i -g netlify-cli',
-      'Run "netlify login" to authenticate',
-      'Navigate to your project directory',
-      'Run "netlify deploy" to deploy your MCP server'
+      'Create a Netlify account at https://netlify.com if you don\'t have one',
+      'Extract the downloaded deployment package to a folder on your computer',
+      'Install the Netlify CLI: npm install -g netlify-cli',
+      'Run "netlify login" to authenticate with your account',
+      'Open a terminal/command prompt in the extracted folder',
+      'Run "netlify init" to create a new site (follow the prompts)',
+      'Run "netlify deploy --prod" to deploy your MCP server',
+      'After deployment, note the URL provided by Netlify',
+      'Use this URL to access your MCP server in AI assistants'
     ],
     requiresCredentials: true,
     credentialFields: [

@@ -1,6 +1,16 @@
 import { db } from "./db";
-import { users, type User, type InsertUser, type Server, type InsertServer, servers } from "@shared/schema";
-import { eq, desc } from "drizzle-orm";
+import { 
+  users, 
+  type User, 
+  type InsertUser, 
+  type Server, 
+  type InsertServer, 
+  servers,
+  templates,
+  type Template,
+  type InsertTemplate
+} from "@shared/schema";
+import { eq, desc, and, isNull, isNotNull } from "drizzle-orm";
 import { pool } from "./db";
 import session from "express-session";
 import createPgStore from "connect-pg-simple";
@@ -17,6 +27,14 @@ export interface IStorage {
   getServerByBuildId(buildId: string): Promise<Server | undefined>;
   createServer(server: InsertServer): Promise<Server>;
   listServers(limit?: number): Promise<Server[]>;
+  
+  // Template operations
+  getTemplate(id: number): Promise<Template | undefined>;
+  getUserTemplates(userId: number): Promise<Template[]>;
+  getPublicTemplates(): Promise<Template[]>;
+  createTemplate(template: InsertTemplate): Promise<Template>;
+  updateTemplate(id: number, template: Partial<InsertTemplate>): Promise<Template | undefined>;
+  deleteTemplate(id: number): Promise<boolean>;
   
   // For session management
   sessionStore: session.Store;
@@ -87,6 +105,45 @@ export class DatabaseStorage implements IStorage {
     }
     
     return await query;
+  }
+  
+  // Template methods
+  async getTemplate(id: number): Promise<Template | undefined> {
+    const [template] = await db.select().from(templates).where(eq(templates.id, id));
+    return template;
+  }
+  
+  async getUserTemplates(userId: number): Promise<Template[]> {
+    return await db.select()
+                  .from(templates)
+                  .where(eq(templates.userId, userId))
+                  .orderBy(desc(templates.updatedAt));
+  }
+  
+  async getPublicTemplates(): Promise<Template[]> {
+    return await db.select()
+                  .from(templates)
+                  .where(eq(templates.public, true))
+                  .orderBy(desc(templates.updatedAt));
+  }
+  
+  async createTemplate(template: InsertTemplate): Promise<Template> {
+    const [newTemplate] = await db.insert(templates).values(template).returning();
+    return newTemplate;
+  }
+  
+  async updateTemplate(id: number, templateData: Partial<InsertTemplate>): Promise<Template | undefined> {
+    const now = new Date();
+    const [updatedTemplate] = await db.update(templates)
+                                     .set({ ...templateData, updatedAt: now })
+                                     .where(eq(templates.id, id))
+                                     .returning();
+    return updatedTemplate;
+  }
+  
+  async deleteTemplate(id: number): Promise<boolean> {
+    const result = await db.delete(templates).where(eq(templates.id, id));
+    return true; // Drizzle doesn't return count of deleted rows directly
   }
 }
 

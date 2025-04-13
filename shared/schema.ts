@@ -14,6 +14,7 @@ export const users = pgTable("users", {
 // Define relations for users table
 export const usersRelations = relations(users, ({ many }) => ({
   servers: many(servers),
+  templates: many(templates),
 }));
 
 export const insertUserSchema = createInsertSchema(users).pick({
@@ -50,8 +51,41 @@ export const insertServerSchema = createInsertSchema(servers).pick({
   userId: true,
 });
 
+// Template model for saved server configurations
+export const templates = pgTable("templates", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  description: text("description").notNull(),
+  serverType: text("server_type").notNull(),
+  configData: jsonb("config_data").notNull(), // Stores the entire server configuration
+  public: boolean("public").default(false).notNull(), // If template is shared publicly
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  userId: integer("user_id").notNull().references(() => users.id),
+});
+
+// Define relations for templates table
+export const templatesRelations = relations(templates, ({ one }) => ({
+  user: one(users, {
+    fields: [templates.userId],
+    references: [users.id],
+  }),
+}));
+
+export const insertTemplateSchema = createInsertSchema(templates).pick({
+  name: true,
+  description: true,
+  serverType: true,
+  configData: true,
+  public: true,
+  userId: true,
+});
+
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 
 export type InsertServer = z.infer<typeof insertServerSchema>;
 export type Server = typeof servers.$inferSelect;
+
+export type InsertTemplate = z.infer<typeof insertTemplateSchema>;
+export type Template = typeof templates.$inferSelect;

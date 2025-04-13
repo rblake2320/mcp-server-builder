@@ -6,7 +6,7 @@ import fs from "fs-extra";
 import path from "path";
 import archiver from "archiver";
 import { v4 as uuidv4 } from "uuid";
-import { insertServerSchema, User } from "@shared/schema";
+import { insertServerSchema, User, InsertTemplate } from "@shared/schema";
 import { 
   pythonTemplate, 
   typescriptTemplate, 
@@ -260,6 +260,364 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ]
       }
     });
+  });
+  
+  // ===== Template Management API Endpoints =====
+  
+  // Get all public templates
+  app.get('/api/templates/public', async (req, res) => {
+    try {
+      const templates = await storage.getPublicTemplates();
+      res.json(templates);
+    } catch (error) {
+      console.error('Error fetching public templates:', error);
+      res.status(500).json({ error: 'Failed to fetch public templates' });
+    }
+  });
+
+  // Get user's templates (auth required)
+  app.get('/api/templates', async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ error: 'Authentication required' });
+      }
+      
+      const userId = (req.user as User).id;
+      const templates = await storage.getUserTemplates(userId);
+      res.json(templates);
+    } catch (error) {
+      console.error('Error fetching user templates:', error);
+      res.status(500).json({ error: 'Failed to fetch templates' });
+    }
+  });
+
+  // Get template by ID
+  app.get('/api/templates/:id', async (req, res) => {
+    try {
+      const templateId = parseInt(req.params.id);
+      if (isNaN(templateId)) {
+        return res.status(400).json({ error: 'Invalid template ID' });
+      }
+      
+      const template = await storage.getTemplate(templateId);
+      
+      if (!template) {
+        return res.status(404).json({ error: 'Template not found' });
+      }
+      
+      // If template is not public, check if user is owner
+      if (!template.public) {
+        if (!req.isAuthenticated() || (req.user as User).id !== template.userId) {
+          return res.status(403).json({ error: 'Access denied to this template' });
+        }
+      }
+      
+      res.json(template);
+    } catch (error) {
+      console.error('Error fetching template:', error);
+      res.status(500).json({ error: 'Failed to fetch template' });
+    }
+  });
+
+  // Create a new template (auth required)
+  app.post('/api/templates', async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ error: 'Authentication required' });
+      }
+      
+      const userId = (req.user as User).id;
+      const { name, description, serverType, configData, public: isPublic } = req.body;
+      
+      // Basic validation
+      if (!name || !description || !serverType || !configData) {
+        return res.status(400).json({ error: 'Missing required fields' });
+      }
+      
+      // Validate serverType
+      if (!['python', 'typescript'].includes(serverType)) {
+        return res.status(400).json({ error: 'Server type must be "python" or "typescript"' });
+      }
+      
+      // Make sure configData is valid JSON
+      let parsedConfig;
+      try {
+        if (typeof configData === 'string') {
+          parsedConfig = JSON.parse(configData);
+        } else {
+          parsedConfig = configData;
+        }
+      } catch (e) {
+        return res.status(400).json({ error: 'Invalid configuration data (must be valid JSON)' });
+      }
+      
+      // Validate config data against MCP protocol specs
+      const validation = validateServerConfig(parsedConfig);
+      if (!validation.valid) {
+        return res.status(400).json({ 
+          error: 'Invalid server configuration', 
+          details: validation.errors,
+          mcpVersion: MCP_PROTOCOL_VERSION
+        });
+      }
+      
+      const template = await storage.createTemplate({
+        name,
+        description,
+        serverType,
+        configData: typeof parsedConfig === 'string' ? JSON.parse(parsedConfig) : parsedConfig,
+        public: isPublic === true,
+        userId
+      });
+      
+      res.status(201).json(template);
+    } catch (error) {
+      console.error('Error creating template:', error);
+      res.status(500).json({ error: 'Failed to create template' });
+    }
+  });
+
+  // Update template (auth required)
+  app.put('/api/templates/:id', async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ error: 'Authentication required' });
+      }
+      
+      const templateId = parseInt(req.params.id);
+      if (isNaN(templateId)) {
+        return res.status(400).json({ error: 'Invalid template ID' });
+      }
+      
+      const userId = (req.user as User).id;
+      const template = await storage.getTemplate(templateId);
+      
+      if (!template) {
+        return res.status(404).json({ error: 'Template not found' });
+      }
+      
+      // Check if user is owner
+      if (template.userId !== userId) {
+        return res.status(403).json({ error: 'You do not have permission to update this template' });
+      }
+      
+      const { name, description, serverType, configData, public: isPublic } = req.body;
+      
+      // Handle configData if provided
+      let parsedConfig = undefined;
+      if (configData) {
+        try {
+          if (typeof configData === 'string') {
+            parsedConfig = JSON.parse(configData);
+          } else {
+            parsedConfig = configData;
+          }
+          
+          // Validate against MCP protocol specs if config changed
+          const validation = validateServerConfig(parsedConfig);
+          if (!validation.valid) {
+            return res.status(400).json({ 
+              error: 'Invalid server configuration', 
+              details: validation.errors,
+              mcpVersion: MCP_PROTOCOL_VERSION
+            });
+          }
+        } catch (e) {
+          return res.status(400).json({ error: 'Invalid configuration data (must be valid JSON)' });
+        }
+      }
+      
+      const updateData: Partial<InsertTemplate> = {};
+      
+      if (name !== undefined) updateData.name = name;
+      if (description !== undefined) updateData.description = description;
+      if (serverType !== undefined) {
+        if (!['python', 'typescript'].includes(serverType)) {
+          return res.status(400).json({ error: 'Server type must be "python" or "typescript"' });
+        }
+        updateData.serverType = serverType;
+      }
+      if (parsedConfig !== undefined) {
+        updateData.configData = parsedConfig;
+      }
+      if (isPublic !== undefined) {
+        updateData.public = isPublic === true;
+      }
+      
+      const updatedTemplate = await storage.updateTemplate(templateId, updateData);
+      res.json(updatedTemplate);
+    } catch (error) {
+      console.error('Error updating template:', error);
+      res.status(500).json({ error: 'Failed to update template' });
+    }
+  });
+
+  // Delete template (auth required)
+  app.delete('/api/templates/:id', async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ error: 'Authentication required' });
+      }
+      
+      const templateId = parseInt(req.params.id);
+      if (isNaN(templateId)) {
+        return res.status(400).json({ error: 'Invalid template ID' });
+      }
+      
+      const userId = (req.user as User).id;
+      const template = await storage.getTemplate(templateId);
+      
+      if (!template) {
+        return res.status(404).json({ error: 'Template not found' });
+      }
+      
+      // Check if user is owner
+      if (template.userId !== userId) {
+        return res.status(403).json({ error: 'You do not have permission to delete this template' });
+      }
+      
+      await storage.deleteTemplate(templateId);
+      res.status(204).end();
+    } catch (error) {
+      console.error('Error deleting template:', error);
+      res.status(500).json({ error: 'Failed to delete template' });
+    }
+  });
+
+  // Create server from template (auth required)
+  app.post('/api/templates/:id/build', async (req, res) => {
+    try {
+      const templateId = parseInt(req.params.id);
+      if (isNaN(templateId)) {
+        return res.status(400).json({ error: 'Invalid template ID' });
+      }
+      
+      const template = await storage.getTemplate(templateId);
+      
+      if (!template) {
+        return res.status(404).json({ error: 'Template not found' });
+      }
+      
+      // If template is not public, check if user is authenticated and is owner
+      if (!template.public) {
+        if (!req.isAuthenticated() || (req.user as User).id !== template.userId) {
+          return res.status(403).json({ error: 'Access denied to this template' });
+        }
+      }
+      
+      // Use the template data to create a server
+      const configData = template.configData as {
+        serverName: string;
+        description: string;
+        serverType: 'python' | 'typescript';
+        tools: any[];
+      };
+      const { serverName, description, serverType, tools } = configData;
+      
+      // Create server config object from template
+      const serverConfig = {
+        serverName,
+        serverType,
+        description,
+        tools
+      };
+      
+      // Create a unique ID for this build
+      const buildId = uuidv4();
+      const buildDir = path.join(process.cwd(), 'builds', buildId);
+      fs.ensureDirSync(buildDir);
+      
+      // Create main server file
+      const serverFilename = serverType === 'python' ? 'server.py' : 'server.js';
+      const serverCode = serverType === 'python' 
+        ? pythonTemplate(serverConfig) 
+        : typescriptTemplate(serverConfig);
+      fs.writeFileSync(path.join(buildDir, serverFilename), serverCode);
+      
+      // Create package.json if TypeScript
+      if (serverType === 'typescript') {
+        fs.writeFileSync(
+          path.join(buildDir, 'package.json'),
+          packageJsonTemplate(serverName, description)
+        );
+      }
+      
+      // Create README.md
+      fs.writeFileSync(
+        path.join(buildDir, 'README.md'),
+        readmeTemplate(serverName, description)
+      );
+      
+      // Create Dockerfile
+      fs.writeFileSync(
+        path.join(buildDir, 'Dockerfile'),
+        dockerfileTemplate(serverType)
+      );
+      
+      // Create install script
+      fs.writeFileSync(
+        path.join(buildDir, 'install.sh'),
+        installScriptTemplate(serverType)
+      );
+      fs.chmodSync(path.join(buildDir, 'install.sh'), '755');
+      
+      // Create zip file
+      const zipFilePath = path.join(process.cwd(), 'downloads', `${buildId}.zip`);
+      
+      const output = fs.createWriteStream(zipFilePath);
+      const archive = archiver('zip', { zlib: { level: 9 } });
+      
+      archive.pipe(output);
+      archive.directory(buildDir, false);
+      
+      await new Promise((resolve, reject) => {
+        output.on('close', resolve);
+        archive.on('error', reject);
+        archive.finalize();
+      });
+      
+      // Store server in database
+      const serverData = {
+        buildId,
+        serverName,
+        serverType,
+        description,
+        tools: JSON.stringify(tools),
+        // Associate with logged-in user if available
+        userId: req.isAuthenticated() ? (req.user as User).id : undefined
+      };
+
+      try {
+        // Validate with schema
+        insertServerSchema.parse(serverData);
+        
+        // Store in database
+        await storage.createServer(serverData);
+      } catch (error) {
+        console.error('Error storing server data:', error);
+        // Continue anyway since we've already created the files
+      }
+      
+      res.json({
+        success: true,
+        buildId,
+        downloadUrl: `/api/download/${buildId}`,
+        message: 'MCP server created successfully from template!',
+        template: {
+          id: template.id,
+          name: template.name
+        },
+        validation: {
+          protocol: MCP_PROTOCOL_VERSION,
+          sdkVersion: MCP_SDK_VERSION[serverType],
+          lastVerified: VALIDATION_INFO.lastVerified,
+          compatibleWith: VALIDATION_INFO.compatibleWith
+        }
+      });
+    } catch (error) {
+      console.error('Error creating server from template:', error);
+      res.status(500).json({ error: 'Failed to create server from template' });
+    }
   });
 
   const httpServer = createServer(app);

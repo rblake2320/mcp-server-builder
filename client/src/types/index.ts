@@ -1,10 +1,23 @@
 export type ServerType = 'python' | 'typescript';
 
+export interface ParameterConstraint {
+  minimum?: number;
+  maximum?: number;
+  minLength?: number;
+  maxLength?: number;
+  pattern?: string;
+  format?: string;
+  enum?: string[];
+  default?: any;
+  required?: boolean;
+}
+
 export interface Parameter {
   id: string;
   name: string;
-  type: 'string' | 'number' | 'boolean' | 'object' | 'array';
+  type: 'string' | 'number' | 'boolean' | 'object' | 'array' | 'integer' | 'date' | 'email' | 'url' | 'enum';
   description: string;
+  constraints?: ParameterConstraint;
 }
 
 export interface Tool {

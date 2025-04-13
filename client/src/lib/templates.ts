@@ -262,8 +262,9 @@ server.start().catch(error => {
 };
 
 export const readmeTemplate = (serverName: string, description: string): string => {
-  return `
-# ${serverName} MCP Server
+  const formattedName = serverName.toLowerCase().replace(/\s+/g, '-');
+  
+  return `# ${serverName} MCP Server
 
 ${description}
 
@@ -346,29 +347,31 @@ server = MCPServer(
 Claude Desktop requires manual configuration file editing:
 
 1. Locate the configuration file:
-   - macOS: \`/Users/username/Library/Application Support/Claude/claude_desktop_config.json\`
-   - Windows: \`%APPDATA%\\Claude\\claude_desktop_config.json\`
+   - macOS: /Users/username/Library/Application Support/Claude/claude_desktop_config.json
+   - Windows: %APPDATA%\\Claude\\claude_desktop_config.json
 
 2. Edit the JSON file (create it if it doesn't exist) to add your server:
+
+   For direct server execution:
    \`\`\`
    {
      "mcpServers": {
-       "your-server-name": {
+       "${formattedName}": {
          "command": "python",
          "args": ["/absolute/path/to/server.py"]
        }
      }
    }
    \`\`\`
-   Note: Use "node" for TypeScript servers and provide the full path to your server file.
+   Note: Use "node" instead of "python" for TypeScript servers.
 
 3. For Docker deployment (recommended for better isolation):
    \`\`\`
    {
      "mcpServers": {
-       "your-server-name": {
+       "${formattedName}": {
          "command": "docker",
-         "args": ["run", "-i", "--rm", "your-image-name"]
+         "args": ["run", "-i", "--rm", "${formattedName}"]
        }
      }
    }
@@ -382,13 +385,22 @@ Many AI assistants now support connecting to MCP servers over HTTP. To support t
 1. Install an MCP HTTP adapter:
    \`\`\`bash
    # For TypeScript
-   npm install mcp-http-adapter
+   npm install -g mcp-http-adapter
    
    # For Python
    pip install mcp-http-adapter
    \`\`\`
 
-2. Modify your server code to add HTTP support (refer to documentation)
+2. Run the adapter to expose your server via HTTP:
+   \`\`\`bash
+   # For TypeScript
+   npx mcp-http-adapter --command "node /path/to/server.js" --port 8080
+   
+   # For Python
+   mcp-http-adapter --command "python /path/to/server.py" --port 8080
+   \`\`\`
+
+3. Use the HTTP endpoint (http://localhost:8080) in web-based assistants
 
 ## Validating Your Server
 
@@ -423,8 +435,8 @@ To implement tool functionality:
 ### Docker
 A Dockerfile is included for containerization. Build and run with:
 \`\`\`bash
-docker build -t ${serverName.toLowerCase().replace(/\s+/g, '-')} .
-docker run -p 3000:3000 ${serverName.toLowerCase().replace(/\s+/g, '-')}
+docker build -t ${formattedName} .
+docker run -p 3000:3000 ${formattedName}
 \`\`\`
 
 ### Serverless Deployment

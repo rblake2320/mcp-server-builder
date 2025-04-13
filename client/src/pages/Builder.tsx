@@ -4,11 +4,12 @@ import ServerDetailsForm from "@/components/ServerDetailsForm";
 import ToolDefinitionForm from "@/components/ToolDefinitionForm";
 import CodePreview from "@/components/CodePreview";
 import ResultView from "@/components/ResultView";
+import AIAssistant from "@/components/AIAssistant";
 import { Step, ServerConfig, Tool, GeneratedServer } from "@/types";
 import { v4 as uuidv4 } from "uuid";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { Loader2, Save, Download, Github } from "lucide-react";
+import { Loader2, Save, Download, Github, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { 
   Dialog, 
@@ -50,6 +51,9 @@ const Builder = () => {
   const [importUrl, setImportUrl] = useState("");
   const [isImporting, setIsImporting] = useState(false);
   const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
+  
+  // State for AI Assistant
+  const [showAIAssistant, setShowAIAssistant] = useState(false);
   
   // Handle importing server from URL
   const handleImportFromUrl = async () => {
@@ -284,6 +288,73 @@ const Builder = () => {
     goToStep(1);
   };
   
+  // Handle AI-generated tool code
+  const handleGeneratedTool = (toolCode: string) => {
+    try {
+      // Parse the Python code to extract tool information
+      const toolNameMatch = toolCode.match(/class\s+(\w+)_params/);
+      const toolDescMatch = toolCode.match(/"""([^"]+)"""/);
+      
+      if (!toolNameMatch || !toolDescMatch) {
+        throw new Error("Could not parse tool from generated code");
+      }
+      
+      const toolNameRaw = toolNameMatch[1];
+      const toolName = toolNameRaw.replace(/^get_/, '').replace(/_params$/, '');
+      const toolDescription = toolDescMatch[1].trim();
+      
+      // Extract parameters from the code
+      const paramMatches = [...toolCode.matchAll(/(\w+):\s*(str|int|bool|float|dict|list)\s*=\s*Field\(description="([^"]+)"\)/g)];
+      
+      if (paramMatches.length === 0) {
+        throw new Error("No parameters found in the generated tool");
+      }
+      
+      // Create parameters from the parsed information
+      const parameters = paramMatches.map(match => ({
+        id: uuidv4(),
+        name: match[1],
+        type: match[2] === 'str' ? 'string' : 
+              match[2] === 'int' ? 'number' : 
+              match[2] === 'bool' ? 'boolean' : 
+              match[2] === 'dict' ? 'object' : 
+              match[2] === 'list' ? 'array' : 'string',
+        description: match[3]
+      }));
+      
+      // Create the new tool
+      const newTool: Tool = {
+        id: uuidv4(),
+        name: toolNameRaw,
+        description: toolDescription,
+        parameters
+      };
+      
+      // Add the new tool to the server config
+      setServerConfig(prev => ({
+        ...prev,
+        tools: [...prev.tools, newTool]
+      }));
+      
+      // Show success message
+      toast({
+        title: "Tool Added",
+        description: `AI-generated tool "${toolNameRaw}" has been added to your server`,
+      });
+      
+      // Close the AI Assistant
+      setShowAIAssistant(false);
+      
+    } catch (error) {
+      console.error("Error parsing generated tool:", error);
+      toast({
+        title: "Error",
+        description: "Failed to parse the AI-generated tool. Please try again with a different prompt.",
+        variant: "destructive"
+      });
+    }
+  };
+  
   // If a server has been generated, show the result view
   if (generatedServer) {
     return (
@@ -390,6 +461,35 @@ const Builder = () => {
                         Import Server
                       </>
                     )}
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+            
+            {/* AI Assistant Dialog */}
+            <Dialog open={showAIAssistant} onOpenChange={setShowAIAssistant}>
+              <DialogTrigger asChild>
+                <Button variant="outline" size="sm">
+                  <Sparkles className="h-4 w-4 mr-2 text-amber-500" />
+                  AI Tool Generator
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-4xl">
+                <DialogHeader>
+                  <DialogTitle>AI Tool Generator</DialogTitle>
+                  <DialogDescription>
+                    Describe the tool you want to create and let AI generate it for you. You'll need a Google Studio API key.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="py-4">
+                  <AIAssistant onGeneratedTool={handleGeneratedTool} />
+                </div>
+                <DialogFooter>
+                  <Button
+                    variant="outline"
+                    onClick={() => setShowAIAssistant(false)}
+                  >
+                    Close
                   </Button>
                 </DialogFooter>
               </DialogContent>

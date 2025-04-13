@@ -92,11 +92,11 @@ const ResultView = ({ generatedServer, onEditServer, onCreateAnother }: ResultVi
           <div className="p-3 bg-neutral-100 rounded-md">
             <h4 className="font-medium mb-2 flex items-center text-base">
               <svg viewBox="0 0 168 168" className="w-5 h-5 mr-1 inline-block" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
-                <path d="M50.4,120.54c0,6.47,5.25,11.72,11.72,11.72s11.72-5.25,11.72-11.72H50.4z"/>
+                <path d="M50.4,120.54c0,6.47,5.25,11.72,11.72s11.72-5.25,11.72-11.72H50.4z"/>
                 <path d="M84,36c-12.14,0-22,9.86-22,22v28h44V58C106,45.86,96.14,36,84,36z"/>
                 <path d="M94.4,120.54c0,6.47,5.25,11.72,11.72,11.72c6.47,0,11.72-5.25,11.72-11.72H94.4z"/>
               </svg>
-              Claude Desktop Setup
+              Claude Desktop &amp; Cursor Setup
             </h4>
             
             <div className="rounded-md bg-white p-3 shadow-sm mb-3">
@@ -147,6 +147,34 @@ const ResultView = ({ generatedServer, onEditServer, onCreateAnother }: ResultVi
                   </pre>
                 </li>
                 <li><span className="font-medium">Restart Claude Desktop</span> to apply changes</li>
+              </ol>
+            </div>
+            
+            <div className="rounded-md bg-white p-3 shadow-sm mt-3">
+              <h5 className="font-medium mb-1 text-neutral-700">Option 3: Cursor IDE Setup</h5>
+              <ol className="list-decimal list-inside space-y-1 pl-2">
+                <li>
+                  <span className="font-medium">Locate Cursor config file:</span>
+                  <ul className="list-disc list-inside ml-4 mt-1">
+                    <li>macOS: <code className="bg-neutral-200 px-1 py-0.5 rounded text-xs">~/Library/Application Support/Cursor/cursor_config.json</code></li>
+                    <li>Windows: <code className="bg-neutral-200 px-1 py-0.5 rounded text-xs">%APPDATA%\Cursor\cursor_config.json</code></li>
+                    <li>Linux: <code className="bg-neutral-200 px-1 py-0.5 rounded text-xs">~/.config/Cursor/cursor_config.json</code></li>
+                  </ul>
+                </li>
+                <li>
+                  <span className="font-medium">Add the following to your configuration:</span>
+                  <pre className="bg-neutral-200 p-2 rounded text-xs font-mono overflow-auto max-h-24 mt-1">
+{`{
+  "mcpServers": {
+    "${generatedServer.serverName.toLowerCase().replace(/\s+/g, '-')}": {
+      "command": "${isTypescript ? 'node' : 'python'}",
+      "args": ["/absolute/path/to/extracted/folder/server.${isTypescript ? 'js' : 'py'}"]
+    }
+  }
+}`}
+                  </pre>
+                </li>
+                <li><span className="font-medium">Restart Cursor IDE</span> to apply changes</li>
               </ol>
             </div>
           </div>

@@ -341,7 +341,59 @@ const Builder = () => {
               <Download className="h-4 w-4 mr-2" />
               Load Template
             </Button>
-            <UrlImporter onImport={(config) => setServerConfig(config)} />
+            
+            {/* URL Import Dialog */}
+            <Dialog open={isImportDialogOpen} onOpenChange={setIsImportDialogOpen}>
+              <DialogTrigger asChild>
+                <Button variant="outline" size="sm">
+                  <Github className="h-4 w-4 mr-2" />
+                  Import from URL
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                  <DialogTitle>Import MCP Server from URL</DialogTitle>
+                  <DialogDescription>
+                    Enter the URL of a GitHub, GitLab, or Bitbucket repository containing an MCP server implementation.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="grid gap-4 py-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="import-url">Repository URL</Label>
+                    <Input
+                      id="import-url"
+                      placeholder="https://github.com/username/repository"
+                      value={importUrl}
+                      onChange={(e) => setImportUrl(e.target.value)}
+                    />
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button
+                    variant="outline"
+                    onClick={() => setIsImportDialogOpen(false)}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    onClick={handleImportFromUrl}
+                    disabled={isImporting || !importUrl.trim()}
+                  >
+                    {isImporting ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Importing...
+                      </>
+                    ) : (
+                      <>
+                        <Download className="h-4 w-4 mr-2" />
+                        Import Server
+                      </>
+                    )}
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
           </div>
           <button 
             id="createServer" 

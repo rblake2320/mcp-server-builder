@@ -1,5 +1,22 @@
 import { ServerConfig, Tool, Parameter } from '@/types';
 
+// MCP protocol version tracking
+export const MCP_PROTOCOL_VERSION = "1.2.0";
+export const MCP_SDK_VERSION = {
+  python: "0.6.0",
+  typescript: "0.4.0"
+};
+
+// Validation info
+export const VALIDATION_INFO = {
+  protocol: MCP_PROTOCOL_VERSION,
+  lastVerified: "2025-04-12",
+  compatibleWith: {
+    claude: ["Claude Desktop 3.0+", "Claude Web API 3.0+"],
+    otherLLMs: ["GPT-4 with MCP adapters", "Anthropic API with MCP SDK"]
+  }
+};
+
 // Helper function to format parameters based on server type
 const formatParameters = (parameters: Parameter[], serverType: 'python' | 'typescript'): string => {
   if (serverType === 'python') {

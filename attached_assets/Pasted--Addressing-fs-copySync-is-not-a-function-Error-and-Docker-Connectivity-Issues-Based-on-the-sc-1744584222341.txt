@@ -1,0 +1,141 @@
+# Addressing "fs.copySync is not a function" Error and Docker Connectivity Issues
+
+Based on the screenshot showing the "Deployment Failed: fs.copySync is not a function" error and your mention of Docker connection issues, I can help troubleshoot both problems. Let me walk you through potential solutions and what additional information would help pinpoint the exact cause.
+
+## The "fs.copySync is not a function" Error
+
+This specific error indicates a Node.js file system operation failure. The `copySync` function is not part of Node's native `fs` module but comes from packages like `fs-extra`.
+
+### Possible Solutions:
+
+1. **Install missing dependencies**:
+   ```bash
+   npm install fs-extra
+   ```
+
+2. **Check import statements** in your deployment script:
+   ```javascript
+   // Incorrect:
+   const fs = require('fs');
+   
+   // Correct:
+   const fs = require('fs-extra');
+   ```
+
+3. **Version compatibility**: Ensure your Node.js version is compatible with the packages you're using.
+
+## Docker Connection Issues
+
+Several factors could prevent successful Docker connections:
+
+### 1. Docker Daemon Status
+
+First, check if the Docker daemon is running:
+```bash
+sudo systemctl status docker
+```
+
+If not running, start it:
+```bash
+sudo systemctl start docker
+```
+
+### 2. Permission Issues
+
+The error might be permission-related:
+```bash
+# Add your user to the docker group
+sudo usermod -aG docker $USER
+
+# Log out and back in, or run:
+newgrp docker
+```
+
+### 3. Docker Network Configuration
+
+Network issues are common with Docker:
+```bash
+# Inspect Docker networks
+docker network ls
+docker network inspect bridge
+
+# Restart Docker networking
+sudo systemctl restart docker
+```
+
+### 4. Conflicting Ports
+
+Check for port conflicts:
+```bash
+# See which ports are mapped
+docker ps
+```
+
+### 5. Docker Context Settings
+
+Your Docker client might be pointed at the wrong context:
+```bash
+# Check current context
+docker context ls
+
+# Switch to default if needed
+docker context use default
+```
+
+## What I Need to Know to Help Further
+
+To provide a more targeted solution, please share:
+
+1. **Complete error logs**: The full error stack trace would show where the failure is occurring.
+
+2. **Deployment process details**: Are you using a specific tool or framework for deployment?
+
+3. **Docker command you're running**: The exact command that's failing.
+
+4. **Environment details**: 
+   - OS type and version
+   - Docker version (`docker --version`)
+   - Docker Compose version if applicable (`docker-compose --version`)
+
+5. **Project structure**: Is this a Node.js application? What deployment method are you using?
+
+6. **Recent changes**: Did you recently update Docker, Node.js, or any dependencies?
+
+With this information, I can provide a more precise diagnosis and solution to get your deployment working correctly.
+
+Citations:
+[1] https://pplx-res.cloudinary.com/image/upload/v1744583259/user_uploads/QRYLqmwFDhbohzv/image.jpg
+[2] https://www.linkedin.com/pulse/troubleshoot-docker-common-issues-optimizing-rizk-he-him-his--at6af
+[3] https://www.reddit.com/r/docker/comments/13mfc7f/docker_networking_seems_to_have_completely_broken/
+[4] https://dev.to/codesolutionshub/understanding-and-resolving-connection-refused-error-in-docker-a-comprehensive-guide-1j5i
+[5] https://phoenixnap.com/kb/cannot-connect-to-the-docker-daemon-error
+[6] https://forums.docker.com/t/docker-breaks-network-after-short-period/139889
+[7] https://blog.packagecloud.io/top-five-most-common-issues-with-docker-and-how-to-solve-them/
+[8] https://docs.docker.com/engine/daemon/troubleshoot/
+[9] https://docs-cortex.paloaltonetworks.com/r/Cortex-XSOAR/6.12/Cortex-XSOAR-Administrator-Guide/Troubleshoot-Docker-Networking-Issues
+[10] https://dev.to/prodevopsguytech/100-common-docker-errors-solutions-4le0
+[11] https://forums.docker.com/t/tutorial-solve-the-error-message-is-the-docker-daemon-running/145891
+[12] https://forums.docker.com/t/cant-connect-to-container-on-localhost-with-port-mapping/52716
+[13] https://stackoverflow.com/questions/29101043/cant-connect-to-docker-from-docker-compose
+[14] https://stackoverflow.com/questions/73313328/how-to-troubleshoot-docker-network-issues
+[15] https://stackoverflow.com/questions/43884981/unable-to-connect-localhost-in-docker
+[16] https://forums.docker.com/t/docker-connection-refused-between-two-containers/68040
+[17] https://docs.docker.com/desktop/troubleshoot-and-support/troubleshoot/
+[18] https://github.com/docker/desktop-linux/issues/20
+[19] https://forums.docker.com/t/docker-container-is-not-connecting-to-the-external-system/142975
+[20] https://www.linkedin.com/advice/0/how-can-you-troubleshoot-network-connectivity-1f
+[21] https://www.reddit.com/r/docker/comments/yrq3tv/common_problems_when_running_a_container/
+[22] https://forums.docker.com/t/connectivity-issues-between-containers-on-the-same-network-on-debian-based-dietpi/144131
+[23] https://www.reddit.com/r/docker/comments/1ax6qwo/docker_networking_problems/
+[24] https://forums.docker.com/t/host-networking-drops-when-starting-up-more-than-x-containers/144694
+[25] https://stackoverflow.com/questions/21871479/docker-cant-connect-to-docker-daemon
+[26] https://forums.docker.com/t/network-issue-after-container-creation/134847
+[27] https://forums.docker.com/t/couldnt-connect-to-docker-daemon-at-http-docker-localhost-is-it-running/87257
+[28] https://forums.docker.com/t/error-response-from-daemon-connection-refused/120869
+[29] https://forums.docker.com/t/docker-container-loses-network-connectivity-intermittently/120560
+[30] https://forums.docker.com/t/wsl-and-docker-for-windows-cannot-connect-to-the-docker-daemon-at-tcp-localhost-2375-is-the-docker-daemon-running/63571
+[31] https://intellij-support.jetbrains.com/hc/en-us/community/posts/360010126039-Cannot-connect-to-the-Docker-daemon-at-unix-var-run-docker-sock-Is-the-docker-daemon-running
+[32] https://docs-cortex.paloaltonetworks.com/r/Cortex-XSOAR/6.14/Cortex-XSOAR-Administrator-Guide/Troubleshoot-Docker-Networking-Issues
+
+---
+Answer from Perplexity: pplx.ai/share

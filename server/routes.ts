@@ -210,7 +210,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         message: 'MCP server created successfully!',
         validation: {
           protocol: MCP_PROTOCOL_VERSION,
-          sdkVersion: MCP_SDK_VERSION[validServerType],
+          sdkVersion: MCP_SDK_VERSION[validServerType as 'python' | 'typescript'],
           lastVerified: VALIDATION_INFO.lastVerified,
           compatibleWith: VALIDATION_INFO.compatibleWith
         }
@@ -898,7 +898,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         },
         validation: {
           protocol: MCP_PROTOCOL_VERSION,
-          sdkVersion: MCP_SDK_VERSION[(serverType === 'python' || serverType === 'typescript') ? serverType : 'typescript'],
+          sdkVersion: MCP_SDK_VERSION[(serverType === 'python' || serverType === 'typescript') ? serverType as 'python' | 'typescript' : 'typescript'],
           lastVerified: VALIDATION_INFO.lastVerified,
           compatibleWith: VALIDATION_INFO.compatibleWith
         }

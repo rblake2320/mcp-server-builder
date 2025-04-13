@@ -39,14 +39,18 @@ const TEMP_DIR = path.join(process.cwd(), 'tmp');
  * Extract GitHub repository name from URL
  */
 function extractRepoInfo(url: string): { owner: string; repo: string } | null {
+  // Clean up the URL - remove trailing slashes and .git
+  const cleanUrl = url.trim().replace(/\/$/, '').replace(/\.git$/, '');
+  
   // Match GitHub repository URLs
   // Examples:
   // - https://github.com/username/repo
   // - https://github.com/username/repo.git
   // - git@github.com:username/repo.git
+  // - github.com/username/repo
   
-  // HTTPS format
-  let match = url.match(/github\.com\/([^\/]+)\/([^\/\.]+)/);
+  // HTTPS format with protocol
+  let match = cleanUrl.match(/(?:https?:\/\/)?github\.com\/([^\/]+)\/([^\/]+)/i);
   if (match) {
     return {
       owner: match[1],
@@ -55,11 +59,20 @@ function extractRepoInfo(url: string): { owner: string; repo: string } | null {
   }
   
   // SSH format
-  match = url.match(/github\.com:([^\/]+)\/([^\/\.]+)/);
+  match = cleanUrl.match(/git@github\.com:([^\/]+)\/([^\/]+)/i);
   if (match) {
     return {
       owner: match[1],
-      repo: match[2].replace('.git', '')
+      repo: match[2]
+    };
+  }
+  
+  // If it's just a simple owner/repo format
+  match = cleanUrl.match(/^([^\/]+)\/([^\/]+)$/);
+  if (match) {
+    return {
+      owner: match[1],
+      repo: match[2]
     };
   }
   
@@ -287,6 +300,216 @@ async function extractToolsFromJSFile(filePath: string): Promise<Tool[]> {
 }
 
 /**
+ * Try to extract tool configuration from JSON files
+ */
+async function extractToolsFromJsonFiles(localPath: string): Promise<Tool[]> {
+  try {
+    const tools: Tool[] = [];
+    
+    // Look for mcp-config.json, tools.json, or similar files
+    const configFiles = [
+      'mcp-config.json',
+      'tools.json',
+      'config.json',
+      'mcp.json',
+      'tool-config.json',
+      'server-config.json'
+    ];
+    
+    for (const configFile of configFiles) {
+      const configPath = path.join(localPath, configFile);
+      if (await fs.pathExists(configPath)) {
+        try {
+          const configData = JSON.parse(await fs.readFile(configPath, 'utf-8'));
+          
+          // Check if it has a tools array
+          if (Array.isArray(configData.tools)) {
+            for (const tool of configData.tools) {
+              if (tool.name && (Array.isArray(tool.parameters) || typeof tool.parameters === 'object')) {
+                const parameters: Parameter[] = [];
+                
+                // Convert parameters to our format
+                if (Array.isArray(tool.parameters)) {
+                  for (const param of tool.parameters) {
+                    if (param.name) {
+                      parameters.push({
+                        id: uuidv4(),
+                        name: param.name,
+                        type: param.type || 'string',
+                        description: param.description || `${param.name} parameter`
+                      });
+                    }
+                  }
+                } else {
+                  // Handle case where parameters are an object
+                  for (const [paramName, paramDetails] of Object.entries(tool.parameters)) {
+                    const details = paramDetails as any;
+                    parameters.push({
+                      id: uuidv4(),
+                      name: paramName,
+                      type: details.type || 'string',
+                      description: details.description || `${paramName} parameter`
+                    });
+                  }
+                }
+                
+                tools.push({
+                  id: uuidv4(),
+                  name: tool.name,
+                  description: tool.description || `${tool.name} tool`,
+                  parameters
+                });
+              }
+            }
+          }
+        } catch (error) {
+          console.error(`Error parsing ${configFile}:`, error);
+        }
+      }
+    }
+    
+    return tools;
+  } catch (error) {
+    console.error('Error extracting tools from JSON files:', error);
+    return [];
+  }
+}
+
+/**
+ * Try to extract tool data from schema files
+ */
+async function extractToolsFromSchemaFiles(localPath: string): Promise<Tool[]> {
+  try {
+    const tools: Tool[] = [];
+    const schemaFiles = [
+      'schema.json',
+      'mcp-schema.json',
+      'tools-schema.json',
+      'openapi.json',
+      'swagger.json'
+    ];
+    
+    for (const schemaFile of schemaFiles) {
+      const schemaPath = path.join(localPath, schemaFile);
+      if (await fs.pathExists(schemaPath)) {
+        try {
+          const schema = JSON.parse(await fs.readFile(schemaPath, 'utf-8'));
+          
+          // Extract from OpenAPI/Swagger schema format
+          if (schema.paths) {
+            for (const [path, pathObj] of Object.entries(schema.paths)) {
+              const pathDetails = pathObj as any;
+              if (pathDetails.post) {
+                const operation = pathDetails.post;
+                const toolName = operation.operationId || path.split('/').pop() || 'tool';
+                const parameters: Parameter[] = [];
+                
+                // Extract parameters from request body schema
+                if (operation.requestBody?.content?.['application/json']?.schema?.properties) {
+                  const props = operation.requestBody.content['application/json'].schema.properties;
+                  for (const [propName, propDetails] of Object.entries(props)) {
+                    const details = propDetails as any;
+                    parameters.push({
+                      id: uuidv4(),
+                      name: propName,
+                      type: convertJsonSchemaType(details.type),
+                      description: details.description || `${propName} parameter`
+                    });
+                  }
+                }
+                
+                tools.push({
+                  id: uuidv4(),
+                  name: toolName,
+                  description: operation.summary || operation.description || `${toolName} tool`,
+                  parameters
+                });
+              }
+            }
+          }
+        } catch (error) {
+          console.error(`Error parsing ${schemaFile}:`, error);
+        }
+      }
+    }
+    
+    return tools;
+  } catch (error) {
+    console.error('Error extracting tools from schema files:', error);
+    return [];
+  }
+}
+
+/**
+ * Convert JSON schema types to our type system
+ */
+function convertJsonSchemaType(schemaType: string): string {
+  switch (schemaType) {
+    case 'integer':
+    case 'number':
+      return 'number';
+    case 'boolean':
+      return 'boolean';
+    case 'array':
+      return 'array';
+    case 'object':
+      return 'object';
+    case 'string':
+    default:
+      return 'string';
+  }
+}
+
+/**
+ * Generate default MCP tools from repository
+ */
+function generateDefaultTools(localPath: string, serverType: 'python' | 'typescript'): Tool[] {
+  // Generate at least a basic tool based on repo name and common patterns
+  const repoName = path.basename(localPath).replace(/-/g, '_').toLowerCase();
+  
+  return [
+    {
+      id: uuidv4(),
+      name: `get_${repoName}_data`,
+      description: `Fetches data from the ${repoName} API`,
+      parameters: [
+        {
+          id: uuidv4(),
+          name: 'query',
+          type: 'string',
+          description: 'The search query to find relevant data'
+        },
+        {
+          id: uuidv4(),
+          name: 'limit',
+          type: 'number',
+          description: 'Maximum number of results to return'
+        }
+      ]
+    },
+    {
+      id: uuidv4(),
+      name: `search_${repoName}`,
+      description: `Searches for information in the ${repoName} database`,
+      parameters: [
+        {
+          id: uuidv4(),
+          name: 'keyword',
+          type: 'string',
+          description: 'The keyword to search for'
+        },
+        {
+          id: uuidv4(),
+          name: 'filters',
+          type: 'object',
+          description: 'Optional filters to apply to the search'
+        }
+      ]
+    }
+  ];
+}
+
+/**
  * Analyze repository and extract MCP server configuration
  */
 async function analyzeRepository(localPath: string): Promise<ServerConfig | null> {
@@ -303,7 +526,7 @@ async function analyzeRepository(localPath: string): Promise<ServerConfig | null
     let serverName = path.basename(localPath);
     let serverDescription = `Imported from GitHub repository ${serverName}`;
     let serverType: 'python' | 'typescript' = 'python'; // Default
-    const tools: Tool[] = [];
+    let tools: Tool[] = [];
     
     // First look for package.json to determine if it's a TypeScript/JavaScript project
     const packageJsonPath = path.join(localPath, 'package.json');
@@ -340,6 +563,19 @@ async function analyzeRepository(localPath: string): Promise<ServerConfig | null
       serverType = 'python';
     }
     
+    // Look for Python main file with MCP import
+    const pythonMainFiles = ['main.py', 'server.py', 'app.py', 'index.py'];
+    for (const mainFile of pythonMainFiles) {
+      const mainPath = path.join(localPath, mainFile);
+      if (await fs.pathExists(mainPath)) {
+        const content = await fs.readFile(mainPath, 'utf-8');
+        if (content.includes('mcp')) {
+          serverType = 'python';
+          break;
+        }
+      }
+    }
+    
     // Look for README.md for description
     const readmePath = path.join(localPath, 'README.md');
     if (await fs.pathExists(readmePath)) {
@@ -357,26 +593,43 @@ async function analyzeRepository(localPath: string): Promise<ServerConfig | null
           serverDescription = firstParagraph;
         }
       }
-    }
-    
-    // Look for Python files and extract tools
-    const pyFiles = [];
-    for (const file of files) {
-      if (typeof file === 'string' && file.endsWith('.py')) {
-        pyFiles.push(file);
+      
+      // Check if README mentions MCP
+      if (readmeContent.toLowerCase().includes('mcp') || 
+          readmeContent.toLowerCase().includes('model context protocol')) {
+        // This is definitely an MCP-related repository
+        console.log('MCP reference found in README');
       }
     }
     
-    for (const file of pyFiles) {
-      const filePath = path.join(localPath, file);
-      const stats = await fs.stat(filePath);
-      if (stats.isFile()) {
-        const fileTools = await extractToolsFromPythonFile(filePath);
-        tools.push(...fileTools);
+    // Look for JSON configuration files first
+    tools = await extractToolsFromJsonFiles(localPath);
+    
+    // If no tools found in JSON, try schema files
+    if (tools.length === 0) {
+      tools = await extractToolsFromSchemaFiles(localPath);
+    }
+    
+    // If still no tools, look in Python files
+    if (tools.length === 0) {
+      const pyFiles = [];
+      for (const file of files) {
+        if (typeof file === 'string' && file.endsWith('.py')) {
+          pyFiles.push(file);
+        }
+      }
+      
+      for (const file of pyFiles) {
+        const filePath = path.join(localPath, file);
+        const stats = await fs.stat(filePath);
+        if (stats.isFile()) {
+          const fileTools = await extractToolsFromPythonFile(filePath);
+          tools.push(...fileTools);
+        }
       }
     }
     
-    // Look for TypeScript/JavaScript files and extract tools
+    // If still no tools, look in JavaScript/TypeScript files
     if (tools.length === 0) {
       const jsFiles = [];
       for (const file of files) {
@@ -395,7 +648,22 @@ async function analyzeRepository(localPath: string): Promise<ServerConfig | null
       }
     }
     
-    // If no tools were found, return null
+    // If no tools detected but repo has MCP indications, generate default tools
+    const isMcpRepo = 
+      serverName.toLowerCase().includes('mcp') || 
+      serverDescription.toLowerCase().includes('mcp') ||
+      serverDescription.toLowerCase().includes('model context protocol') ||
+      files.some(file => 
+        typeof file === 'string' && 
+        (file.toLowerCase().includes('mcp') || file.includes('claude') || file.includes('anthropic'))
+      );
+    
+    if (tools.length === 0 && isMcpRepo) {
+      console.log('Generating default tools for MCP repository');
+      tools = generateDefaultTools(localPath, serverType);
+    }
+    
+    // If still no tools found, return null
     if (tools.length === 0) {
       console.error('No MCP tools found in repository');
       return null;

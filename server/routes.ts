@@ -271,42 +271,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: 'URL is required' });
       }
       
-      // For now, return a mock response
-      // In a production implementation, this would:
-      // 1. Clone the repository
-      // 2. Analyze the code to extract MCP server configuration
-      // 3. Return the configuration in a format compatible with the builder
+      // Import from GitHub repository
+      const { importFromGitHub } = await import('./importers/github-importer');
       
-      // Mock data for demonstration
-      const mockConfig = {
-        serverName: "Imported Server",
-        serverType: "python",
-        description: `Server imported from ${url}`,
-        tools: [
-          {
-            id: uuidv4(),
-            name: "imported_tool",
-            description: "Tool imported from repository",
-            parameters: [
-              {
-                id: uuidv4(),
-                name: "param1",
-                type: "string",
-                description: "Imported parameter"
-              }
-            ]
+      // Check if it's a GitHub URL
+      if (url.includes('github.com')) {
+        try {
+          const config = await importFromGitHub(url);
+          
+          if (!config) {
+            return res.status(400).json({ 
+              error: 'No valid MCP server configuration found in the repository',
+              message: 'Could not detect any MCP server tools in the repository. Make sure the repository contains a valid MCP server implementation.'
+            });
           }
-        ]
-      };
-      
-      res.json({
-        success: true,
-        config: mockConfig,
-        message: "Server configuration imported successfully"
-      });
+          
+          return res.json({
+            success: true,
+            config,
+            message: "Server configuration imported successfully"
+          });
+        } catch (error) {
+          console.error('GitHub import error:', error);
+          return res.status(400).json({ 
+            error: 'Error importing from GitHub',
+            message: error instanceof Error ? error.message : 'Failed to import from GitHub repository'
+          });
+        }
+      } else {
+        // For now, only GitHub URLs are supported
+        return res.status(400).json({ 
+          error: 'Unsupported repository type',
+          message: 'Currently, only GitHub repositories are supported for importing'
+        });
+      }
     } catch (error) {
       console.error('Error importing from URL:', error);
-      res.status(500).json({ error: 'Failed to import server from URL' });
+      res.status(500).json({ 
+        error: 'Failed to import server from URL',
+        message: error instanceof Error ? error.message : 'An unexpected error occurred'
+      });
     }
   });
   

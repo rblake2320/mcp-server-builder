@@ -17,16 +17,152 @@ export const VALIDATION_INFO = {
   }
 };
 
+// Helper function to convert from our Parameter type to language-specific types
+const getParamType = (paramType: Parameter['type'], language: 'python' | 'typescript'): string => {
+  if (language === 'python') {
+    switch (paramType) {
+      case 'number':
+      case 'integer': 
+        return 'int';
+      case 'boolean': 
+        return 'bool';
+      case 'array': 
+        return 'List[Any]';
+      case 'object': 
+        return 'Dict[str, Any]';
+      case 'date': 
+        return 'datetime.date';
+      case 'email':
+      case 'url':
+      case 'enum':
+      case 'string':
+      default:
+        return 'str';
+    }
+  } else {
+    // TypeScript type mapping
+    switch (paramType) {
+      case 'number':
+      case 'integer': 
+        return 'number';
+      case 'boolean': 
+        return 'boolean';
+      case 'array': 
+        return 'any[]';
+      case 'object': 
+        return 'Record<string, any>';
+      case 'date': 
+        return 'Date';
+      case 'email':
+      case 'url':
+      case 'enum':
+      case 'string':
+      default:
+        return 'string';
+    }
+  }
+};
+
+// Generate constraint validators for Python (Pydantic)
+const getPythonConstraints = (param: Parameter): string => {
+  if (!param.constraints) return '';
+  
+  const constraints: string[] = [];
+  const c = param.constraints;
+  
+  // Add constraint validators based on parameter type
+  switch (param.type) {
+    case 'string':
+    case 'email':
+    case 'url':
+      if (c.minLength !== undefined) constraints.push(`min_length=${c.minLength}`);
+      if (c.maxLength !== undefined) constraints.push(`max_length=${c.maxLength}`);
+      if (c.pattern) constraints.push(`regex="${c.pattern}"`);
+      
+      // Add format validators
+      if (param.type === 'email') constraints.push(`regex="^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\\.[a-zA-Z0-9-.]+$"`);
+      if (param.type === 'url') constraints.push(`regex="^https?://[^\\s/$.?#].[^\\s]*$"`);
+      break;
+      
+    case 'number':
+    case 'integer':
+      if (c.minimum !== undefined) constraints.push(`ge=${c.minimum}`);
+      if (c.maximum !== undefined) constraints.push(`le=${c.maximum}`);
+      break;
+      
+    case 'enum':
+      if (c.enum && c.enum.length > 0) {
+        const enumValues = c.enum.map(v => `"${v}"`).join(', ');
+        return `, Literal[${enumValues}]`;
+      }
+      break;
+  }
+  
+  // Add default value if specified
+  if (c.default !== undefined) {
+    if (typeof c.default === 'string') {
+      constraints.push(`default="${c.default}"`);
+    } else {
+      constraints.push(`default=${c.default}`);
+    }
+  }
+  
+  return constraints.length ? `, ${constraints.join(', ')}` : '';
+};
+
+// Generate constraint validators for TypeScript (Zod)
+const getZodConstraints = (param: Parameter): string => {
+  if (!param.constraints) return '';
+  
+  const constraints: string[] = [];
+  const c = param.constraints;
+  
+  // Add Zod validators based on parameter type and constraints
+  switch (param.type) {
+    case 'string':
+    case 'email':
+    case 'url':
+      if (c.minLength !== undefined) constraints.push(`.min(${c.minLength})`);
+      if (c.maxLength !== undefined) constraints.push(`.max(${c.maxLength})`);
+      if (c.pattern) constraints.push(`.regex(/${c.pattern}/)`);
+      
+      // Add format-specific validators
+      if (param.type === 'email') constraints.push(`.email()`);
+      if (param.type === 'url') constraints.push(`.url()`);
+      break;
+      
+    case 'number':
+    case 'integer':
+      if (param.type === 'integer') constraints.push(`.int()`);
+      if (c.minimum !== undefined) constraints.push(`.gte(${c.minimum})`);
+      if (c.maximum !== undefined) constraints.push(`.lte(${c.maximum})`);
+      break;
+      
+    case 'enum':
+      if (c.enum && c.enum.length > 0) {
+        const enumValues = c.enum.map(v => `"${v}"`).join(', ');
+        return `.enum([${enumValues}])`;
+      }
+      break;
+  }
+  
+  // Add default value if provided
+  if (c.default !== undefined) {
+    if (typeof c.default === 'string') {
+      constraints.push(`.default("${c.default}")`);
+    } else {
+      constraints.push(`.default(${c.default})`);
+    }
+  }
+  
+  return constraints.join('');
+};
+
 // Helper function to format parameters based on server type
 const formatParameters = (parameters: Parameter[], serverType: 'python' | 'typescript'): string => {
   if (serverType === 'python') {
     return parameters.map(p => {
-      let paramType = 'str';
-      if (p.type === 'number') paramType = 'int';
-      else if (p.type === 'boolean') paramType = 'bool';
-      else if (p.type === 'array') paramType = 'List[Any]';
-      else if (p.type === 'object') paramType = 'Dict[str, Any]';
-      
+      const paramType = getParamType(p.type, 'python');
       return `${p.name.replace(/\s+/g, '_').toLowerCase()}: ${paramType}`;
     }).join(', ');
   } else {
@@ -37,10 +173,66 @@ const formatParameters = (parameters: Parameter[], serverType: 'python' | 'types
 
 // Format parameter declarations for TypeScript
 const formatTSParameters = (parameters: Parameter[]): string => {
-  return parameters.map(p => `${p.name.replace(/\s+/g, '_').toLowerCase()}: {
+  return parameters.map(p => {
+    // Base type definition
+    const baseType = `${p.name.replace(/\s+/g, '_').toLowerCase()}: {
       type: "${p.type}",
-      description: "${p.description}"
-    }`).join(',\n    ');
+      description: "${p.description}"`;
+    
+    // Add additional constraints if they exist
+    const additionalProps = [];
+    
+    if (p.constraints) {
+      const c = p.constraints;
+      if (c.required) {
+        additionalProps.push(`required: true`);
+      }
+      
+      // Add appropriate constraints based on type
+      switch (p.type) {
+        case 'string':
+        case 'email':
+        case 'url':
+          if (c.minLength !== undefined) additionalProps.push(`minLength: ${c.minLength}`);
+          if (c.maxLength !== undefined) additionalProps.push(`maxLength: ${c.maxLength}`);
+          if (c.pattern) additionalProps.push(`pattern: "${c.pattern}"`);
+          break;
+          
+        case 'number':
+        case 'integer':
+          if (c.minimum !== undefined) additionalProps.push(`minimum: ${c.minimum}`);
+          if (c.maximum !== undefined) additionalProps.push(`maximum: ${c.maximum}`);
+          break;
+          
+        case 'enum':
+          if (c.enum && c.enum.length > 0) {
+            const enumValues = c.enum.map(v => `"${v}"`).join(', ');
+            additionalProps.push(`enum: [${enumValues}]`);
+          }
+          break;
+      }
+      
+      // Add default value if provided
+      if (c.default !== undefined) {
+        if (typeof c.default === 'string') {
+          additionalProps.push(`default: "${c.default}"`);
+        } else {
+          additionalProps.push(`default: ${c.default}`);
+        }
+      }
+    }
+    
+    // If we have additional properties, add them
+    if (additionalProps.length > 0) {
+      return `${baseType},
+      ${additionalProps.join(',\n      ')}
+    }`;
+    }
+    
+    // Otherwise just return the base definition
+    return `${baseType}
+    }`;
+  }).join(',\n    ');
 };
 
 export const pythonTemplate = (serverConfig: ServerConfig): string => {
@@ -72,22 +264,24 @@ ${tools.map(tool => {
   
   let paramModel = '';
   if (hasParams) {
-    paramModel = `
+    // Need to check if we need to import Literal type for enums
+    const hasEnum = tool.parameters.some(p => p.type === 'enum' && p.constraints?.enum);
+    const hasDate = tool.parameters.some(p => p.type === 'date');
+    
+    // Add special import for date and enum if needed
+    const specialImports = [];
+    if (hasEnum) specialImports.push('from typing import Literal');
+    if (hasDate) specialImports.push('import datetime');
+    
+    paramModel = `${specialImports.length ? specialImports.join('\n') : ''}
 # Parameter validation model for ${tool.name}
 class ${paramModelName}(BaseModel):
     ${tool.parameters.map(p => {
-      let paramType = 'str';
-      let extraValidation = '';
+      const paramType = getParamType(p.type, 'python');
+      // Generate constraints for Pydantic
+      const constraints = getPythonConstraints(p);
       
-      if (p.type === 'number') {
-        paramType = 'int'; 
-        extraValidation = '# Customize with: ge=0, le=100, etc.';
-      }
-      else if (p.type === 'boolean') paramType = 'bool';
-      else if (p.type === 'array') paramType = 'List[Any]';
-      else if (p.type === 'object') paramType = 'Dict[str, Any]';
-      
-      return `${p.name.replace(/\s+/g, '_').toLowerCase()}: ${paramType} = Field(description="${p.description}") ${extraValidation}`;
+      return `${p.name.replace(/\s+/g, '_').toLowerCase()}: ${paramType} = Field(description="${p.description}"${constraints})`;
     }).join('\n    ')}
     
     # Add custom validation if needed
@@ -184,11 +378,47 @@ ${tools.map(tool => {
     `// Parameter schema for ${tool.name}
 const ${tool.name.replace(/\s+/g, '_').toLowerCase()}Schema = z.object({
   ${tool.parameters.map(p => {
+    // Get base Zod type
     let zodType = 'z.string()';
-    if (p.type === 'number') zodType = 'z.number()';
-    else if (p.type === 'boolean') zodType = 'z.boolean()';
-    else if (p.type === 'array') zodType = 'z.array(z.any())';
-    else if (p.type === 'object') zodType = 'z.record(z.string(), z.any())';
+    switch (p.type) {
+      case 'number':
+      case 'integer':
+        zodType = 'z.number()';
+        break;
+      case 'boolean':
+        zodType = 'z.boolean()';
+        break;
+      case 'array':
+        zodType = 'z.array(z.any())';
+        break;
+      case 'object':
+        zodType = 'z.record(z.string(), z.any())';
+        break;
+      case 'date':
+        zodType = 'z.date()';
+        break;
+      case 'email':
+        zodType = 'z.string().email()';
+        break;
+      case 'url':
+        zodType = 'z.string().url()';
+        break;
+      case 'enum':
+        if (p.constraints?.enum && p.constraints.enum.length > 0) {
+          const enumValues = p.constraints.enum.map(v => `"${v}"`).join(', ');
+          zodType = `z.enum([${enumValues}])`;
+        } else {
+          zodType = 'z.string()';
+        }
+        break;
+      default:
+        zodType = 'z.string()';
+    }
+    
+    // Add additional constraints
+    if (p.type !== 'enum') { // Already handled above for enum
+      zodType += getZodConstraints(p);
+    }
     
     return `${p.name.replace(/\s+/g, '_').toLowerCase()}: ${zodType}.describe("${p.description}")`;
   }).join(',\n  ')}

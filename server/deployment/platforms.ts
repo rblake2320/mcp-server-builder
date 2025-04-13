@@ -75,6 +75,42 @@ export async function generateDeploymentFiles(platformId: string, buildId: strin
   
   // Add automatic dependency installation scripts to all platforms
   addAutoInstallScripts(deploymentDir, getDeploymentPlatform(platformId)?.name || 'Cloud', serverName);
+  
+  // Add enhanced Cursor assistant for Cursor IDE deployments
+  if (platformId === 'cursor') {
+    const isServerPython = serverFile.endsWith('.py');
+    
+    // Copy and configure the Cursor deployment assistant script
+    const cursorAssistantTemplate = fs.readFileSync(
+      path.join(process.cwd(), 'server', 'deployment', 'templates', 'cursor-assistant.js'),
+      'utf8'
+    );
+    
+    // Replace template placeholders with actual values
+    const configuredAssistant = cursorAssistantTemplate
+      .replace('{{SERVER_NAME}}', serverName)
+      .replace('{{IS_PYTHON}}', isServerPython ? 'true' : 'false');
+    
+    // Write the configured assistant to the deployment directory
+    fs.writeFileSync(path.join(deploymentDir, 'deploy-to-cursor.js'), configuredAssistant);
+    
+    // Create a simple batch script for Windows users
+    const batchScript = `@echo off
+echo Starting MCP Server Deployment Assistant...
+node deploy-to-cursor.js
+pause
+`;
+    fs.writeFileSync(path.join(deploymentDir, 'deploy-to-cursor.bat'), batchScript);
+    
+    // Create a shell script for macOS/Linux users
+    const shellScript = `#!/bin/bash
+echo "Starting MCP Server Deployment Assistant..."
+node deploy-to-cursor.js
+read -p "Press Enter to exit..."
+`;
+    fs.writeFileSync(path.join(deploymentDir, 'deploy-to-cursor.sh'), shellScript);
+    fs.chmodSync(path.join(deploymentDir, 'deploy-to-cursor.sh'), '755');
+  }
 }
 
 /**
@@ -238,13 +274,20 @@ export function generateDeploymentInstructions(platformId: string, buildId: stri
     ],
     "cursor": [
       "1. Extract the downloaded ZIP file to a local directory",
-      "2. On Windows, double-click 'start.bat' or on macOS/Linux run './start.sh' in your terminal",
-      "   (This will automatically install all dependencies - no manual steps required!)",
-      "3. Locate your Cursor IDE config file:",
+      "2. ✨ ONE-CLICK SETUP: Run 'deploy-to-cursor.bat' (Windows) or './deploy-to-cursor.sh' (Mac/Linux)",
+      "   This will AUTOMATICALLY:",
+      "   • Install all dependencies",
+      "   • Update your Cursor IDE configuration",
+      "   • Prompt to restart Cursor IDE",
+      "   • Guide you through the final steps",
+      "",
+      "   [ALTERNATIVELY, IF YOU PREFER MANUAL SETUP]:",
+      "3. Run 'start.bat' (Windows) or './start.sh' (Mac/Linux) to install dependencies",
+      "4. Locate your Cursor IDE config file:",
       "   • macOS: ~/Library/Application Support/Cursor/cursor_config.json",
       "   • Windows: %APPDATA%\\Cursor\\cursor_config.json",
       "   • Linux: ~/.config/Cursor/cursor_config.json",
-      "4. Create or edit the config file to add your MCP server:",
+      "5. Edit the config file to add your MCP server:",
       `{
   "mcpServers": {
     "${serverName.toLowerCase().replace(/\s+/g, '-')}": {
@@ -253,11 +296,13 @@ export function generateDeploymentInstructions(platformId: string, buildId: stri
     }
   }
 }`,
-      "5. Replace '/absolute/path/to/extracted/folder/' with the actual path where you extracted the files",
-      "6. Restart Cursor IDE to apply the changes",
-      "7. Open Cursor IDE and click on the MCP icon in the sidebar to connect to your server",
-      "8. Select your server from the dropdown and click 'Connect'",
-      "9. That's it! Our automatic installer handles all dependencies for you"
+      "6. Replace '/absolute/path/to/extracted/folder/' with the actual path where you extracted the files",
+      "7. Restart Cursor IDE to apply the changes",
+      "",
+      "AFTER SETUP:",
+      "8. Open Cursor IDE and click on the MCP icon in the sidebar",
+      "9. Select your server from the dropdown and click 'Connect'",
+      "10. That's it! Your MCP server is now connected to Cursor IDE"
     ]
   };
 

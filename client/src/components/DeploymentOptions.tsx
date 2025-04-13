@@ -256,16 +256,34 @@ const DeploymentOptions = ({ buildId, serverName }: DeploymentOptionsProps) => {
           <div className="flex-1">
             <h3 className="text-lg font-medium mb-1 bg-gradient-to-r from-blue-600 to-indigo-600 text-transparent bg-clip-text">Deploy to Cursor IDE</h3>
             <p className="text-sm text-neutral-600 mb-2">
-              One-click deployment with automatic dependency installation
+              One-click deployment with fully automated setup
             </p>
-            <p className="text-xs text-green-600 font-medium">
-              <span className="inline-flex items-center">
-                <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
-                </svg>
-                Zero-configuration setup • Auto-installs dependencies
-              </span>
-            </p>
+            <div className="space-y-1">
+              <p className="text-xs text-green-600 font-medium">
+                <span className="inline-flex items-center">
+                  <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
+                  </svg>
+                  NEW: Zero-configuration deployment assistant
+                </span>
+              </p>
+              <p className="text-xs text-green-600 font-medium">
+                <span className="inline-flex items-center">
+                  <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
+                  </svg>
+                  Automatic dependency installation & config setup
+                </span>
+              </p>
+              <p className="text-xs text-green-600 font-medium">
+                <span className="inline-flex items-center">
+                  <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
+                  </svg>
+                  Interactive guided setup process
+                </span>
+              </p>
+            </div>
             <div className="flex flex-wrap gap-2 mt-3">
               <Button
                 variant="default"
@@ -439,7 +457,21 @@ const DeploymentOptions = ({ buildId, serverName }: DeploymentOptionsProps) => {
                       </a>
                     </li>
                     {selectedPlatform?.id === 'cursor' && (
-                      <li className="font-medium text-blue-600">Just extract and run the start script - dependencies will install automatically!</li>
+                      <>
+                        <li className="font-medium text-blue-600">
+                          <span className="flex items-center">
+                            <span className="bg-blue-100 text-blue-800 text-xs font-medium mr-2 px-2 py-0.5 rounded">NEW</span> 
+                            Run the auto-deployment assistant:
+                          </span>
+                          <ul className="list-disc ml-5 text-sm mt-1">
+                            <li>Windows: Double-click <code className="bg-gray-100 px-1 rounded text-blue-600">deploy-to-cursor.bat</code></li>
+                            <li>Mac/Linux: Run <code className="bg-gray-100 px-1 rounded text-blue-600">./deploy-to-cursor.sh</code></li>
+                          </ul>
+                        </li>
+                        <li className="text-green-600">
+                          The assistant will automatically install dependencies, configure Cursor IDE, and guide you through any remaining steps!
+                        </li>
+                      </>
                     )}
                     {deploymentResult.setupInstructions?.map((instruction, index) => (
                       <li key={index} className={index === 0 || index === 1 ? "font-medium" : ""}>{instruction}</li>

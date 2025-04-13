@@ -1,0 +1,277 @@
+# Automating MCP Server Deployment to Cursor IDE
+
+Based on your screenshot, you're looking to fully automate the MCP server deployment to Cursor IDE. While the package already includes partial automation for dependency installation, I can provide code to automate the entire process, including configuration file editing and possible IDE restart.
+
+## Complete Automation Solution
+
+Here's a comprehensive script that will handle the entire deployment process:
+
+```javascript
+// deploy-to-cursor.js
+const fs = require('fs');
+const path = require('path');
+const { execSync } = require('child_process');
+const os = require('os');
+const readline = require('readline');
+
+// Configuration
+const SERVER_NAME = "weather-data-provider";
+const EXTRACTED_FOLDER = path.resolve('./extracted'); // Update this to match your extraction location
+
+// Get Cursor config file path based on OS
+function getCursorConfigPath() {
+  const platform = process.platform;
+  const homedir = os.homedir();
+  
+  if (platform === 'darwin') { // macOS
+    return path.join(homedir, 'Library/Application Support/Cursor/cursor_config.json');
+  } else if (platform === 'win32') { // Windows
+    return path.join(process.env.APPDATA, 'Cursor', 'cursor_config.json');
+  } else { // Linux
+    return path.join(homedir, '.config/Cursor/cursor_config.json');
+  }
+}
+
+// Extract the deployment package
+function extractPackage(packagePath) {
+  console.log('📦 Extracting deployment package...');
+  
+  // Create extraction directory if it doesn't exist
+  if (!fs.existsSync(EXTRACTED_FOLDER)) {
+    fs.mkdirSync(EXTRACTED_FOLDER, { recursive: true });
+  }
+  
+  // Extract based on package type
+  if (packagePath.endsWith('.zip')) {
+    const extract = require('extract-zip');
+    extract(packagePath, { dir: EXTRACTED_FOLDER })
+      .then(() => runStartScript())
+      .catch(err => console.error('Extraction failed:', err));
+  } else if (packagePath.endsWith('.tar.gz')) {
+    execSync(`tar -xzf "${packagePath}" -C "${EXTRACTED_FOLDER}"`);
+    runStartScript();
+  } else {
+    console.error('Unsupported package format. Please use .zip or .tar.gz');
+    process.exit(1);
+  }
+}
+
+// Run the start script to install dependencies
+function runStartScript() {
+  console.log('🚀 Running start script to install dependencies...');
+  
+  const startScript = path.join(EXTRACTED_FOLDER, 'start.js');
+  const startScriptSh = path.join(EXTRACTED_FOLDER, 'start.sh');
+  
+  if (fs.existsSync(startScript)) {
+    execSync(`node "${startScript}"`, { stdio: 'inherit' });
+  } else if (fs.existsSync(startScriptSh)) {
+    if (process.platform === 'win32') {
+      execSync(`bash "${startScriptSh}"`, { stdio: 'inherit' });
+    } else {
+      execSync(`chmod +x "${startScriptSh}" && "${startScriptSh}"`, { stdio: 'inherit' });
+    }
+  } else {
+    console.log('⚠️ No start script found. Skipping dependency installation.');
+  }
+  
+  updateCursorConfig();
+}
+
+// Update Cursor IDE configuration file
+function updateCursorConfig() {
+  console.log('⚙️ Updating Cursor IDE configuration...');
+  
+  const configPath = getCursorConfigPath();
+  
+  // Check if config file exists
+  if (!fs.existsSync(configPath)) {
+    console.log(`❌ Cursor config file not found at ${configPath}`);
+    console.log('Please make sure Cursor IDE is installed and has been run at least once.');
+    return;
+  }
+  
+  try {
+    // Read current config
+    let config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+    
+    // Initialize mcpServers if it doesn't exist
+    if (!config.mcpServers) {
+      config.mcpServers = {};
+    }
+    
+    // Get absolute path to server.js
+    const serverJsPath = path.join(EXTRACTED_FOLDER, 'server.js');
+    
+    // Add/update server configuration
+    config.mcpServers[SERVER_NAME] = {
+      "command": "node",
+      "args": [serverJsPath]
+    };
+    
+    // Write updated config back
+    fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
+    
+    console.log('✅ Cursor configuration updated successfully!');
+    restartCursor();
+  } catch (error) {
+    console.error('Failed to update Cursor configuration:', error);
+  }
+}
+
+// Attempt to restart Cursor IDE
+async function restartCursor() {
+  console.log('🔄 Attempting to restart Cursor IDE...');
+  
+  // Check if Cursor is running
+  const isRunning = checkIfCursorIsRunning();
+  
+  if (isRunning) {
+    console.log('⚠️ Cursor IDE is currently running.');
+    
+    const rl = readline.createInterface({
+      input: process.stdin,
+      output: process.stdout
+    });
+    
+    // Ask user if they want to restart Cursor
+    rl.question('Would you like to restart Cursor IDE now? (y/n): ', (answer) => {
+      rl.close();
+      
+      if (answer.toLowerCase() === 'y') {
+        // Terminate Cursor process
+        try {
+          if (process.platform === 'win32') {
+            execSync('taskkill /F /IM cursor.exe');
+          } else {
+            execSync('pkill -f Cursor');
+          }
+          
+          // Short delay before starting Cursor again
+          setTimeout(() => {
+            startCursor();
+          }, 1000);
+        } catch (error) {
+          console.log('❌ Failed to terminate Cursor IDE. Please restart it manually.');
+        }
+      } else {
+        console.log('Please restart Cursor IDE manually to apply the changes.');
+      }
+    });
+  } else {
+    // If Cursor is not running, offer to start it
+    const rl = readline.createInterface({
+      input: process.stdin,
+      output: process.stdout
+    });
+    
+    rl.question('Would you like to start Cursor IDE now? (y/n): ', (answer) => {
+      rl.close();
+      
+      if (answer.toLowerCase() === 'y') {
+        startCursor();
+      } else {
+        console.log('✅ Setup complete! Start Cursor IDE manually when ready.');
+      }
+    });
+  }
+}
+
+// Check if Cursor IDE is running
+function checkIfCursorIsRunning() {
+  try {
+    if (process.platform === 'win32') {
+      const output = execSync('tasklist /FI "IMAGENAME eq cursor.exe"').toString();
+      return output.includes('cursor.exe');
+    } else {
+      const output = execSync('ps aux | grep -v grep | grep -i Cursor').toString();
+      return output !== '';
+    }
+  } catch (error) {
+    return false;
+  }
+}
+
+// Start Cursor IDE
+function startCursor() {
+  try {
+    console.log('🚀 Starting Cursor IDE...');
+    
+    if (process.platform === 'win32') {
+      const cursorPath = path.join(process.env['ProgramFiles'], 'Cursor', 'Cursor.exe');
+      if (fs.existsSync(cursorPath)) {
+        execSync(`start "" "${cursorPath}"`, { stdio: 'ignore', shell: true });
+      } else {
+        console.log('❌ Cursor executable not found. Please start Cursor IDE manually.');
+      }
+    } else if (process.platform === 'darwin') {
+      execSync('open -a Cursor', { stdio: 'ignore' });
+    } else {
+      execSync('cursor', { stdio: 'ignore' });
+    }
+    
+    console.log('✅ Deployment complete! Cursor IDE should be starting.');
+  } catch (error) {
+    console.log('❌ Failed to start Cursor IDE. Please start it manually.');
+  }
+}
+
+// Main execution
+console.log('🚀 Starting MCP Server deployment to Cursor IDE...');
+
+// Check if package path was provided
+if (process.argv.length < 3) {
+  console.log('Please provide the path to the deployment package:');
+  console.log('node deploy-to-cursor.js path/to/package.zip');
+  process.exit(1);
+}
+
+const packagePath = process.argv[2];
+
+// Check if package exists
+if (!fs.existsSync(packagePath)) {
+  console.log(`❌ Package file not found: ${packagePath}`);
+  process.exit(1);
+}
+
+// Start the deployment process
+extractPackage(packagePath);
+```
+
+## How to Use This Automation Script
+
+1. Create a file named `deploy-to-cursor.js` with the code above
+2. Install required dependencies:
+   ```bash
+   npm install extract-zip
+   ```
+3. Run the script with your deployment package:
+   ```bash
+   node deploy-to-cursor.js path/to/your-downloaded-package.zip
+   ```
+
+## What This Script Does
+
+1. **Extracts your deployment package** (zip or tar.gz)
+2. **Runs the start script** that installs dependencies automatically
+3. **Locates your Cursor configuration file** based on your operating system
+4. **Updates the configuration** with your MCP server settings
+5. **Detects if Cursor is running** and offers to restart it
+6. **Starts Cursor IDE** if not already running
+
+## Limitations and Considerations
+
+1. This script requires Node.js to be installed on your system
+2. Some steps may require administrative privileges depending on your system setup
+3. The automatic restart functionality may not work on all systems due to security restrictions
+4. You might need to adjust the `EXTRACTED_FOLDER` and `SERVER_NAME` variables to match your deployment
+
+For maximum compatibility, this script includes interactive prompts for the restart portion, since forced application termination and launching can sometimes be restricted by operating systems.
+
+Would you like me to explain any specific part of this automation script in more detail?
+
+Citations:
+[1] https://pplx-res.cloudinary.com/image/upload/v1744578797/user_uploads/SOAcnzXzXANbogd/image.jpg
+
+---
+Answer from Perplexity: pplx.ai/share

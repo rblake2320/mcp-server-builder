@@ -18,6 +18,7 @@ import {
   MCP_SDK_VERSION,
   VALIDATION_INFO
 } from "../client/src/lib/templates";
+import { platforms, generateDeploymentInstructions } from "./deployment/platforms";
 
 // Validation function to ensure server templates are following protocol specifications
 function validateServerConfig(config: any): { valid: boolean; errors: string[] } {
@@ -524,6 +525,99 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ===== Deployment API Endpoints =====
+  
+  // Get available deployment platforms
+  app.get('/api/deployment/platforms', (req, res) => {
+    // Remove sensitive information like credential fields from the response
+    const publicPlatformInfo = platforms.map(platform => ({
+      id: platform.id,
+      name: platform.name,
+      description: platform.description,
+      requiresCredentials: platform.requiresCredentials,
+      credentialFields: platform.credentialFields
+    }));
+    
+    res.json(publicPlatformInfo);
+  });
+  
+  // Prepare deployment package
+  app.post('/api/deployment/prepare', async (req, res) => {
+    try {
+      const { buildId, platformId, credentials } = req.body;
+      
+      if (!buildId) {
+        return res.status(400).json({ 
+          success: false,
+          error: 'Missing buildId parameter' 
+        });
+      }
+      
+      if (!platformId) {
+        return res.status(400).json({ 
+          success: false,
+          error: 'Missing platformId parameter' 
+        });
+      }
+      
+      // Get the server details from storage
+      const server = await storage.getServerByBuildId(buildId);
+      
+      if (!server) {
+        return res.status(404).json({ 
+          success: false,
+          error: 'Server build not found' 
+        });
+      }
+      
+      // Find the selected platform
+      const platform = platforms.find(p => p.id === platformId);
+      
+      if (!platform) {
+        return res.status(404).json({ 
+          success: false,
+          error: 'Deployment platform not found' 
+        });
+      }
+      
+      // Validate credentials if required
+      if (platform.requiresCredentials && platform.credentialFields) {
+        const missingRequiredFields = platform.credentialFields
+          .filter(field => field.required && (!credentials || !credentials[field.id]))
+          .map(field => field.name);
+          
+        if (missingRequiredFields.length > 0) {
+          return res.status(400).json({
+            success: false,
+            error: `Missing required credentials: ${missingRequiredFields.join(', ')}`
+          });
+        }
+      }
+      
+      // Generate deployment instructions
+      const setupInstructions = generateDeploymentInstructions(
+        platformId, 
+        buildId, 
+        server.serverName
+      );
+      
+      // Return success with instructions
+      res.json({
+        success: true,
+        message: `Deployment package for ${platform.name} is ready`,
+        deploymentUrl: `/api/download/${buildId}`,
+        platformId,
+        setupInstructions
+      });
+    } catch (error) {
+      console.error('Error preparing deployment:', error);
+      res.status(500).json({ 
+        success: false,
+        error: 'Failed to prepare deployment package' 
+      });
+    }
+  });
+  
   // Delete template (auth required)
   app.delete('/api/templates/:id', async (req, res) => {
     try {
@@ -556,62 +650,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // ===== Deployment API Endpoints =====
-  
-  // Get list of available deployment platforms
-  app.get('/api/deployment/platforms', async (req, res) => {
-    try {
-      const { deploymentPlatforms } = await import('./deployment/platforms');
-      res.json(deploymentPlatforms.map(p => ({
-        id: p.id,
-        name: p.name,
-        description: p.description,
-        logoUrl: p.logoUrl,
-        requiresCredentials: p.requiresCredentials,
-        credentialFields: p.credentialFields
-      })));
-    } catch (error) {
-      console.error('Error loading deployment platforms:', error);
-      res.status(500).json({ 
-        error: 'Failed to fetch deployment platforms',
-        message: error instanceof Error ? error.message : 'An unexpected error occurred'
-      });
-    }
-  });
-  
-  // Prepare deployment (generate deployment package)
-  app.post('/api/deployment/prepare', async (req, res) => {
-    try {
-      const { buildId, platformId } = req.body;
-      
-      if (!buildId || !platformId) {
-        return res.status(400).json({ 
-          error: 'Missing required fields',
-          message: 'Both buildId and platformId are required' 
-        });
-      }
-      
-      // Prepare deployment
-      const { prepareDeployment } = await import('./deployment/service');
-      const result = await prepareDeployment(platformId, buildId);
-      
-      if (!result.success) {
-        return res.status(400).json({ 
-          error: result.error || 'Failed to prepare deployment',
-          message: result.message
-        });
-      }
-      
-      res.json(result);
-    } catch (error) {
-      console.error('Error preparing deployment:', error);
-      res.status(500).json({ 
-        error: 'Failed to prepare deployment',
-        message: error instanceof Error ? error.message : 'An unexpected error occurred'
-      });
-    }
-  });
-  
   // Deploy to cloud platform
   app.post('/api/deployment/deploy', async (req, res) => {
     try {
@@ -619,51 +657,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       if (!buildId || !platformId) {
         return res.status(400).json({ 
+          success: false,
           error: 'Missing required fields',
           message: 'Both buildId and platformId are required' 
         });
       }
       
-      // Deploy to cloud
-      const { deployToCloud } = await import('./deployment/service');
-      const result = await deployToCloud(platformId, buildId, credentials || {});
+      // Get the server details from storage
+      const server = await storage.getServerByBuildId(buildId);
       
-      if (!result.success) {
-        return res.status(400).json({ 
-          error: result.error || 'Failed to deploy to cloud',
-          message: result.message
+      if (!server) {
+        return res.status(404).json({ 
+          success: false,
+          error: 'Server build not found' 
         });
       }
       
-      res.json(result);
+      // Find the selected platform
+      const platform = platforms.find(p => p.id === platformId);
+      
+      if (!platform) {
+        return res.status(404).json({ 
+          success: false,
+          error: 'Deployment platform not found' 
+        });
+      }
+      
+      // Return success with instructions for direct deployment
+      res.json({
+        success: true,
+        message: `Deployment package for ${platform.name} is ready`,
+        deploymentUrl: `/api/download/${buildId}`,
+        platformId
+      });
     } catch (error) {
       console.error('Error deploying to cloud:', error);
       res.status(500).json({ 
-        error: 'Failed to deploy to cloud',
-        message: error instanceof Error ? error.message : 'An unexpected error occurred'
-      });
-    }
-  });
-  
-  // Download deployment package
-  app.get('/api/deployments/:deploymentId/download', async (req, res) => {
-    try {
-      const { deploymentId } = req.params;
-      const zipFilePath = path.join(process.cwd(), 'deployments', `${deploymentId}.zip`);
-      
-      if (!await fs.pathExists(zipFilePath)) {
-        return res.status(404).json({ 
-          error: 'Deployment package not found',
-          message: `No deployment package found with ID ${deploymentId}`
-        });
-      }
-      
-      res.download(zipFilePath, `mcp-server-${deploymentId}.zip`);
-    } catch (error) {
-      console.error('Error downloading deployment package:', error);
-      res.status(500).json({ 
-        error: 'Failed to download deployment package',
-        message: error instanceof Error ? error.message : 'An unexpected error occurred'
+        success: false,
+        error: 'Failed to deploy to cloud platform'
       });
     }
   });

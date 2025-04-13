@@ -1,22 +1,10 @@
-/**
- * Deployment Service for MCP Servers
- * 
- * This service provides deployment options for MCP servers to various hosting platforms.
- */
+// Deployment platform configurations
 
-import fs from 'fs-extra';
-import path from 'path';
-import { v4 as uuidv4 } from 'uuid';
-
-/**
- * Platform-specific deployment settings
- */
 export interface DeploymentPlatform {
   id: string;
   name: string;
   description: string;
-  logoUrl: string;
-  setupInstructions: string[];
+  logoUrl?: string;
   requiresCredentials: boolean;
   credentialFields?: {
     id: string;
@@ -25,315 +13,189 @@ export interface DeploymentPlatform {
     type: 'text' | 'password';
     required: boolean;
   }[];
-  generateDeploymentFiles: (buildId: string, buildDir: string) => Promise<Record<string, string>>;
 }
 
 /**
- * Available deployment platforms
+ * List of supported deployment platforms
+ * Note: The logo URLs will be dynamically fetched from the server
  */
-export const deploymentPlatforms: DeploymentPlatform[] = [
+export const platforms: DeploymentPlatform[] = [
   {
-    id: 'vercel',
-    name: 'Vercel',
-    description: 'Deploy to Vercel for serverless MCP server hosting with automatic HTTPS',
-    logoUrl: '/logos/vercel.svg',
-    setupInstructions: [
-      'Sign up for a Vercel account at https://vercel.com if you don\'t have one',
-      'Install the Vercel CLI: npm install -g vercel',
-      'Run "vercel login" to authenticate with your account',
-      'Extract the downloaded deployment package to a folder on your computer',
-      'Open a terminal/command prompt in the extracted folder',
-      'Run "vercel" and follow the prompts to deploy your MCP server',
-      'After deployment completes, note the URL provided by Vercel',
-      'Use this URL to access your MCP server in AI assistants'
-    ],
+    id: "vercel",
+    name: "Vercel",
+    description: "Deploy to Vercel for serverless hosting with global CDN",
     requiresCredentials: true,
     credentialFields: [
       {
-        id: 'vercel_token',
-        name: 'Vercel API Token',
-        description: 'Your Vercel API token for automated deployments',
-        type: 'password',
+        id: "token",
+        name: "Vercel API Token",
+        description: "Your Vercel API token from vercel.com/account/tokens",
+        type: "password",
         required: true
+      },
+      {
+        id: "scope",
+        name: "Project Scope",
+        description: "Team or personal account name (optional)",
+        type: "text",
+        required: false
       }
-    ],
-    generateDeploymentFiles: async (buildId: string, buildDir: string) => {
-      // Generate vercel.json for Vercel deployments
-      const vercelConfig = {
-        version: 2,
-        builds: [
-          {
-            src: "*.*",
-            use: "@vercel/node"
-          }
-        ],
-        routes: [
-          {
-            src: "/(.*)",
-            dest: "/"
-          }
-        ],
-        env: {
-          NODE_ENV: "production"
-        }
-      };
-      
-      // Write vercel.json to build directory
-      await fs.writeFile(
-        path.join(buildDir, 'vercel.json'),
-        JSON.stringify(vercelConfig, null, 2)
-      );
-      
-      return {
-        'vercel.json': JSON.stringify(vercelConfig, null, 2)
-      };
-    }
+    ]
   },
   {
-    id: 'railway',
-    name: 'Railway',
-    description: 'Deploy to Railway for easy setup and management of MCP servers',
-    logoUrl: '/logos/railway.svg',
-    setupInstructions: [
-      'Create a Railway account at https://railway.app if you don\'t have one',
-      'Install the Railway CLI: npm install -g @railway/cli',
-      'Run "railway login" to authenticate with your account',
-      'Extract the downloaded deployment package to a folder on your computer',
-      'Open a terminal/command prompt in the extracted folder',
-      'Run "railway init" to create a new project',
-      'Run "railway up" to deploy your MCP server',
-      'After deployment, run "railway domain" to create a public URL',
-      'Use this URL to access your MCP server in AI assistants'
-    ],
+    id: "railway",
+    name: "Railway",
+    description: "One-click deployment to Railway with automatic CI/CD",
     requiresCredentials: true,
     credentialFields: [
       {
-        id: 'railway_token',
-        name: 'Railway API Token',
-        description: 'Your Railway API token for automated deployments',
-        type: 'password',
+        id: "apiKey",
+        name: "Railway API Key",
+        description: "Your Railway API key from railway.app",
+        type: "password",
         required: true
       }
-    ],
-    generateDeploymentFiles: async (buildId: string, buildDir: string) => {
-      // Generate railway.json for Railway deployments
-      const railwayConfig = {
-        version: 2,
-        build: {
-          builder: "NIXPACKS",
-          buildCommand: "npm install && npm run build"
-        },
-        deploy: {
-          restartPolicyType: "ON_FAILURE",
-          restartPolicyMaxRetries: 10
-        }
-      };
-      
-      // Write railway.json to build directory
-      await fs.writeFile(
-        path.join(buildDir, 'railway.json'),
-        JSON.stringify(railwayConfig, null, 2)
-      );
-      
-      return {
-        'railway.json': JSON.stringify(railwayConfig, null, 2)
-      };
-    }
+    ]
   },
   {
-    id: 'render',
-    name: 'Render',
-    description: 'Deploy to Render for easy cloud hosting with automatic TLS certificates',
-    logoUrl: '/logos/render.svg',
-    setupInstructions: [
-      'Create a Render account at https://render.com if you don\'t have one',
-      'Extract the downloaded deployment package to a folder on your computer',
-      'Log in to your Render dashboard at https://dashboard.render.com',
-      'Click "New +" and select "Web Service"',
-      'Choose "Build and deploy from a Git repository"',
-      'Connect your GitHub/GitLab account or click "Public Git repository"',
-      'Enter the repository URL or upload the deployment package',
-      'Choose "Node" as the runtime and set "npm start" as the start command',
-      'Click "Create Web Service" to deploy',
-      'After deployment, copy the service URL to use with your AI assistants'
-    ],
+    id: "render",
+    name: "Render",
+    description: "Deploy to Render with automatic builds and scaling",
     requiresCredentials: true,
     credentialFields: [
       {
-        id: 'render_token',
-        name: 'Render API Token',
-        description: 'Your Render API token for automated deployments',
-        type: 'password',
+        id: "apiKey",
+        name: "Render API Key",
+        description: "Your Render API key from render.com/dashboard",
+        type: "password",
         required: true
+      },
+      {
+        id: "serviceType",
+        name: "Service Type",
+        description: "web or background service",
+        type: "text",
+        required: false
       }
-    ],
-    generateDeploymentFiles: async (buildId: string, buildDir: string) => {
-      // Generate render.yaml for Render deployments
-      const renderConfig = {
-        services: [
-          {
-            type: "web",
-            name: `mcp-server-${buildId}`,
-            env: "node",
-            buildCommand: "npm install && npm run build",
-            startCommand: "npm start",
-            envVars: [
-              {
-                key: "NODE_ENV",
-                value: "production"
-              }
-            ]
-          }
-        ]
-      };
-      
-      // Write render.yaml to build directory
-      await fs.writeFile(
-        path.join(buildDir, 'render.yaml'),
-        JSON.stringify(renderConfig, null, 2)
-      );
-      
-      return {
-        'render.yaml': JSON.stringify(renderConfig, null, 2)
-      };
-    }
+    ]
   },
   {
-    id: 'fly',
-    name: 'Fly.io',
-    description: 'Deploy to Fly.io for globally distributed MCP server instances',
-    logoUrl: '/logos/fly.svg',
-    setupInstructions: [
-      'Create a Fly.io account at https://fly.io if you don\'t have one',
-      'Extract the downloaded deployment package to a folder on your computer',
-      'Install the Fly.io CLI:',
-      '  • macOS/Linux: curl -L https://fly.io/install.sh | sh',
-      '  • Windows: powershell -Command "iwr https://fly.io/install.ps1 -UseBASIC | iex"',
-      'Run "fly auth login" to authenticate with your account',
-      'Open a terminal/command prompt in the extracted folder',
-      'Run "fly launch" to create a new app (accept defaults when prompted)',
-      'Run "fly deploy" to deploy your MCP server',
-      'After deployment, note the URL provided by Fly.io',
-      'Use this URL to access your MCP server in AI assistants'
-    ],
+    id: "netlify",
+    name: "Netlify",
+    description: "Deploy your MCP server to Netlify with serverless functions",
     requiresCredentials: true,
     credentialFields: [
       {
-        id: 'fly_token',
-        name: 'Fly.io API Token',
-        description: 'Your Fly.io API token for automated deployments',
-        type: 'password',
+        id: "personalAccessToken",
+        name: "Personal Access Token",
+        description: "Your Netlify Personal Access Token",
+        type: "password",
         required: true
+      },
+      {
+        id: "siteId",
+        name: "Site ID",
+        description: "Your Netlify Site ID (optional)",
+        type: "text",
+        required: false
       }
-    ],
-    generateDeploymentFiles: async (buildId: string, buildDir: string) => {
-      // Generate fly.toml for Fly.io deployments
-      const flyConfig = `
-app = "mcp-server-${buildId}"
-primary_region = "ewr"
-
-[build]
-  builder = "heroku/buildpacks:20"
-
-[env]
-  NODE_ENV = "production"
-  PORT = "8080"
-
-[http_service]
-  internal_port = 8080
-  force_https = true
-  auto_stop_machines = true
-  auto_start_machines = true
-  min_machines_running = 0
-`;
-      
-      // Write fly.toml to build directory
-      await fs.writeFile(
-        path.join(buildDir, 'fly.toml'),
-        flyConfig
-      );
-      
-      return {
-        'fly.toml': flyConfig
-      };
-    }
+    ]
   },
   {
-    id: 'netlify',
-    name: 'Netlify',
-    description: 'Deploy to Netlify for serverless MCP server functions with global CDN',
-    logoUrl: '/logos/netlify.svg',
-    setupInstructions: [
-      'Create a Netlify account at https://netlify.com if you don\'t have one',
-      'Extract the downloaded deployment package to a folder on your computer',
-      'Install the Netlify CLI: npm install -g netlify-cli',
-      'Run "netlify login" to authenticate with your account',
-      'Open a terminal/command prompt in the extracted folder',
-      'Run "netlify init" to create a new site (follow the prompts)',
-      'Run "netlify deploy --prod" to deploy your MCP server',
-      'After deployment, note the URL provided by Netlify',
-      'Use this URL to access your MCP server in AI assistants'
-    ],
+    id: "flyio",
+    name: "Fly.io",
+    description: "Global deployment on Fly.io's application platform",
     requiresCredentials: true,
     credentialFields: [
       {
-        id: 'netlify_token',
-        name: 'Netlify API Token',
-        description: 'Your Netlify API token for automated deployments',
-        type: 'password',
+        id: "accessToken",
+        name: "Access Token",
+        description: "Your Fly.io access token",
+        type: "password",
         required: true
+      },
+      {
+        id: "org",
+        name: "Organization",
+        description: "Your Fly.io organization name",
+        type: "text",
+        required: false
       }
-    ],
-    generateDeploymentFiles: async (buildId: string, buildDir: string) => {
-      // Generate netlify.toml for Netlify deployments
-      const netlifyConfig = `
-[build]
-  command = "npm run build"
-  publish = "public"
-  functions = "functions"
-
-[dev]
-  command = "npm run dev"
-  port = 8080
-  targetPort = 5000
-  publish = "public"
-  autoLaunch = true
-
-[[redirects]]
-  from = "/api/*"
-  to = "/.netlify/functions/:splat"
-  status = 200
-`;
-      
-      // Write netlify.toml to build directory
-      await fs.writeFile(
-        path.join(buildDir, 'netlify.toml'),
-        netlifyConfig
-      );
-      
-      return {
-        'netlify.toml': netlifyConfig
-      };
-    }
+    ]
+  },
+  {
+    id: "cursor",
+    name: "Cursor IDE",
+    description: "Configure MCP server for Cursor IDE integration",
+    requiresCredentials: false,
   }
 ];
 
 /**
- * Get a deployment platform by ID
+ * Generate deployment instructions based on the platform
  */
-export function getDeploymentPlatform(platformId: string): DeploymentPlatform | undefined {
-  return deploymentPlatforms.find(platform => platform.id === platformId);
-}
-
-/**
- * Generate deployment files for a specific platform
- */
-export async function generateDeploymentFiles(platformId: string, buildId: string, buildDir: string): Promise<Record<string, string>> {
-  const platform = getDeploymentPlatform(platformId);
-  
-  if (!platform) {
-    throw new Error(`Deployment platform "${platformId}" not found`);
+export function generateDeploymentInstructions(platformId: string, buildId: string, serverName: string): string[] {
+  const instructions: Record<string, string[]> = {
+    "vercel": [
+      "Extract the downloaded ZIP file to a local directory",
+      "Open a terminal in that directory",
+      "Run `npm install` to install dependencies",
+      "Run `vercel deploy` or connect your GitHub repository to Vercel",
+      "Once deployed, your MCP server will be available at the provided URL"
+    ],
+    "railway": [
+      "Extract the downloaded ZIP file",
+      "Create a new project on Railway",
+      "Push the code to a GitHub repository",
+      "Connect the repository to Railway",
+      "Railway will automatically deploy your MCP server"
+    ],
+    "render": [
+      "Extract the downloaded ZIP file",
+      "Create a new Web Service on Render",
+      "Connect to your GitHub repository with the extracted code",
+      "Set the build command to `npm install`",
+      "Set the start command to `node server.js` or `python server.py` based on your server type",
+      "Deploy and access your MCP server through the provided Render URL"
+    ],
+    "netlify": [
+      "Extract the downloaded ZIP file",
+      "Push the code to a GitHub repository",
+      "Create a new site on Netlify from the repository",
+      "In Site Settings, configure the build command to `npm install`",
+      "Add a `netlify.toml` file with your function configuration",
+      "Deploy and access your MCP server through Netlify Functions"
+    ],
+    "flyio": [
+      "Extract the downloaded ZIP file",
+      "Install the Fly CLI with `curl -L https://fly.io/install.sh | sh`",
+      "Navigate to the extracted directory",
+      "Run `fly launch` to create a new app",
+      "Run `fly deploy` to deploy your MCP server",
+      "Your API will be accessible at `https://your-app-name.fly.dev`"
+    ],
+    "cursor": [
+      "Extract the downloaded ZIP file to a local directory",
+      "Locate your Cursor IDE config file:",
+      "• macOS: ~/Library/Application Support/Cursor/cursor_config.json",
+      "• Windows: %APPDATA%\\Cursor\\cursor_config.json",
+      "• Linux: ~/.config/Cursor/cursor_config.json",
+      "Add the following to your cursor_config.json:",
+      `{
+  "mcpServers": {
+    "${serverName.toLowerCase().replace(/\s+/g, '-')}": {
+      "command": "${serverName.includes("Python") ? "python" : "node"}",
+      "args": ["/absolute/path/to/extracted/folder/server.${serverName.includes("Python") ? "py" : "js"}"]
+    }
   }
-  
-  return platform.generateDeploymentFiles(buildId, buildDir);
+}`,
+      "Restart Cursor IDE to apply the changes."
+    ]
+  };
+
+  return instructions[platformId] || [
+    "Extract the downloaded ZIP file",
+    "Follow the hosting platform's documentation to deploy",
+    "Set the entry point to server.js or server.py depending on your server type"
+  ];
 }

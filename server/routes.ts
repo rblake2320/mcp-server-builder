@@ -539,16 +539,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // ===== Deployment API Endpoints =====
   
   // Get list of available deployment platforms
-  app.get('/api/deployment/platforms', (req, res) => {
-    const { deploymentPlatforms } = require('./deployment/platforms');
-    res.json(deploymentPlatforms.map(p => ({
-      id: p.id,
-      name: p.name,
-      description: p.description,
-      logoUrl: p.logoUrl,
-      requiresCredentials: p.requiresCredentials,
-      credentialFields: p.credentialFields
-    })));
+  app.get('/api/deployment/platforms', async (req, res) => {
+    try {
+      const { deploymentPlatforms } = await import('./deployment/platforms');
+      res.json(deploymentPlatforms.map(p => ({
+        id: p.id,
+        name: p.name,
+        description: p.description,
+        logoUrl: p.logoUrl,
+        requiresCredentials: p.requiresCredentials,
+        credentialFields: p.credentialFields
+      })));
+    } catch (error) {
+      console.error('Error loading deployment platforms:', error);
+      res.status(500).json({ 
+        error: 'Failed to fetch deployment platforms',
+        message: error instanceof Error ? error.message : 'An unexpected error occurred'
+      });
+    }
   });
   
   // Prepare deployment (generate deployment package)
@@ -564,7 +572,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Prepare deployment
-      const { prepareDeployment } = require('./deployment/service');
+      const { prepareDeployment } = await import('./deployment/service');
       const result = await prepareDeployment(platformId, buildId);
       
       if (!result.success) {
@@ -597,7 +605,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Deploy to cloud
-      const { deployToCloud } = require('./deployment/service');
+      const { deployToCloud } = await import('./deployment/service');
       const result = await deployToCloud(platformId, buildId, credentials || {});
       
       if (!result.success) {

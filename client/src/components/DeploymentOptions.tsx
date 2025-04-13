@@ -63,6 +63,18 @@ const DeploymentOptions = ({ buildId, serverName }: DeploymentOptionsProps) => {
   const [deploymentResult, setDeploymentResult] = useState<DeploymentResult | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   
+  // Fetch logo URL
+  const fetchLogoUrl = async (provider: string): Promise<string> => {
+    try {
+      const res = await fetch(`/api/get-logo?provider=${provider}`);
+      const data = await res.json();
+      return data.logoUrl;
+    } catch (error) {
+      console.error('Error fetching logo URL:', error);
+      return '/logos/default.svg';
+    }
+  };
+
   // Fetch available deployment platforms
   useEffect(() => {
     const fetchPlatforms = async () => {
@@ -70,7 +82,21 @@ const DeploymentOptions = ({ buildId, serverName }: DeploymentOptionsProps) => {
         setLoading(true);
         const res = await apiRequest('GET', '/api/deployment/platforms');
         const data = await res.json();
-        setPlatforms(data);
+        
+        // Fetch logos for each platform
+        const platformsWithDynamicLogos = await Promise.all(
+          data.map(async (platform: DeploymentPlatform) => {
+            try {
+              const logoUrl = await fetchLogoUrl(platform.id);
+              return { ...platform, logoUrl };
+            } catch (error) {
+              console.error(`Error fetching logo for ${platform.id}:`, error);
+              return platform; // Keep original logo if fetching fails
+            }
+          })
+        );
+        
+        setPlatforms(platformsWithDynamicLogos);
       } catch (error) {
         console.error('Error fetching deployment platforms:', error);
         toast({
@@ -170,7 +196,7 @@ const DeploymentOptions = ({ buildId, serverName }: DeploymentOptionsProps) => {
   };
   
   // Handle Cursor IDE deployment
-  const handleCursorDeploy = () => {
+  const handleCursorDeploy = async () => {
     // Get platform OS-specific config paths
     const configPaths = {
       macOS: "~/Library/Application Support/Cursor/cursor_config.json",
@@ -181,12 +207,15 @@ const DeploymentOptions = ({ buildId, serverName }: DeploymentOptionsProps) => {
     // Generate a normalized server name for the config
     const normalizedServerName = serverName.toLowerCase().replace(/\s+/g, '-');
     
+    // Get the Cursor logo
+    const logoUrl = await fetchLogoUrl('cursor');
+    
     // Set up dialog content with Cursor-specific instructions
     setSelectedPlatform({
       id: "cursor",
       name: "Cursor IDE",
       description: "Deploy your MCP server to Cursor IDE for seamless integration",
-      logoUrl: "", // Logo will be shown in the component
+      logoUrl, // Dynamic logo from our API
       requiresCredentials: false
     });
     

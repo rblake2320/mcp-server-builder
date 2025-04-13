@@ -1,6 +1,7 @@
 import { Link } from "wouter";
 import { GeneratedServer } from "@/types";
 import { CheckCircle2 } from "lucide-react";
+import DeploymentOptions from "./DeploymentOptions";
 
 interface ResultViewProps {
   generatedServer: GeneratedServer;
@@ -70,6 +71,11 @@ const ResultView = ({ generatedServer, onEditServer, onCreateAnother }: ResultVi
         </div>
       </div>
       
+      {/* Cloud Deployment Options */}
+      <div className="border border-primary/20 bg-primary/5 rounded-lg p-4 mb-6">
+        <DeploymentOptions buildId={generatedServer.buildId} serverName={generatedServer.serverName} />
+      </div>
+
       <div className="bg-neutral-50 border border-neutral-200 rounded-lg p-4 mb-6">
         <h3 className="font-heading font-medium text-lg text-neutral-800 mb-2">Connect to AI Assistants</h3>
         <div className="space-y-4 text-neutral-700 text-sm">

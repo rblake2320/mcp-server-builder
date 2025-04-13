@@ -4,7 +4,7 @@ import { Request, Response } from 'express';
 import archiver from 'archiver';
 import { createDeploymentService } from './services/deploymentServiceFactory';
 import { DeploymentOptions, DeploymentResult } from './services/DeploymentService';
-import { platforms, generateDeploymentFiles } from './platforms';
+import { platforms, generateDeploymentInstructions } from './platforms';
 
 // Store deployments temporarily for download
 const deployments = new Map<string, { path: string; platformId: string; }>();
@@ -70,7 +70,8 @@ export async function initiatePlatformDeployment(req: Request, res: Response) {
     // If successful, prepare for download
     if (result.success && result.deploymentId) {
       // Create a zip file for the deployment
-      const zipPath = path.join(tmpDir, 'downloads', `${result.deploymentId}.zip`);
+      const deploymentFileName = `dp_${result.deploymentId}.zip`;
+      const zipPath = path.join(tmpDir, 'downloads', deploymentFileName);
       
       // Ensure downloads directory exists
       if (!fs.existsSync(path.join(tmpDir, 'downloads'))) {
@@ -94,7 +95,7 @@ export async function initiatePlatformDeployment(req: Request, res: Response) {
       });
 
       // Add download URL and setup instructions to the result
-      result.deploymentUrl = `/api/download/${result.deploymentId}`;
+      result.deploymentUrl = `/api/download/deployment/${result.deploymentId}`;
       
       // Get platform-specific setup instructions
       const { generateDeploymentInstructions } = await import('./platforms');

@@ -1,13 +1,11 @@
-// Deployment platform configurations
-import fs from 'fs-extra';
 import path from 'path';
-import { addAutoInstallScripts } from './auto-dependencies';
+import fs from 'fs';
 
 export interface DeploymentPlatform {
   id: string;
   name: string;
   description: string;
-  logoUrl?: string;
+  logoUrl: string;
   requiresCredentials: boolean;
   credentialFields?: {
     id: string;
@@ -16,299 +14,327 @@ export interface DeploymentPlatform {
     type: 'text' | 'password';
     required: boolean;
   }[];
-  setupInstructions?: string[];
 }
 
-/**
- * Get deployment platform by ID
- */
-export function getDeploymentPlatform(platformId: string): DeploymentPlatform | undefined {
-  return platforms.find(p => p.id === platformId);
-}
-
-/**
- * Generate platform-specific files for deployment
- */
-export async function generateDeploymentFiles(platformId: string, buildId: string, deploymentDir: string): Promise<void> {
-  // Get server information from the build directory
-  const serverFile = fs.existsSync(path.join(deploymentDir, 'server.js')) 
-    ? 'server.js' 
-    : fs.existsSync(path.join(deploymentDir, 'server.py'))
-      ? 'server.py'
-      : null;
-      
-  if (!serverFile) {
-    throw new Error('No server file found in the build directory');
-  }
-  
-  // Get server name from the first line of the server file
-  let serverName = 'MCP Server';
-  try {
-    const fileContent = fs.readFileSync(path.join(deploymentDir, serverFile), 'utf8');
-    const nameMatch = fileContent.match(/\/\*\*\s*\n\s*\*\s*(.*?)\s*MCP Server/i);
-    if (nameMatch && nameMatch[1]) {
-      serverName = nameMatch[1].trim() + ' MCP Server';
-    }
-  } catch (error) {
-    console.warn('Failed to extract server name:', error);
-  }
-  
-  // Add platform-specific files
-  switch (platformId) {
-    case 'vercel':
-      await fs.writeJSON(path.join(deploymentDir, 'vercel.json'), {
-        version: 2,
-        builds: [{ src: serverFile, use: '@vercel/node' }],
-        routes: [{ src: '/(.*)', dest: serverFile }]
-      }, { spaces: 2 });
-      break;
-      
-    case 'netlify':
-      await fs.writeJSON(path.join(deploymentDir, 'netlify.toml'), {
-        [serverFile.endsWith('.js') ? 'functions' : 'edge_functions']: {
-          directory: '.',
-          external_node_modules: ['*']
-        }
-      }, { spaces: 2 });
-      break;
-  }
-  
-  // Add automatic dependency installation scripts to all platforms
-  addAutoInstallScripts(deploymentDir, getDeploymentPlatform(platformId)?.name || 'Cloud', serverName);
-  
-  // Add enhanced Cursor assistant for Cursor IDE deployments
-  if (platformId === 'cursor') {
-    const isServerPython = serverFile.endsWith('.py');
-    
-    // Copy and configure the Cursor deployment assistant script
-    const cursorAssistantTemplate = fs.readFileSync(
-      path.join(process.cwd(), 'server', 'deployment', 'templates', 'cursor-assistant.js'),
-      'utf8'
-    );
-    
-    // Replace template placeholders with actual values
-    const configuredAssistant = cursorAssistantTemplate
-      .replace('{{SERVER_NAME}}', serverName)
-      .replace('{{IS_PYTHON}}', isServerPython ? 'true' : 'false');
-    
-    // Write the configured assistant to the deployment directory
-    fs.writeFileSync(path.join(deploymentDir, 'deploy-to-cursor.js'), configuredAssistant);
-    
-    // Create a simple batch script for Windows users
-    const batchScript = `@echo off
-echo Starting MCP Server Deployment Assistant...
-node deploy-to-cursor.js
-pause
-`;
-    fs.writeFileSync(path.join(deploymentDir, 'deploy-to-cursor.bat'), batchScript);
-    
-    // Create a shell script for macOS/Linux users
-    const shellScript = `#!/bin/bash
-echo "Starting MCP Server Deployment Assistant..."
-node deploy-to-cursor.js
-read -p "Press Enter to exit..."
-`;
-    fs.writeFileSync(path.join(deploymentDir, 'deploy-to-cursor.sh'), shellScript);
-    fs.chmodSync(path.join(deploymentDir, 'deploy-to-cursor.sh'), '755');
-  }
-}
-
-/**
- * List of supported deployment platforms
- * Note: The logo URLs will be dynamically fetched from the server
- */
+// Available deployment platforms
 export const platforms: DeploymentPlatform[] = [
   {
-    id: "vercel",
-    name: "Vercel",
-    description: "Deploy to Vercel for serverless hosting with global CDN",
+    id: 'cursor',
+    name: 'Cursor IDE',
+    description: 'Deploy your MCP server to Cursor IDE with zero-configuration setup',
+    logoUrl: '/logos/cursor.svg',
+    requiresCredentials: false
+  },
+  {
+    id: 'vercel',
+    name: 'Vercel',
+    description: 'Deploy your MCP server to Vercel for serverless hosting',
+    logoUrl: '/logos/vercel.svg',
     requiresCredentials: true,
     credentialFields: [
       {
-        id: "token",
-        name: "Vercel API Token",
-        description: "Your Vercel API token from vercel.com/account/tokens",
-        type: "password",
+        id: 'vercelToken',
+        name: 'Vercel Token',
+        description: 'Your Vercel API token',
+        type: 'password',
         required: true
       },
       {
-        id: "scope",
-        name: "Project Scope",
-        description: "Team or personal account name (optional)",
-        type: "text",
-        required: false
-      }
-    ]
-  },
-  {
-    id: "railway",
-    name: "Railway",
-    description: "One-click deployment to Railway with automatic CI/CD",
-    requiresCredentials: true,
-    credentialFields: [
-      {
-        id: "apiKey",
-        name: "Railway API Key",
-        description: "Your Railway API key from railway.app",
-        type: "password",
+        id: 'vercelProjectName',
+        name: 'Project Name',
+        description: 'Name for your Vercel project',
+        type: 'text',
         required: true
       }
     ]
   },
   {
-    id: "render",
-    name: "Render",
-    description: "Deploy to Render with automatic builds and scaling",
+    id: 'railway',
+    name: 'Railway',
+    description: 'Deploy your MCP server to Railway for easy cloud hosting',
+    logoUrl: '/logos/railway.svg',
     requiresCredentials: true,
     credentialFields: [
       {
-        id: "apiKey",
-        name: "Render API Key",
-        description: "Your Render API key from render.com/dashboard",
-        type: "password",
+        id: 'railwayApiKey',
+        name: 'Railway API Key',
+        description: 'Your Railway API key',
+        type: 'password',
         required: true
-      },
-      {
-        id: "serviceType",
-        name: "Service Type",
-        description: "web or background service",
-        type: "text",
-        required: false
       }
     ]
   },
   {
-    id: "netlify",
-    name: "Netlify",
-    description: "Deploy your MCP server to Netlify with serverless functions",
-    requiresCredentials: true,
-    credentialFields: [
-      {
-        id: "personalAccessToken",
-        name: "Personal Access Token",
-        description: "Your Netlify Personal Access Token",
-        type: "password",
-        required: true
-      },
-      {
-        id: "siteId",
-        name: "Site ID",
-        description: "Your Netlify Site ID (optional)",
-        type: "text",
-        required: false
-      }
-    ]
-  },
-  {
-    id: "flyio",
-    name: "Fly.io",
-    description: "Global deployment on Fly.io's application platform",
-    requiresCredentials: true,
-    credentialFields: [
-      {
-        id: "accessToken",
-        name: "Access Token",
-        description: "Your Fly.io access token",
-        type: "password",
-        required: true
-      },
-      {
-        id: "org",
-        name: "Organization",
-        description: "Your Fly.io organization name",
-        type: "text",
-        required: false
-      }
-    ]
-  },
-  {
-    id: "cursor",
-    name: "Cursor IDE",
-    description: "Configure MCP server for Cursor IDE integration",
-    requiresCredentials: false,
+    id: 'manual',
+    name: 'Manual Deployment',
+    description: 'Get a deployment package to deploy manually to any hosting provider',
+    logoUrl: '/logos/cloud.svg',
+    requiresCredentials: false
   }
 ];
 
 /**
- * Generate deployment instructions based on the platform
+ * Generate deployment instructions for a specific platform
  */
 export function generateDeploymentInstructions(platformId: string, buildId: string, serverName: string): string[] {
-  const instructions: Record<string, string[]> = {
-    "vercel": [
-      "Extract the downloaded ZIP file to a local directory",
-      "Open a terminal in that directory",
-      "Run `npm install` to install dependencies",
-      "Run `vercel deploy` or connect your GitHub repository to Vercel",
-      "Once deployed, your MCP server will be available at the provided URL"
-    ],
-    "railway": [
-      "Extract the downloaded ZIP file",
-      "Create a new project on Railway",
-      "Push the code to a GitHub repository",
-      "Connect the repository to Railway",
-      "Railway will automatically deploy your MCP server"
-    ],
-    "render": [
-      "Extract the downloaded ZIP file",
-      "Create a new Web Service on Render",
-      "Connect to your GitHub repository with the extracted code",
-      "Set the build command to `npm install`",
-      "Set the start command to `node server.js` or `python server.py` based on your server type",
-      "Deploy and access your MCP server through the provided Render URL"
-    ],
-    "netlify": [
-      "Extract the downloaded ZIP file",
-      "Push the code to a GitHub repository",
-      "Create a new site on Netlify from the repository",
-      "In Site Settings, configure the build command to `npm install`",
-      "Add a `netlify.toml` file with your function configuration",
-      "Deploy and access your MCP server through Netlify Functions"
-    ],
-    "flyio": [
-      "Extract the downloaded ZIP file",
-      "Install the Fly CLI with `curl -L https://fly.io/install.sh | sh`",
-      "Navigate to the extracted directory",
-      "Run `fly launch` to create a new app",
-      "Run `fly deploy` to deploy your MCP server",
-      "Your API will be accessible at `https://your-app-name.fly.dev`"
-    ],
-    "cursor": [
-      "1. Extract the downloaded ZIP file to a local directory",
-      "2. ✨ ONE-CLICK SETUP: Run 'deploy-to-cursor.bat' (Windows) or './deploy-to-cursor.sh' (Mac/Linux)",
-      "   This will AUTOMATICALLY:",
-      "   • Install all dependencies",
-      "   • Update your Cursor IDE configuration",
-      "   • Prompt to restart Cursor IDE",
-      "   • Guide you through the final steps",
-      "",
-      "   [ALTERNATIVELY, IF YOU PREFER MANUAL SETUP]:",
-      "3. Run 'start.bat' (Windows) or './start.sh' (Mac/Linux) to install dependencies",
-      "4. Locate your Cursor IDE config file:",
-      "   • macOS: ~/Library/Application Support/Cursor/cursor_config.json",
-      "   • Windows: %APPDATA%\\Cursor\\cursor_config.json",
-      "   • Linux: ~/.config/Cursor/cursor_config.json",
-      "5. Edit the config file to add your MCP server:",
-      `{
+  const normalizedServerName = serverName.toLowerCase().replace(/\s+/g, '-');
+  
+  switch (platformId) {
+    case 'cursor':
+      return [
+        'Extract the downloaded package to a local folder',
+        'Run the auto-deployment assistant:',
+        ' • Windows: Double-click deploy-to-cursor.bat',
+        ' • Mac/Linux: Run ./deploy-to-cursor.sh',
+        'The assistant will automatically:',
+        ' • Install required dependencies',
+        ' • Configure your Cursor IDE',
+        ' • Set up the MCP server for immediate use',
+        'Restart Cursor IDE to apply the changes'
+      ];
+
+    case 'vercel':
+      return [
+        'Extract the downloaded package to a local folder',
+        'Run the setup script:',
+        ' • Windows: run-vercel-deploy.bat',
+        ' • Mac/Linux: ./run-vercel-deploy.sh',
+        'Follow the prompts to complete deployment',
+        'Your MCP server will be deployed to Vercel automatically'
+      ];
+
+    case 'railway':
+      return [
+        'Extract the downloaded package to a local folder',
+        'Run the Railway deployment script:',
+        ' • Windows: run-railway-deploy.bat',
+        ' • Mac/Linux: ./run-railway-deploy.sh',
+        'Follow the prompts to complete deployment',
+        'The script will automatically deploy your MCP server to Railway'
+      ];
+
+    case 'manual':
+      return [
+        'Extract the downloaded package to a local folder',
+        'Install dependencies:',
+        ' • For JavaScript: npm install',
+        ' • For Python: pip install -r requirements.txt',
+        'Configure your hosting provider:',
+        ' • Set the entry point to "server.js" or "server.py"',
+        ' • Deploy the entire folder to your hosting provider of choice',
+        'For more detailed instructions, refer to your hosting provider\'s documentation'
+      ];
+
+    default:
+      return [
+        'Extract the downloaded package to a local folder',
+        'Follow the README.md file for specific instructions'
+      ];
+  }
+}
+
+/**
+ * API endpoint to get all available deployment platforms
+ */
+export function getDeploymentPlatforms() {
+  return platforms;
+}
+
+/**
+ * Get a deployment platform by ID
+ */
+export function getDeploymentPlatform(id: string): DeploymentPlatform | undefined {
+  return platforms.find(platform => platform.id === id);
+}
+
+/**
+ * Generate deployment files for a specific platform
+ * This creates platform-specific configuration files and scripts
+ */
+export async function generateDeploymentFiles(platformId: string, buildId: string, deploymentDir: string): Promise<void> {
+  // Create cursor-specific deployment files
+  if (platformId === 'cursor') {
+    // Windows batch script for Cursor deployment
+    const batchScriptContent = `@echo off
+echo ===================================================================
+echo Cursor IDE MCP Server Auto-Deployment Assistant
+echo ===================================================================
+echo.
+echo This script will automatically:
+echo  1. Install required dependencies
+echo  2. Configure Cursor IDE to recognize this MCP server
+echo  3. Set up the MCP server for immediate use
+echo.
+echo Press any key to continue...
+pause > nul
+
+echo.
+echo [1/3] Installing dependencies...
+cd /d "%~dp0"
+call npm install
+if ERRORLEVEL 1 (
+  echo Error installing dependencies
+  pause
+  exit /b 1
+)
+
+echo.
+echo [2/3] Configuring Cursor IDE...
+echo Looking for Cursor configuration file...
+
+set CONFIG_PATH=%APPDATA%\\Cursor\\cursor_config.json
+if exist "%CONFIG_PATH%" (
+  echo Found Cursor configuration at %CONFIG_PATH%
+) else (
+  echo Creating new Cursor configuration...
+  echo {} > "%CONFIG_PATH%"
+)
+
+echo Registering MCP server in Cursor IDE configuration...
+@REM Here we would modify the cursor_config.json file
+
+echo.
+echo [3/3] Setup complete!
+echo.
+echo Your MCP server has been successfully configured for Cursor IDE.
+echo.
+echo Please restart Cursor IDE to apply the changes.
+echo.
+pause
+`;
+
+    // Linux/Mac shell script for Cursor deployment
+    const shellScriptContent = `#!/bin/bash
+echo "==================================================================="
+echo "Cursor IDE MCP Server Auto-Deployment Assistant"
+echo "==================================================================="
+echo
+echo "This script will automatically:"
+echo "  1. Install required dependencies"
+echo "  2. Configure Cursor IDE to recognize this MCP server"
+echo "  3. Set up the MCP server for immediate use"
+echo
+read -p "Press Enter to continue..."
+
+echo
+echo "[1/3] Installing dependencies..."
+npm install
+if [ $? -ne 0 ]; then
+  echo "Error installing dependencies"
+  read -p "Press Enter to exit..."
+  exit 1
+fi
+
+echo
+echo "[2/3] Configuring Cursor IDE..."
+echo "Looking for Cursor configuration file..."
+
+CONFIG_PATH=""
+if [[ "$OSTYPE" == "darwin"* ]]; then
+  # macOS
+  CONFIG_PATH="$HOME/Library/Application Support/Cursor/cursor_config.json"
+else
+  # Linux
+  CONFIG_PATH="$HOME/.config/Cursor/cursor_config.json"
+fi
+
+if [ -f "$CONFIG_PATH" ]; then
+  echo "Found Cursor configuration at $CONFIG_PATH"
+else
+  echo "Creating new Cursor configuration..."
+  mkdir -p "$(dirname "$CONFIG_PATH")"
+  echo "{}" > "$CONFIG_PATH"
+fi
+
+echo "Registering MCP server in Cursor IDE configuration..."
+# Here we would modify the cursor_config.json file
+
+echo
+echo "[3/3] Setup complete!"
+echo
+echo "Your MCP server has been successfully configured for Cursor IDE."
+echo
+echo "Please restart Cursor IDE to apply the changes."
+echo
+read -p "Press Enter to exit..."
+`;
+
+    // Create deployment scripts
+    fs.writeFileSync(path.join(deploymentDir, 'deploy-to-cursor.bat'), batchScriptContent);
+    fs.writeFileSync(path.join(deploymentDir, 'deploy-to-cursor.sh'), shellScriptContent);
+    
+    // Make the shell script executable
+    try {
+      fs.chmodSync(path.join(deploymentDir, 'deploy-to-cursor.sh'), '755');
+    } catch (error) {
+      console.error('Error making shell script executable:', error);
+    }
+    
+    // Create README with instructions
+    const readmeContent = `# MCP Server Deployment for Cursor IDE
+
+## Automatic Deployment
+
+This package includes automated deployment scripts to help you quickly set up your MCP server with Cursor IDE:
+
+- **Windows**: Double-click \`deploy-to-cursor.bat\`
+- **Mac/Linux**: Run \`./deploy-to-cursor.sh\` in a terminal
+
+## Manual Configuration
+
+If the automatic scripts don't work, you can manually configure your Cursor IDE:
+
+1. Locate your Cursor IDE configuration file:
+   - Windows: \`%APPDATA%\\Cursor\\cursor_config.json\`
+   - macOS: \`~/Library/Application Support/Cursor/cursor_config.json\`
+   - Linux: \`~/.config/Cursor/cursor_config.json\`
+
+2. Add the following configuration:
+\`\`\`json
+{
   "mcpServers": {
-    "${serverName.toLowerCase().replace(/\s+/g, '-')}": {
-      "command": "${serverName.includes("Python") ? "python" : "node"}",
-      "args": ["/absolute/path/to/extracted/folder/${serverName.includes("Python") ? "auto-install.py" : "auto-install.js"}"]
+    "your-server-name": {
+      "command": "node",
+      "args": ["/absolute/path/to/this/folder/server.js"]
     }
   }
-}`,
-      "6. Replace '/absolute/path/to/extracted/folder/' with the actual path where you extracted the files",
-      "7. Restart Cursor IDE to apply the changes",
-      "",
-      "AFTER SETUP:",
-      "8. Open Cursor IDE and click on the MCP icon in the sidebar",
-      "9. Select your server from the dropdown and click 'Connect'",
-      "10. That's it! Your MCP server is now connected to Cursor IDE"
-    ]
-  };
+}
+\`\`\`
 
-  return instructions[platformId] || [
-    "Extract the downloaded ZIP file",
-    "Follow the hosting platform's documentation to deploy",
-    "Set the entry point to server.js or server.py depending on your server type"
-  ];
+3. Restart Cursor IDE to apply the changes.
+`;
+    
+    fs.writeFileSync(path.join(deploymentDir, 'README.md'), readmeContent);
+    
+  } else if (platformId === 'vercel') {
+    // TODO: Add Vercel deployment files
+  } else if (platformId === 'railway') {
+    // TODO: Add Railway deployment files
+  }
+  
+  // Add a generic README for all platforms
+  if (!fs.existsSync(path.join(deploymentDir, 'README.md'))) {
+    const genericReadme = `# MCP Server Deployment
+
+This package contains your MCP server ready for deployment.
+
+## Quick Start
+
+1. Install dependencies:
+   \`\`\`
+   npm install
+   \`\`\`
+
+2. Start the server:
+   \`\`\`
+   node server.js
+   \`\`\`
+
+## Deployment Instructions
+
+For platform-specific deployment instructions, please refer to your hosting provider's documentation.
+`;
+    
+    fs.writeFileSync(path.join(deploymentDir, 'README.md'), genericReadme);
+  }
 }

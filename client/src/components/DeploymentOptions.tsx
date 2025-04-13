@@ -163,11 +163,12 @@ const DeploymentOptions = ({ buildId, serverName }: DeploymentOptionsProps) => {
         }
       }
       
-      // For now, we'll use the prepare endpoint instead of direct deployment
-      // This generates the deployment package with platform-specific config
-      const res = await apiRequest('POST', '/api/deployment/prepare', {
+      // Use the one-click deployment endpoint
+      // This generates the deployment package with platform-specific automated scripts
+      const res = await apiRequest('POST', '/api/deploy', {
         buildId,
         platformId: selectedPlatform.id,
+        serverName,
         credentials
       });
       
@@ -197,53 +198,54 @@ const DeploymentOptions = ({ buildId, serverName }: DeploymentOptionsProps) => {
   
   // Handle Cursor IDE deployment
   const handleCursorDeploy = async () => {
-    // Get platform OS-specific config paths
-    const configPaths = {
-      macOS: "~/Library/Application Support/Cursor/cursor_config.json",
-      Windows: "%APPDATA%\\Cursor\\cursor_config.json",
-      Linux: "~/.config/Cursor/cursor_config.json"
-    };
-    
-    // Generate a normalized server name for the config
-    const normalizedServerName = serverName.toLowerCase().replace(/\s+/g, '-');
-    
-    // Get the Cursor logo
-    const logoUrl = await fetchLogoUrl('cursor');
-    
-    // Set up dialog content with Cursor-specific instructions
-    setSelectedPlatform({
-      id: "cursor",
-      name: "Cursor IDE",
-      description: "Deploy your MCP server to Cursor IDE for seamless integration",
-      logoUrl, // Dynamic logo from our API
-      requiresCredentials: false
-    });
-    
-    // Prepare deployment result with Cursor config instructions
-    setDeploymentResult({
-      success: true,
-      message: "Cursor IDE deployment package ready!",
-      deploymentUrl: `/api/download/${buildId}`, // This should point to your download endpoint
-      setupInstructions: [
-        `Locate your Cursor IDE config file:`,
-        `• macOS: ${configPaths.macOS}`,
-        `• Windows: ${configPaths.Windows}`,
-        `• Linux: ${configPaths.Linux}`,
-        `Add the following to your cursor_config.json:`,
-        `{
-  "mcpServers": {
-    "${normalizedServerName}": {
-      "command": "${serverName.includes("Python") ? "python" : "node"}",
-      "args": ["/absolute/path/to/extracted/folder/server.${serverName.includes("Python") ? "py" : "js"}"]
+    try {
+      setLoading(true);
+      
+      // Get the Cursor logo
+      const logoUrl = await fetchLogoUrl('cursor');
+      
+      // Set up dialog content with Cursor-specific instructions
+      setSelectedPlatform({
+        id: "cursor",
+        name: "Cursor IDE",
+        description: "Deploy your MCP server to Cursor IDE with zero-configuration setup",
+        logoUrl, // Dynamic logo from our API
+        requiresCredentials: false
+      });
+      
+      // Send API request to prepare the deployment package
+      const res = await apiRequest('POST', '/api/deploy', {
+        buildId,
+        platformId: 'cursor',
+        serverName,
+        credentials: {}
+      });
+      
+      const result = await res.json();
+      
+      if (!result.success) {
+        throw new Error(result.error || 'Deployment preparation failed');
+      }
+      
+      setDeploymentResult(result);
+      
+      toast({
+        title: "Success",
+        description: "Cursor deployment package created with auto-setup scripts!",
+      });
+      
+      // Open the deployment dialog
+      setIsDialogOpen(true);
+    } catch (error) {
+      console.error('Error deploying to Cursor:', error);
+      toast({
+        title: "Deployment Failed",
+        description: error instanceof Error ? error.message : "An unexpected error occurred",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
     }
-  }
-}`,
-        `Restart Cursor IDE to apply the changes.`
-      ]
-    });
-    
-    // Open the deployment dialog
-    setIsDialogOpen(true);
   };
 
   return (

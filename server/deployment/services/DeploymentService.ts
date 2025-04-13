@@ -1,11 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import { exec } from 'child_process';
-import util from 'util';
 import { v4 as uuidv4 } from 'uuid';
-
-// Create promisified version of exec
-const execPromise = util.promisify(exec);
 
 export interface DeploymentCredentials {
   [key: string]: string;

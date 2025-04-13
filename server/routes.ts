@@ -841,6 +841,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Deployment endpoints
+  app.get('/api/deployment/platforms', (req, res) => {
+    const { getDeploymentPlatforms } = require('./deployment/platforms');
+    res.json(getDeploymentPlatforms());
+  });
+  
+  // One-click deployment API endpoint
+  app.post('/api/deploy', initiatePlatformDeployment);
+  
+  // Download deployment package
+  app.get('/api/download/deployment/:deploymentId', downloadDeployment);
+  
+  // Logo URL endpoint for deployment platforms
+  app.get('/api/get-logo', (req, res) => {
+    const provider = req.query.provider;
+    // Default logo paths based on provider ID
+    const logoMap: Record<string, string> = {
+      'cursor': '/logos/cursor.svg',
+      'vercel': '/logos/vercel.svg',
+      'railway': '/logos/railway.svg',
+      'heroku': '/logos/heroku.svg',
+      'netlify': '/logos/netlify.svg',
+      'gcp': '/logos/gcp.svg',
+      'aws': '/logos/aws.svg',
+      'azure': '/logos/azure.svg',
+      'digital-ocean': '/logos/digital-ocean.svg',
+    };
+    
+    // Return the logo URL if found, otherwise a default
+    res.json({
+      logoUrl: logoMap[provider as string] || '/logos/cloud.svg'
+    });
+  });
+  
+  // Set up a cleanup job to run periodically (every hour)
+  setInterval(cleanupDeployments, 60 * 60 * 1000);
+
   const httpServer = createServer(app);
   return httpServer;
 }

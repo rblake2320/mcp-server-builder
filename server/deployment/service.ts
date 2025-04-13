@@ -137,7 +137,7 @@ export async function deployToCloud(platformId: string, buildId: string, credent
     // Check if credentials are required
     if (platform.requiresCredentials) {
       // Validate required credentials
-      const missingCredentials = platform.credentialFields?.filter(field => 
+      const missingCredentials = platform.credentialFields?.filter((field: { id: string; required: boolean; name: string; }) => 
         field.required && (!credentials[field.id] || credentials[field.id].trim() === '')
       );
       
@@ -145,7 +145,7 @@ export async function deployToCloud(platformId: string, buildId: string, credent
         return {
           success: false,
           message: 'Missing required credentials',
-          error: `Missing required credentials: ${missingCredentials.map(f => f.name).join(', ')}`
+          error: `Missing required credentials: ${missingCredentials.map((f: { name: string; }) => f.name).join(', ')}`
         };
       }
     }

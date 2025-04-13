@@ -1,4 +1,7 @@
 // Deployment platform configurations
+import fs from 'fs-extra';
+import path from 'path';
+import { addAutoInstallScripts } from './auto-dependencies';
 
 export interface DeploymentPlatform {
   id: string;
@@ -13,6 +16,65 @@ export interface DeploymentPlatform {
     type: 'text' | 'password';
     required: boolean;
   }[];
+  setupInstructions?: string[];
+}
+
+/**
+ * Get deployment platform by ID
+ */
+export function getDeploymentPlatform(platformId: string): DeploymentPlatform | undefined {
+  return platforms.find(p => p.id === platformId);
+}
+
+/**
+ * Generate platform-specific files for deployment
+ */
+export async function generateDeploymentFiles(platformId: string, buildId: string, deploymentDir: string): Promise<void> {
+  // Get server information from the build directory
+  const serverFile = fs.existsSync(path.join(deploymentDir, 'server.js')) 
+    ? 'server.js' 
+    : fs.existsSync(path.join(deploymentDir, 'server.py'))
+      ? 'server.py'
+      : null;
+      
+  if (!serverFile) {
+    throw new Error('No server file found in the build directory');
+  }
+  
+  // Get server name from the first line of the server file
+  let serverName = 'MCP Server';
+  try {
+    const fileContent = fs.readFileSync(path.join(deploymentDir, serverFile), 'utf8');
+    const nameMatch = fileContent.match(/\/\*\*\s*\n\s*\*\s*(.*?)\s*MCP Server/i);
+    if (nameMatch && nameMatch[1]) {
+      serverName = nameMatch[1].trim() + ' MCP Server';
+    }
+  } catch (error) {
+    console.warn('Failed to extract server name:', error);
+  }
+  
+  // Add platform-specific files
+  switch (platformId) {
+    case 'vercel':
+      await fs.writeJSON(path.join(deploymentDir, 'vercel.json'), {
+        version: 2,
+        builds: [{ src: serverFile, use: '@vercel/node' }],
+        routes: [{ src: '/(.*)', dest: serverFile }]
+      }, { spaces: 2 });
+      break;
+      
+    case 'netlify':
+      await fs.writeJSON(path.join(deploymentDir, 'netlify.toml'), {
+        [serverFile.endsWith('.js') ? 'functions' : 'edge_functions']: {
+          directory: '.',
+          external_node_modules: ['*']
+        }
+      }, { spaces: 2 });
+      break;
+  }
+  
+  // Add automatic dependency installation scripts to all platforms
+  addAutoInstallScripts(deploymentDir, getDeploymentPlatform(platformId)?.name || 'Cloud', serverName);
 }
 
 /**
@@ -176,8 +238,8 @@ export function generateDeploymentInstructions(platformId: string, buildId: stri
     ],
     "cursor": [
       "1. Extract the downloaded ZIP file to a local directory",
-      "2. Install dependencies - Navigate to the extracted folder and run:",
-      `   ${serverName.includes("Python") ? "pip install -r requirements.txt" : "npm install"}`,
+      "2. On Windows, double-click 'start.bat' or on macOS/Linux run './start.sh' in your terminal",
+      "   (This will automatically install all dependencies - no manual steps required!)",
       "3. Locate your Cursor IDE config file:",
       "   • macOS: ~/Library/Application Support/Cursor/cursor_config.json",
       "   • Windows: %APPDATA%\\Cursor\\cursor_config.json",
@@ -187,7 +249,7 @@ export function generateDeploymentInstructions(platformId: string, buildId: stri
   "mcpServers": {
     "${serverName.toLowerCase().replace(/\s+/g, '-')}": {
       "command": "${serverName.includes("Python") ? "python" : "node"}",
-      "args": ["/absolute/path/to/extracted/folder/server.${serverName.includes("Python") ? "py" : "js"}"]
+      "args": ["/absolute/path/to/extracted/folder/${serverName.includes("Python") ? "auto-install.py" : "auto-install.js"}"]
     }
   }
 }`,
@@ -195,7 +257,7 @@ export function generateDeploymentInstructions(platformId: string, buildId: stri
       "6. Restart Cursor IDE to apply the changes",
       "7. Open Cursor IDE and click on the MCP icon in the sidebar to connect to your server",
       "8. Select your server from the dropdown and click 'Connect'",
-      "9. You can now use your custom MCP server with Cursor IDE!"
+      "9. That's it! Our automatic installer handles all dependencies for you"
     ]
   };
 

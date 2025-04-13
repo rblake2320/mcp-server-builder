@@ -256,7 +256,15 @@ const DeploymentOptions = ({ buildId, serverName }: DeploymentOptionsProps) => {
           <div className="flex-1">
             <h3 className="text-lg font-medium mb-1 bg-gradient-to-r from-blue-600 to-indigo-600 text-transparent bg-clip-text">Deploy to Cursor IDE</h3>
             <p className="text-sm text-neutral-600 mb-2">
-              Configure your MCP server in Cursor IDE for seamless AI development
+              One-click deployment with automatic dependency installation
+            </p>
+            <p className="text-xs text-green-600 font-medium">
+              <span className="inline-flex items-center">
+                <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
+                </svg>
+                Zero-configuration setup • Auto-installs dependencies
+              </span>
             </p>
             <div className="flex flex-wrap gap-2 mt-3">
               <Button

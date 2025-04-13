@@ -360,14 +360,20 @@ const DeploymentOptions = ({ buildId, serverName }: DeploymentOptionsProps) => {
               alt="Cursor IDE Logo" 
               className="max-w-full max-h-full"
               onError={(e) => {
-                // Fallback SVG if image fails to load
+                // First try to load the image again with corrected path
                 const target = e.target as HTMLImageElement;
-                target.outerHTML = `
-                  <svg viewBox="0 0 24 24" class="w-10 h-10 text-blue-600" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M7 8l10 8-10 8V8z" fill="currentColor"/>
-                    <path d="M7 0v6.4L14 12 7 17.6V24h2l12-12L9 0H7z" fill="currentColor"/>
-                  </svg>
-                `;
+                if (target.src.includes('/logos/cursor.svg')) {
+                  console.log('Attempting to load cursor logo from fallback path');
+                  target.src = '/logos/default.svg';
+                } else {
+                  // If that fails too, replace with inline SVG
+                  target.outerHTML = `
+                    <svg viewBox="0 0 24 24" class="w-10 h-10 text-blue-600" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M7 8l10 8-10 8V8z" fill="currentColor"/>
+                      <path d="M7 0v6.4L14 12 7 17.6V24h2l12-12L9 0H7z" fill="currentColor"/>
+                    </svg>
+                  `;
+                }
               }}
             />
           </div>
@@ -472,15 +478,19 @@ const DeploymentOptions = ({ buildId, serverName }: DeploymentOptionsProps) => {
               <CardHeader className="pb-4">
                 <div className="flex justify-between items-center">
                   <CardTitle className="text-lg">{platform.name}</CardTitle>
-                  {platform.logoUrl && (
-                    <div className="w-8 h-8 flex items-center justify-center">
-                      <img 
-                        src={platform.logoUrl} 
-                        alt={`${platform.name} logo`} 
-                        className="max-w-full max-h-full object-contain"
-                      />
-                    </div>
-                  )}
+                  <div className="w-8 h-8 flex items-center justify-center">
+                    <img 
+                      src={platform.logoUrl || '/logos/default.svg'} 
+                      alt={`${platform.name} logo`} 
+                      className="max-w-full max-h-full object-contain"
+                      onError={(e) => {
+                        // Fallback if image fails to load
+                        const target = e.target as HTMLImageElement;
+                        target.src = '/logos/default.svg';
+                        console.warn(`Failed to load logo for ${platform.name}, using default`);
+                      }}
+                    />
+                  </div>
                 </div>
                 <CardDescription>{platform.description}</CardDescription>
               </CardHeader>

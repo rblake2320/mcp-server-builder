@@ -91,11 +91,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       render: "/logos/render.svg",
       netlify: "/logos/netlify.svg",
       flyio: "/logos/flyio.svg",
-      cursor: "/logos/cursor.svg"
+      fly: "/logos/flyio.svg",
+      cursor: "/logos/cursor.svg",
+      docker: "/logos/docker.svg",
+      manual: "/logos/manual.svg"
     };
     
     // Return the correct logo URL or a default placeholder
-    const logoUrl = logoMap[provider as string]?.toLowerCase() || "/logos/default.svg";
+    const logoUrl = logoMap[(provider as string)?.toLowerCase()] || "/logos/default.svg";
+    
+    // Check if the file actually exists (for debugging)
+    const logoPath = path.join(process.cwd(), 'public', logoUrl);
+    if (!fs.existsSync(logoPath)) {
+      console.warn(`Logo file not found: ${logoPath} for provider: ${provider}`);
+    }
+    
     res.json({ logoUrl });
   });
 

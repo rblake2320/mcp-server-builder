@@ -8,6 +8,8 @@ import { Step, ServerConfig, Tool, GeneratedServer } from "@/types";
 import { v4 as uuidv4 } from "uuid";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import { Loader2, Save, Download } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 const Builder = () => {
   const { toast } = useToast();
@@ -273,12 +275,17 @@ const Builder = () => {
         <CodePreview serverConfig={serverConfig} />
         
         {/* Actions */}
-        <div className="flex justify-between">
-          <button 
-            className="px-4 py-2 border border-neutral-300 text-neutral-700 rounded-md hover:bg-neutral-50 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
-          >
-            Save Draft
-          </button>
+        <div className="flex justify-between items-center">
+          <div className="space-x-2">
+            <Button variant="outline" size="sm">
+              <Save className="h-4 w-4 mr-2" />
+              Save as Template
+            </Button>
+            <Button variant="outline" size="sm">
+              <Download className="h-4 w-4 mr-2" />
+              Load Template
+            </Button>
+          </div>
           <button 
             id="createServer" 
             onClick={handleCreateServer}
@@ -287,12 +294,10 @@ const Builder = () => {
           >
             {isCreating ? (
               <>
-                <i className="fas fa-spinner fa-spin mr-2"></i> Creating Server...
+                <Loader2 className="h-4 w-4 mr-2 inline animate-spin" /> Creating Server...
               </>
             ) : (
-              <>
-                <i className="fas fa-server mr-2"></i> Create MCP Server
-              </>
+              <>Create MCP Server</>
             )}
           </button>
         </div>

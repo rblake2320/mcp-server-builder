@@ -197,6 +197,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Continue anyway since we've already created the files
       }
       
+      // Type assertion to ensure we have a valid server type
+      const validServerType = (serverType === 'python' || serverType === 'typescript') 
+        ? serverType 
+        : 'typescript'; // Default to typescript if invalid
+      
       res.json({
         success: true,
         buildId,
@@ -204,7 +209,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         message: 'MCP server created successfully!',
         validation: {
           protocol: MCP_PROTOCOL_VERSION,
-          sdkVersion: MCP_SDK_VERSION[serverType],
+          sdkVersion: MCP_SDK_VERSION[validServerType],
           lastVerified: VALIDATION_INFO.lastVerified,
           compatibleWith: VALIDATION_INFO.compatibleWith
         }
@@ -824,7 +829,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         },
         validation: {
           protocol: MCP_PROTOCOL_VERSION,
-          sdkVersion: MCP_SDK_VERSION[serverType],
+          sdkVersion: MCP_SDK_VERSION[(serverType === 'python' || serverType === 'typescript') ? serverType : 'typescript'],
           lastVerified: VALIDATION_INFO.lastVerified,
           compatibleWith: VALIDATION_INFO.compatibleWith
         }

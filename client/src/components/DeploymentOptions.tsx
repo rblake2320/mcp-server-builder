@@ -414,20 +414,35 @@ const DeploymentOptions = ({ buildId, serverName }: DeploymentOptionsProps) => {
               // Deployment result
               <>
                 <div className="py-4">
-                  <h4 className="font-medium mb-2">Setup Instructions</h4>
+                  <div className="bg-green-50 p-3 rounded-md mb-4 border border-green-200 flex items-start">
+                    <div className="text-green-600 mr-3 mt-0.5">
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                      </svg>
+                    </div>
+                    <div>
+                      <h5 className="text-sm font-medium text-green-800">Automated Setup Enabled</h5>
+                      <p className="text-xs text-green-700 mt-1">This package includes automated dependency installation and configuration scripts to minimize manual steps.</p>
+                    </div>
+                  </div>
+                  
+                  <h4 className="font-medium mb-2">Quick Start Instructions</h4>
                   <ol className="list-decimal ml-5 space-y-2">
                     <li>
                       <a
                         href={deploymentResult.deploymentUrl}
-                        className="flex items-center text-primary hover:underline"
+                        className="flex items-center text-primary hover:underline font-medium"
                         download
                       >
                         <Download className="h-4 w-4 mr-1" />
                         Download deployment package
                       </a>
                     </li>
+                    {selectedPlatform?.id === 'cursor' && (
+                      <li className="font-medium text-blue-600">Just extract and run the start script - dependencies will install automatically!</li>
+                    )}
                     {deploymentResult.setupInstructions?.map((instruction, index) => (
-                      <li key={index}>{instruction}</li>
+                      <li key={index} className={index === 0 || index === 1 ? "font-medium" : ""}>{instruction}</li>
                     ))}
                   </ol>
                 </div>

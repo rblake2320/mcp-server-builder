@@ -175,12 +175,14 @@ export function generateDeploymentInstructions(platformId: string, buildId: stri
       "Your API will be accessible at `https://your-app-name.fly.dev`"
     ],
     "cursor": [
-      "Extract the downloaded ZIP file to a local directory",
-      "Locate your Cursor IDE config file:",
-      "• macOS: ~/Library/Application Support/Cursor/cursor_config.json",
-      "• Windows: %APPDATA%\\Cursor\\cursor_config.json",
-      "• Linux: ~/.config/Cursor/cursor_config.json",
-      "Add the following to your cursor_config.json:",
+      "1. Extract the downloaded ZIP file to a local directory",
+      "2. Install dependencies - Navigate to the extracted folder and run:",
+      `   ${serverName.includes("Python") ? "pip install -r requirements.txt" : "npm install"}`,
+      "3. Locate your Cursor IDE config file:",
+      "   • macOS: ~/Library/Application Support/Cursor/cursor_config.json",
+      "   • Windows: %APPDATA%\\Cursor\\cursor_config.json",
+      "   • Linux: ~/.config/Cursor/cursor_config.json",
+      "4. Create or edit the config file to add your MCP server:",
       `{
   "mcpServers": {
     "${serverName.toLowerCase().replace(/\s+/g, '-')}": {
@@ -189,7 +191,11 @@ export function generateDeploymentInstructions(platformId: string, buildId: stri
     }
   }
 }`,
-      "Restart Cursor IDE to apply the changes."
+      "5. Replace '/absolute/path/to/extracted/folder/' with the actual path where you extracted the files",
+      "6. Restart Cursor IDE to apply the changes",
+      "7. Open Cursor IDE and click on the MCP icon in the sidebar to connect to your server",
+      "8. Select your server from the dropdown and click 'Connect'",
+      "9. You can now use your custom MCP server with Cursor IDE!"
     ]
   };
 

@@ -251,31 +251,45 @@ const DeploymentOptions = ({ buildId, serverName }: DeploymentOptionsProps) => {
       <h3 className="text-lg font-semibold mb-4">Deploy to Cloud</h3>
       
       {/* Cursor IDE Deployment Card */}
-      <div className="mb-4 p-4 border-2 border-primary/20 bg-primary/5 rounded-lg">
+      <div className="mb-4 p-4 border-2 border-primary/20 bg-primary/5 rounded-lg hover:shadow-md transition-shadow">
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex-1">
-            <h3 className="text-lg font-medium mb-1">Deploy to Cursor IDE</h3>
+            <h3 className="text-lg font-medium mb-1 bg-gradient-to-r from-blue-600 to-indigo-600 text-transparent bg-clip-text">Deploy to Cursor IDE</h3>
             <p className="text-sm text-neutral-600 mb-2">
-              Configure your MCP server in Cursor IDE with a few simple steps
+              Configure your MCP server in Cursor IDE for seamless AI development
             </p>
-            <Button
-              variant="default"
-              size="sm"
-              className="w-full sm:w-auto"
-              onClick={handleCursorDeploy}
-            >
-              <svg viewBox="0 0 24 24" className="h-4 w-4 mr-2" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm0 18a8 8 0 1 1 0-16 8 8 0 0 1 0 16z" fill="currentColor"/>
-                <path d="M12 6a1 1 0 0 0-1 1v5a1 1 0 0 0 .4.8l3 2a1 1 0 0 0 1.2-1.6L13 11.5V7a1 1 0 0 0-1-1z" fill="currentColor"/>
-              </svg>
-              Deploy to Cursor IDE
-            </Button>
+            <div className="flex flex-wrap gap-2 mt-3">
+              <Button
+                variant="default"
+                size="sm"
+                className="w-full sm:w-auto bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
+                onClick={handleCursorDeploy}
+              >
+                <svg viewBox="0 0 24 24" className="h-4 w-4 mr-2" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm0 18a8 8 0 1 1 0-16 8 8 0 0 1 0 16z" fill="currentColor"/>
+                  <path d="M12 6a1 1 0 0 0-1 1v5a1 1 0 0 0 .4.8l3 2a1 1 0 0 0 1.2-1.6L13 11.5V7a1 1 0 0 0-1-1z" fill="currentColor"/>
+                </svg>
+                Deploy to Cursor IDE
+              </Button>
+            </div>
           </div>
           <div className="w-16 h-16 flex items-center justify-center rounded-lg bg-white p-2 shadow-sm">
-            <svg viewBox="0 0 24 24" className="w-10 h-10" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M7 8l10 8-10 8V8z" fill="currentColor"/>
-              <path d="M7 0v6.4L14 12 7 17.6V24h2l12-12L9 0H7z" fill="currentColor"/>
-            </svg>
+            <img 
+              id="cursorLogo" 
+              src="/logos/cursor.svg" 
+              alt="Cursor IDE Logo" 
+              className="max-w-full max-h-full"
+              onError={(e) => {
+                // Fallback SVG if image fails to load
+                const target = e.target as HTMLImageElement;
+                target.outerHTML = `
+                  <svg viewBox="0 0 24 24" class="w-10 h-10 text-blue-600" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M7 8l10 8-10 8V8z" fill="currentColor"/>
+                    <path d="M7 0v6.4L14 12 7 17.6V24h2l12-12L9 0H7z" fill="currentColor"/>
+                  </svg>
+                `;
+              }}
+            />
           </div>
         </div>
       </div>

@@ -36,6 +36,9 @@ const NavBar = () => {
               <Link href="/builder" className={`px-3 py-2 ${location === '/builder' ? 'text-primary border-b-2 border-primary font-medium' : 'text-neutral-700 font-medium hover:text-primary'}`}>
                 Builder
               </Link>
+              <Link href="/enhancements" className={`px-3 py-2 ${location === '/enhancements' ? 'text-primary border-b-2 border-primary font-medium' : 'text-neutral-700 font-medium hover:text-primary'}`}>
+                Enhancements
+              </Link>
               <Link href="/documentation" className={`px-3 py-2 ${location === '/documentation' ? 'text-primary border-b-2 border-primary font-medium' : 'text-neutral-700 font-medium hover:text-primary'}`}>
                 Documentation
               </Link>

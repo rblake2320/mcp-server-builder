@@ -11,6 +11,7 @@ import Documentation from "@/pages/Documentation";
 import About from "@/pages/About";
 import AuthPage from "@/pages/AuthPage";
 import MyServers from "@/pages/MyServers";
+import Enhancements from "@/pages/Enhancements";
 import { AuthProvider } from "@/hooks/use-auth";
 import { ProtectedRoute } from "@/lib/protected-route";
 
@@ -20,6 +21,7 @@ function Router() {
       <Route path="/" component={Home} />
       <ProtectedRoute path="/builder" component={Builder} />
       <ProtectedRoute path="/my-servers" component={MyServers} />
+      <Route path="/enhancements" component={Enhancements} />
       <Route path="/documentation" component={Documentation} />
       <Route path="/about" component={About} />
       <Route path="/auth" component={AuthPage} />

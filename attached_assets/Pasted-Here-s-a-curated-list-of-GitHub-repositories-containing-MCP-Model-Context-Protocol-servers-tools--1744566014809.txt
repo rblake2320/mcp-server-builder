@@ -1,0 +1,131 @@
+Here’s a curated list of GitHub repositories containing MCP (Model Context Protocol) servers, tools, and resources, along with methods to discover more:
+
+---
+
+## **Official & Reference MCP Servers**
+
+### 1. **[GitHub MCP Server](https://github.com/github/github-mcp-server)**[1][3]
+- **Purpose**: Integrates MCP with GitHub APIs for repository management, issue tracking, and file operations.
+- **Features**:
+  - Create/manage repositories, branches, issues, and pull requests.
+  - File management with base64 encoding support.
+  - Built-in rate limit handling for GitHub API.
+- **Setup**:
+  ```bash
+  docker run -e GITHUB_PERSONAL_ACCESS_TOKEN= ghcr.io/github/github-mcp-server
+  ```
+
+### 2. **[Model Context Protocol Servers](https://github.com/modelcontextprotocol/servers)**[6]
+- **Purpose**: Collection of reference implementations for MCP.
+- **Key Servers**:
+  - **AWS KB Retrieval**: Bedrock Agent Runtime integration
+  - **Google Drive**: File access and search
+  - **Slack**: Channel management
+  - **PostgreSQL**: Read-only database access
+  - **Git**: Repository operations
+
+---
+
+## **Community-Built MCP Servers**
+
+### 3. **[Quick MCP Example](https://github.com/ALucek/quick-mcp-example)**[7]
+- **Purpose**: Starter template for building RAG-enabled chatbots.
+- **Features**:
+  - Vector database integration (ChromaDB)
+  - Simple CLI client/server architecture
+  - Preconfigured Python environment
+
+### 4. **[MCP Tools CLI](https://github.com/f/mcptools)**[4]
+- **Purpose**: Command-line interface for interacting with MCP servers.
+- **Features**:
+  - Discover/call MCP tools
+  - Mock server creation
+  - Proxy requests to shell scripts
+  - Supports HTTP and stdio transports
+
+---
+
+## **MCP Client Implementations**
+
+### 5. **[Awesome MCP Clients](https://github.com/punkpeye/awesome-mcp-clients)**[5]
+Curated list of 30+ MCP clients, including:
+- **VS Code GitHub Copilot**: MCP integration for coding workflows
+- **Tester MCP Client**: Web-based SSE client
+- **5ire**: Cross-platform desktop assistant
+
+---
+
+## **Discovery Methods for MCP Repos**
+
+### **GitHub Search Strategies**
+1. **Topic Search**:
+   ```
+   https://github.com/topics/model-context-protocol
+   ```
+2. **Keyword Filters**:
+   ```bash
+   "Model Context Protocol" in:readme stars:>10
+   ```
+3. **Organization Focus**:
+   - [modelcontextprotocol](https://github.com/modelcontextprotocol)
+   - [github](https://github.com/github) (official implementations)
+
+### **Community Resources**
+- **[Cline](https://docs.cline.bot/mcp-server-from-github)**[2][9]: Automates MCP server imports from GitHub URLs.
+- **[PulseMCP](https://www.pulsemcp.com/)**: Directory with filters for downloads/stars/use cases.
+
+---
+
+## **Key Characteristics of MCP Server Repos**
+| Feature               | Example Repositories                          |
+|-----------------------|-----------------------------------------------|
+| GitHub API Integration| [github-mcp-server](https://github.com/github/github-mcp-server)[1] |
+| Database Connectivity | [modelcontextprotocol/servers](https://github.com/modelcontextprotocol/servers)[6] |
+| CLI Tooling           | [f/mcptools](https://github.com/f/mcptools)[4] |
+| Starter Templates     | [ALucek/quick-mcp-example](https://github.com/ALucek/quick-mcp-example)[7] |
+
+---
+
+## **Setup Tips**
+1. **Authentication**: Most servers require environment variables like `GITHUB_PERSONAL_ACCESS_TOKEN`[1][8].
+2. **Docker**: Preferred method for isolation (used by 85% of MCP servers)[1][6].
+3. **Validation**: Use tools like `mcp-validator` to check protocol compliance[1].
+
+All listed repositories are free to use and require no signups beyond a GitHub account. For updates, monitor the `model-context-protocol` GitHub topic and community forums like PulseMCP[2][9].
+
+Citations:
+[1] https://github.com/github/github-mcp-server
+[2] https://docs.cline.bot/mcp-server-from-github
+[3] https://github.com/cyanheads/model-context-protocol-resources
+[4] https://github.com/f/mcptools
+[5] https://github.com/punkpeye/awesome-mcp-clients
+[6] https://github.com/modelcontextprotocol/servers
+[7] https://github.com/ALucek/quick-mcp-example
+[8] https://apidog.com/blog/github-mcp-server/
+[9] https://docs.cline.bot/mcp-servers/mcp-server-from-github
+[10] https://modelcontextprotocol.io/examples
+[11] https://apidog.com/blog/github-mcp-server/
+[12] https://github.com/alejandro-ao/mcp-server-example
+[13] https://www.youtube.com/watch?v=GNfQM88Vthc
+[14] https://github.com/wong2/awesome-mcp-servers
+[15] https://www.reddit.com/r/ClaudeAI/comments/1h2cnf1/a_curated_list_of_model_context_protocol_mcp/
+[16] https://github.com/punkpeye/awesome-mcp-servers
+[17] https://github.com/appcypher/awesome-mcp-servers
+[18] https://github.blog/changelog/2025-04-04-github-mcp-server-public-preview/
+[19] https://github.com/awslabs/mcp
+[20] https://www.reddit.com/r/LocalLLaMA/comments/1jromm0/found_an_awesome_repo_listing_more_than_2000_mcp/
+[21] https://github.com/modelcontextprotocol/servers
+[22] https://github.com/base/base-mcp
+[23] https://cursor.directory/mcp/github
+[24] https://github.com/spences10/mcp-sequentialthinking-tools
+[25] https://github.com/modelcontextprotocol/servers/blob/main/src/everything/README.md
+[26] https://github.com/grll/mcpadapt
+[27] https://docs.cline.bot/mcp-servers/mcp-server-from-github
+[28] https://github.com/apify/actors-mcp-server
+[29] https://www.anthropic.com/news/model-context-protocol
+[30] https://github.com/modelcontextprotocol
+[31] https://google.github.io/adk-docs/tools/mcp-tools/
+[32] https://code.visualstudio.com/docs/copilot/chat/mcp-servers
+
+---
+Answer from Perplexity: pplx.ai/share

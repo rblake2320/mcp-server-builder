@@ -1,0 +1,196 @@
+The GitHub MCP Server is a powerful implementation of the Model Context Protocol (MCP) that enables seamless integration with GitHub APIs. Based on the provided information, here’s a detailed breakdown of its functionality, setup, and how it can be incorporated into your MCP Server Builder platform for enhanced automation and interaction.
+
+---
+
+## **Key Features of GitHub MCP Server**
+
+The GitHub MCP Server provides structured tools for interacting with GitHub’s ecosystem. Its primary use cases include:
+
+1. **Automating Workflows**:
+   - Automate repository management tasks such as creating repositories, managing branches, and handling pull requests/issues.
+
+2. **Data Extraction and Analysis**:
+   - Extract structured data from repositories for analytics or AI-powered applications.
+
+3. **AI-Powered Development Tools**:
+   - Enable AI assistants like Claude to interact with GitHub repositories for tasks such as code generation, issue tracking, and pull request management.
+
+---
+
+## **Setup Instructions**
+
+### **1. Prerequisites**
+- **Docker**: Required for containerized deployment.
+- **GitHub Personal Access Token**: Needed to authenticate with GitHub APIs.
+  - Create a token via GitHub’s Developer Settings and enable the necessary permissions (e.g., `repo` for private repositories or `public_repo` for public ones).
+
+---
+
+### **2. Installation Options**
+
+#### **a) Docker Deployment**
+This is the recommended method due to its simplicity and isolation benefits.
+
+1. Add the following configuration to your `claude_desktop_config.json` file (for Claude Desktop):
+   ```json
+   {
+     "mcpServers": {
+       "github": {
+         "command": "docker",
+         "args": [
+           "run",
+           "-i",
+           "--rm",
+           "-e",
+           "GITHUB_PERSONAL_ACCESS_TOKEN=",
+           "ghcr.io/github/github-mcp-server"
+         ],
+         "env": {
+           "GITHUB_PERSONAL_ACCESS_TOKEN": ""
+         }
+       }
+     }
+   }
+   ```
+2. Replace `` with your actual GitHub Personal Access Token.
+3. Restart Claude Desktop to load the new configuration.
+
+---
+
+#### **b) Build from Source**
+If Docker is unavailable, you can build the server using Go:
+
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/github/github-mcp-server.git
+   cd github-mcp-server
+   ```
+2. Build the binary:
+   ```bash
+   go build ./cmd/github-mcp-server
+   ```
+3. Run the server:
+   ```bash
+   ./github-mcp-server stdio
+   ```
+4. Ensure the `GITHUB_PERSONAL_ACCESS_TOKEN` environment variable is set.
+
+---
+
+### **3. VS Code Integration**
+For users who prefer Visual Studio Code:
+
+1. Open User Settings (JSON) in VS Code (`Ctrl + Shift + P` → `Preferences: Open User Settings (JSON)`).
+2. Add the following configuration:
+   ```json
+   {
+     "mcp": {
+       "inputs": [
+         {
+           "type": "promptString",
+           "id": "github_token",
+           "description": "GitHub Personal Access Token",
+           "password": true
+         }
+       ],
+       "servers": {
+         "github": {
+           "command": "docker",
+           "args": [
+             "run",
+             "-i",
+             "--rm",
+             "-e",
+             "GITHUB_PERSONAL_ACCESS_TOKEN=${input:github_token}",
+             "ghcr.io/github/github-mcp-server"
+           ],
+           "env": {
+             "GITHUB_PERSONAL_ACCESS_TOKEN": "${input:github_token}"
+           }
+         }
+       }
+     }
+   }
+   ```
+
+---
+
+### **4. Customization**
+You can override tool descriptions or add custom translations by creating a `github-mcp-server-config.json` file in the same directory as the binary:
+```json
+{
+  "TOOL_ADD_ISSUE_COMMENT_DESCRIPTION": "Add a comment to an issue.",
+  "TOOL_CREATE_BRANCH_DESCRIPTION": "Create a new branch in a repository."
+}
+```
+
+Alternatively, use environment variables to override descriptions:
+```bash
+export GITHUB_MCP_TOOL_ADD_ISSUE_COMMENT_DESCRIPTION="Add a comment to an issue."
+```
+
+---
+
+## **Tools Provided by GitHub MCP Server**
+
+The server includes several tools for interacting with GitHub:
+
+| Tool                | Description                                                                                     | Inputs                                                                                      | Outputs                        |
+|---------------------|-------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------|--------------------------------|
+| `create_repository` | Creates a new repository                                                                       | `name`, `description`, `private`, `autoInit`                                               | Repository details             |
+| `get_file_contents` | Retrieves contents of a file or directory                                                     | `owner`, `repo`, `path`, `branch`                                                          | File/directory contents        |
+| `create_issue`      | Creates a new issue                                                                           | `owner`, `repo`, `title`, `body`, `assignees`, `labels`, `milestone`                       | Issue details                  |
+| `create_pull_request`| Creates a pull request                                                                        | `owner`, `repo`, `title`, `body`, `head`, `base`                                           | Pull request details           |
+
+---
+
+## **Enhancing MCP Server Builder with GitHub MCP Integration**
+
+To make this feature part of your MCP Server Builder platform:
+
+### **1. Add GitHub MCP as a Pre-Built Option**
+- Include GitHub MCP as one of the pre-configured templates in your builder.
+- Provide users with an option to input their Personal Access Token directly in the UI.
+
+### **2. Automate Configuration File Updates**
+- Add functionality to automatically update the user’s configuration files (`claude_desktop_config.json` or `.vscode/mcp.json`) based on their input.
+
+### **3. Validate Configurations**
+- Implement validation checks to ensure tokens are valid and Docker is properly installed/running.
+
+### **4. Provide Testing Tools**
+- Include a “Test Connection” button that verifies communication between Claude/Desktop and the GitHub MCP server.
+
+### **5. Extend URL Import Feature**
+- Allow users to input URLs of repositories hosting other MCP servers (e.g., GitHub MCP).
+- Automatically detect and configure these servers within the builder.
+
+---
+
+## **Conclusion**
+
+The GitHub MCP Server is an excellent addition to any AI-powered development workflow, enabling seamless interaction with GitHub’s ecosystem through structured tools and APIs. By integrating it into your MCP Server Builder platform, you can provide users with powerful automation capabilities while simplifying setup and configuration processes.
+
+Would you like assistance implementing this integration?
+
+Citations:
+[1] https://github.com/github/github-mcp-server
+[2] https://www.youtube.com/watch?v=gFb6_fKE3mU&vl=en-US
+[3] https://glama.ai/mcp/servers/782x50kvuh
+[4] https://apidog.com/blog/github-mcp-server
+[5] https://www.devshorts.in/p/how-to-build-your-own-mcp-server
+[6] https://docs.cline.bot/mcp-server-from-github
+[7] https://github.com/modelcontextprotocol/servers
+[8] https://github.blog/changelog/2025-04-04-github-mcp-server-public-preview/
+[9] https://github.com/modelcontextprotocol/python-sdk
+[10] https://github.com/integration-app/mcp-server
+[11] https://code.visualstudio.com/docs/copilot/chat/mcp-servers
+[12] https://github.com/punkpeye/awesome-mcp-servers
+[13] https://github.com/jlowin/fastmcp
+[14] https://www.reddit.com/r/ClaudeAI/comments/1h1hcjh/mcp_on_claude_for_windows_github_integration/
+[15] https://www.reddit.com/r/ClaudeAI/comments/1h55zxd/can_someone_explain_mcp_to_me_how_are_you_using/
+[16] https://github.com/base/base-mcp
+[17] https://www.reddit.com/r/ClaudeAI/comments/1hoafi1/introducing_mcpframework_build_a_mcp_server_in_5/
+
+---
+Answer from Perplexity: pplx.ai/share

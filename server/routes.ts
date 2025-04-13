@@ -79,6 +79,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
   fs.ensureDirSync(path.join(process.cwd(), 'builds'));
   fs.ensureDirSync(path.join(process.cwd(), 'downloads'));
   fs.ensureDirSync(path.join(process.cwd(), 'public/logos'));
+  fs.ensureDirSync(path.join(process.cwd(), 'server/ai'));
+  
+  // AI tool generation endpoint
+  app.post('/api/ai/generate-tool', async (req, res) => {
+    try {
+      const { prompt, apiKey } = req.body;
+      
+      if (!prompt) {
+        return res.status(400).json({ 
+          error: 'Prompt is required for tool generation' 
+        });
+      }
+      
+      if (!apiKey) {
+        return res.status(400).json({ 
+          error: 'API key is required for tool generation' 
+        });
+      }
+      
+      // Import the tool generator dynamically to avoid load issues
+      const { generateTool } = await import('./ai/toolGenerator');
+      
+      // Generate tool code
+      const generatedCode = await generateTool(prompt, apiKey);
+      
+      res.json({
+        success: true,
+        generatedCode,
+        message: 'Tool generated successfully'
+      });
+    } catch (error) {
+      console.error('Error generating tool:', error);
+      res.status(500).json({ 
+        error: 'Failed to generate tool',
+        message: error instanceof Error ? error.message : 'An unexpected error occurred'
+      });
+    }
+  });
   
   // API endpoint to get logo URLs
   app.get('/api/get-logo', (req, res) => {

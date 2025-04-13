@@ -38,11 +38,14 @@ export const deploymentPlatforms: DeploymentPlatform[] = [
     description: 'Deploy to Vercel for serverless MCP server hosting with automatic HTTPS',
     logoUrl: '/logos/vercel.svg',
     setupInstructions: [
-      'Sign up for a Vercel account at https://vercel.com',
-      'Install the Vercel CLI: npm i -g vercel',
-      'Run "vercel login" to authenticate',
-      'Navigate to your project directory',
-      'Run "vercel" to deploy your MCP server'
+      'Sign up for a Vercel account at https://vercel.com if you don\'t have one',
+      'Install the Vercel CLI: npm install -g vercel',
+      'Run "vercel login" to authenticate with your account',
+      'Extract the downloaded deployment package to a folder on your computer',
+      'Open a terminal/command prompt in the extracted folder',
+      'Run "vercel" and follow the prompts to deploy your MCP server',
+      'After deployment completes, note the URL provided by Vercel',
+      'Use this URL to access your MCP server in AI assistants'
     ],
     requiresCredentials: true,
     credentialFields: [
@@ -92,11 +95,15 @@ export const deploymentPlatforms: DeploymentPlatform[] = [
     description: 'Deploy to Railway for easy setup and management of MCP servers',
     logoUrl: '/logos/railway.svg',
     setupInstructions: [
-      'Create a Railway account at https://railway.app',
-      'Install the Railway CLI: npm i -g @railway/cli',
-      'Run "railway login" to authenticate',
-      'Navigate to your project directory',
-      'Run "railway up" to deploy your MCP server'
+      'Create a Railway account at https://railway.app if you don\'t have one',
+      'Install the Railway CLI: npm install -g @railway/cli',
+      'Run "railway login" to authenticate with your account',
+      'Extract the downloaded deployment package to a folder on your computer',
+      'Open a terminal/command prompt in the extracted folder',
+      'Run "railway init" to create a new project',
+      'Run "railway up" to deploy your MCP server',
+      'After deployment, run "railway domain" to create a public URL',
+      'Use this URL to access your MCP server in AI assistants'
     ],
     requiresCredentials: true,
     credentialFields: [
@@ -139,11 +146,16 @@ export const deploymentPlatforms: DeploymentPlatform[] = [
     description: 'Deploy to Render for easy cloud hosting with automatic TLS certificates',
     logoUrl: '/logos/render.svg',
     setupInstructions: [
-      'Create a Render account at https://render.com',
-      'Create a new Web Service',
-      'Connect your GitHub repository',
-      'Configure build settings',
-      'Click "Create Web Service"'
+      'Create a Render account at https://render.com if you don\'t have one',
+      'Extract the downloaded deployment package to a folder on your computer',
+      'Log in to your Render dashboard at https://dashboard.render.com',
+      'Click "New +" and select "Web Service"',
+      'Choose "Build and deploy from a Git repository"',
+      'Connect your GitHub/GitLab account or click "Public Git repository"',
+      'Enter the repository URL or upload the deployment package',
+      'Choose "Node" as the runtime and set "npm start" as the start command',
+      'Click "Create Web Service" to deploy',
+      'After deployment, copy the service URL to use with your AI assistants'
     ],
     requiresCredentials: true,
     credentialFields: [
@@ -192,11 +204,17 @@ export const deploymentPlatforms: DeploymentPlatform[] = [
     description: 'Deploy to Fly.io for globally distributed MCP server instances',
     logoUrl: '/logos/fly.svg',
     setupInstructions: [
-      'Install the Fly CLI: curl -L https://fly.io/install.sh | sh',
-      'Run "fly auth login" to authenticate',
-      'Navigate to your project directory',
-      'Run "fly launch" to create a new app',
-      'Run "fly deploy" to deploy your MCP server'
+      'Create a Fly.io account at https://fly.io if you don\'t have one',
+      'Extract the downloaded deployment package to a folder on your computer',
+      'Install the Fly.io CLI:',
+      '  • macOS/Linux: curl -L https://fly.io/install.sh | sh',
+      '  • Windows: powershell -Command "iwr https://fly.io/install.ps1 -UseBASIC | iex"',
+      'Run "fly auth login" to authenticate with your account',
+      'Open a terminal/command prompt in the extracted folder',
+      'Run "fly launch" to create a new app (accept defaults when prompted)',
+      'Run "fly deploy" to deploy your MCP server',
+      'After deployment, note the URL provided by Fly.io',
+      'Use this URL to access your MCP server in AI assistants'
     ],
     requiresCredentials: true,
     credentialFields: [

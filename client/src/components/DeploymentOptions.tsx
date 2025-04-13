@@ -217,12 +217,17 @@ const DeploymentOptions = ({ buildId, serverName }: DeploymentOptionsProps) => {
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogContent className="sm:max-w-md">
             <DialogHeader>
-              <DialogTitle>Deploy to {selectedPlatform.name}</DialogTitle>
+              <DialogTitle>
+                {deploymentResult 
+                  ? `Deploy to ${selectedPlatform.name} - Setup Instructions` 
+                  : `Prepare ${selectedPlatform.name} Deployment Package`
+                }
+              </DialogTitle>
               <DialogDescription>
                 {deploymentResult ? (
-                  "Your deployment package is ready! Follow the instructions below to deploy your MCP server."
+                  "Your deployment package is ready! Follow these step-by-step instructions to deploy your MCP server."
                 ) : (
-                  `Deploy your "${serverName}" MCP server to ${selectedPlatform.name}.${
+                  `Create a deployment package for your "${serverName}" MCP server optimized for ${selectedPlatform.name}.${
                     selectedPlatform.requiresCredentials
                       ? " Please provide your credentials to continue."
                       : ""
@@ -270,7 +275,7 @@ const DeploymentOptions = ({ buildId, serverName }: DeploymentOptionsProps) => {
                     ) : (
                       <>
                         <Rocket className="h-4 w-4 mr-2" />
-                        Deploy to {selectedPlatform.name}
+                        Create Deployment Package
                       </>
                     )}
                   </Button>

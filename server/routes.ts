@@ -247,11 +247,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
         
         // Extract the original zip to the temporary directory
-        await new Promise<void>((resolve, reject) => {
-          const extract = require('extract-zip');
-          extract(zipFilePath, { dir: tmpDir })
-            .then(() => resolve())
-            .catch(reject);
+        await new Promise<void>(async (resolve, reject) => {
+          try {
+            const extract = (await import('extract-zip')).default;
+            await extract(zipFilePath, { dir: tmpDir });
+            resolve();
+          } catch (err) {
+            reject(err);
+          }
         });
         
         // Generate platform-specific files
@@ -676,7 +679,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({
         success: true,
         message: `Deployment package for ${platform.name} is ready`,
-        deploymentUrl: `/api/download/${buildId}`,
+        deploymentUrl: `/api/download/${buildId}?platform=${platformId}`,
         platformId,
         setupInstructions
       });
@@ -758,7 +761,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({
         success: true,
         message: `Deployment package for ${platform.name} is ready`,
-        deploymentUrl: `/api/download/${buildId}`,
+        deploymentUrl: `/api/download/${buildId}?platform=${platformId}`,
         platformId
       });
     } catch (error) {

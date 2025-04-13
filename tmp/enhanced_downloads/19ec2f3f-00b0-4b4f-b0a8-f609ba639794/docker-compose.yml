@@ -1,0 +1,10 @@
+version: '3'
+services:
+  mcp-server:
+    build: .
+    ports:
+      - "8080:8080"
+    volumes:
+      - .:/app
+    restart: unless-stopped
+    container_name: 19ec2f3f-00b0-4b4f-b0a8-f609ba639794

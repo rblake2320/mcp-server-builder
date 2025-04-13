@@ -7,6 +7,7 @@ export interface DeploymentPlatform {
   description: string;
   logoUrl: string;
   requiresCredentials: boolean;
+  setupInstructions?: string[];
   credentialFields?: {
     id: string;
     name: string;

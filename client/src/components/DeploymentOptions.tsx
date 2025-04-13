@@ -169,9 +169,87 @@ const DeploymentOptions = ({ buildId, serverName }: DeploymentOptionsProps) => {
     }
   };
   
+  // Handle Cursor IDE deployment
+  const handleCursorDeploy = () => {
+    // Get platform OS-specific config paths
+    const configPaths = {
+      macOS: "~/Library/Application Support/Cursor/cursor_config.json",
+      Windows: "%APPDATA%\\Cursor\\cursor_config.json",
+      Linux: "~/.config/Cursor/cursor_config.json"
+    };
+    
+    // Generate a normalized server name for the config
+    const normalizedServerName = serverName.toLowerCase().replace(/\s+/g, '-');
+    
+    // Set up dialog content with Cursor-specific instructions
+    setSelectedPlatform({
+      id: "cursor",
+      name: "Cursor IDE",
+      description: "Deploy your MCP server to Cursor IDE for seamless integration",
+      logoUrl: "", // Logo will be shown in the component
+      requiresCredentials: false
+    });
+    
+    // Prepare deployment result with Cursor config instructions
+    setDeploymentResult({
+      success: true,
+      message: "Cursor IDE deployment package ready!",
+      deploymentUrl: `/api/download/${buildId}`, // This should point to your download endpoint
+      setupInstructions: [
+        `Locate your Cursor IDE config file:`,
+        `• macOS: ${configPaths.macOS}`,
+        `• Windows: ${configPaths.Windows}`,
+        `• Linux: ${configPaths.Linux}`,
+        `Add the following to your cursor_config.json:`,
+        `{
+  "mcpServers": {
+    "${normalizedServerName}": {
+      "command": "${serverName.includes("Python") ? "python" : "node"}",
+      "args": ["/absolute/path/to/extracted/folder/server.${serverName.includes("Python") ? "py" : "js"}"]
+    }
+  }
+}`,
+        `Restart Cursor IDE to apply the changes.`
+      ]
+    });
+    
+    // Open the deployment dialog
+    setIsDialogOpen(true);
+  };
+
   return (
     <div className="mt-6">
       <h3 className="text-lg font-semibold mb-4">Deploy to Cloud</h3>
+      
+      {/* Cursor IDE Deployment Card */}
+      <div className="mb-4 p-4 border-2 border-primary/20 bg-primary/5 rounded-lg">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="flex-1">
+            <h3 className="text-lg font-medium mb-1">Deploy to Cursor IDE</h3>
+            <p className="text-sm text-neutral-600 mb-2">
+              Configure your MCP server in Cursor IDE with a few simple steps
+            </p>
+            <Button
+              variant="default"
+              size="sm"
+              className="w-full sm:w-auto"
+              onClick={handleCursorDeploy}
+            >
+              <svg viewBox="0 0 24 24" className="h-4 w-4 mr-2" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm0 18a8 8 0 1 1 0-16 8 8 0 0 1 0 16z" fill="currentColor"/>
+                <path d="M12 6a1 1 0 0 0-1 1v5a1 1 0 0 0 .4.8l3 2a1 1 0 0 0 1.2-1.6L13 11.5V7a1 1 0 0 0-1-1z" fill="currentColor"/>
+              </svg>
+              Deploy to Cursor IDE
+            </Button>
+          </div>
+          <div className="w-16 h-16 flex items-center justify-center rounded-lg bg-white p-2 shadow-sm">
+            <svg viewBox="0 0 24 24" className="w-10 h-10" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M7 8l10 8-10 8V8z" fill="currentColor"/>
+              <path d="M7 0v6.4L14 12 7 17.6V24h2l12-12L9 0H7z" fill="currentColor"/>
+            </svg>
+          </div>
+        </div>
+      </div>
       
       {loading && platforms.length === 0 ? (
         <div className="flex items-center justify-center p-6">

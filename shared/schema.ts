@@ -23,6 +23,9 @@ export const usersRelations = relations(users, ({ many }) => ({
 export const insertUserSchema = createInsertSchema(users).pick({
   username: true,
   password: true,
+  githubId: true,
+  githubUsername: true,
+  githubToken: true,
 });
 
 // MCP Server model

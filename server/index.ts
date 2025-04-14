@@ -1,6 +1,7 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+import { runMigration } from "./migrate";
 
 const app = express();
 app.use(express.json());
@@ -37,6 +38,14 @@ app.use((req, res, next) => {
 });
 
 (async () => {
+  try {
+    // Run database migrations first
+    await runMigration();
+  } catch (error) {
+    log(`Failed to run migrations: ${error}`, 'migration-error');
+    // Continue anyway as the app might be able to run with limited functionality
+  }
+  
   const server = await registerRoutes(app);
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {

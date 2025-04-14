@@ -242,7 +242,7 @@ export function setupAuth(app: Express) {
   });
   
   // GitHub auth routes
-  app.get("/auth/github", (req, res, next) => {
+  app.get("/auth/github", (req: Request, res: Response, next: NextFunction) => {
     console.log("Starting GitHub authentication...");
     passport.authenticate("github", { 
       scope: ["user:email", "repo"] 
@@ -251,21 +251,38 @@ export function setupAuth(app: Express) {
   
   app.get(
     "/auth/github/callback",
-    (req, res, next) => {
+    (req: Request, res: Response, next: NextFunction) => {
       console.log("GitHub callback received");
-      passport.authenticate("github", { 
-        failureRedirect: "/auth?error=github_auth_failed",
-        failWithError: true
-      })(req, res, next);
-    },
-    (req, res) => {
-      console.log("GitHub authentication successful");
-      // Successful authentication, redirect home
-      res.redirect("/");
-    },
-    (err: Error, req: Request, res: Response, next: NextFunction) => {
-      console.error("GitHub authentication error:", err);
-      res.redirect(`/auth?error=github_error&message=${encodeURIComponent(err.message)}`);
+      
+      // Use try-catch to handle potential errors
+      try {
+        passport.authenticate("github", { 
+          failureRedirect: "/auth?error=github_auth_failed"
+        }, (err: any, user: any, info: any) => {
+          if (err) {
+            console.error("GitHub auth error:", err);
+            return res.redirect(`/auth?error=github_error&message=${encodeURIComponent(err.message)}`);
+          }
+          
+          if (!user) {
+            console.error("GitHub auth failed:", info);
+            return res.redirect("/auth?error=github_auth_failed");
+          }
+          
+          req.login(user, (loginErr) => {
+            if (loginErr) {
+              console.error("Login error after GitHub auth:", loginErr);
+              return res.redirect(`/auth?error=login_failed&message=${encodeURIComponent(loginErr.message)}`);
+            }
+            
+            console.log("GitHub authentication successful");
+            return res.redirect("/");
+          });
+        })(req, res, next);
+      } catch (error: any) {
+        console.error("Unexpected GitHub auth error:", error);
+        res.redirect(`/auth?error=unexpected&message=${encodeURIComponent(error.message || "Unknown error")}`);
+      }
     }
   );
   

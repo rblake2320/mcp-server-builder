@@ -4,14 +4,44 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/hooks/use-auth";
-import { Loader2, Github } from "lucide-react";
-import { FormEvent, useState } from "react";
-import { Redirect } from "wouter";
+import { Loader2, Github, AlertTriangle } from "lucide-react";
+import { FormEvent, useState, useEffect } from "react";
+import { Redirect, useLocation } from "wouter";
 import { Separator } from "@/components/ui/separator";
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 
 export default function AuthPage() {
   const { user, loginMutation, registerMutation } = useAuth();
   const [activeTab, setActiveTab] = useState<string>("login");
+  const [location] = useLocation();
+  const [authError, setAuthError] = useState<string | null>(null);
+  
+  // Parse URL parameters for error messages
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const error = params.get('error');
+    const message = params.get('message');
+    
+    if (error) {
+      let errorMessage = "Authentication failed";
+      
+      if (error === 'github_auth_failed') {
+        errorMessage = "GitHub authentication failed. Please try again.";
+      } else if (error === 'github_error' && message) {
+        errorMessage = `GitHub error: ${message}`;
+      } else if (error === 'login_failed' && message) {
+        errorMessage = `Login error: ${message}`;
+      } else if (error === 'unexpected' && message) {
+        errorMessage = `Unexpected error: ${message}`;
+      } else if (message) {
+        errorMessage = message;
+      }
+      
+      setAuthError(errorMessage);
+    } else {
+      setAuthError(null);
+    }
+  }, [location]);
   
   // Login form state
   const [loginUsername, setLoginUsername] = useState("");
@@ -54,6 +84,14 @@ export default function AuthPage() {
       {/* Left side - Auth form */}
       <div className="flex-1 flex items-center justify-center p-6">
         <div className="w-full max-w-md">
+          {authError && (
+            <Alert variant="destructive" className="mb-4">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertTitle>Authentication Error</AlertTitle>
+              <AlertDescription>{authError}</AlertDescription>
+            </Alert>
+          )}
+          
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <TabsList className="grid w-full grid-cols-2 mb-8">
               <TabsTrigger value="login">Login</TabsTrigger>

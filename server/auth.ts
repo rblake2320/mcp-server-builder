@@ -91,7 +91,7 @@ export function setupAuth(app: Express) {
         },
         async (accessToken: string, refreshToken: string, profile: GitHubProfile, done: (error: any, user?: any) => void) => {
           try {
-            console.log("GitHub auth - Profile:", JSON.stringify(profile, null, 2));
+            console.log("GitHub auth - Processing profile");
             
             // Look for a user with the GitHub ID 
             const githubId = profile.id;
@@ -102,7 +102,8 @@ export function setupAuth(app: Express) {
               SELECT * FROM users WHERE github_id = ${githubId}
             `);
             
-            const users = result.rows as any[];
+            // Use type assertion to handle the query result
+            const users = (result as any).rows as any[];
             let user = users.length > 0 ? users[0] : null;
             
             if (!user) {
@@ -121,8 +122,15 @@ export function setupAuth(app: Express) {
               `);
               
               // Refresh user data
-              users = await db.execute(sql`SELECT * FROM users WHERE id = ${user.id}`);
-              user = users[0];
+              const updatedResult = await db.execute(sql`
+                SELECT * FROM users WHERE id = ${user.id}
+              `);
+              
+              // Use type assertion to handle the query result
+              const updatedUsers = (updatedResult as any).rows as any[];
+              if (updatedUsers.length > 0) {
+                user = updatedUsers[0];
+              }
             } else {
               // If no user exists, create a new one with the GitHub username
               // Generate a random password since GitHub auth won't use it
@@ -142,8 +150,15 @@ export function setupAuth(app: Express) {
               `);
               
               // Refresh user data
-              users = await db.execute(sql`SELECT * FROM users WHERE id = ${user.id}`);
-              user = users[0];
+              const createdResult = await db.execute(sql`
+                SELECT * FROM users WHERE id = ${user.id}
+              `);
+              
+              // Use type assertion to handle the query result
+              const createdUsers = (createdResult as any).rows as any[];
+              if (createdUsers.length > 0) {
+                user = createdUsers[0];
+              }
             }
             
             return done(null, user);

@@ -9,6 +9,7 @@ import { storage } from "./db-storage";
 import { db } from "./db";
 import { sql } from "drizzle-orm";
 import { User } from "@shared/schema";
+import { getOAuthCallbackUrl } from './utils/urlUtils';
 
 // Define the actual user structure for Express
 declare global {

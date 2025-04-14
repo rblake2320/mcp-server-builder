@@ -5,7 +5,7 @@ import ToolDefinitionForm from "@/components/ToolDefinitionForm";
 import CodePreview from "@/components/CodePreview";
 import ResultView from "@/components/ResultView";
 import AIAssistant from "@/components/AIAssistant";
-import { Step, ServerConfig, Tool, GeneratedServer } from "@/types";
+import { Step, ServerConfig, Tool, GeneratedServer, Parameter } from "@/types/index";
 import { v4 as uuidv4 } from "uuid";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";

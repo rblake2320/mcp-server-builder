@@ -111,12 +111,12 @@ const AIAssistant = ({ onGeneratedTool }: AIAssistantProps) => {
         {showApiKeyInput ? (
           <div className="space-y-4">
             <div>
-              <Label htmlFor="apiKey">Google Studio API Key</Label>
+              <Label htmlFor="apiKey">Google AI Studio API Key</Label>
               <div className="flex mt-1.5">
                 <Input
                   id="apiKey"
                   type="password"
-                  placeholder="Enter your API key"
+                  placeholder="Enter your Google AI Studio API key"
                   value={apiKey}
                   onChange={(e) => setApiKey(e.target.value)}
                   className="flex-1"
@@ -130,7 +130,8 @@ const AIAssistant = ({ onGeneratedTool }: AIAssistantProps) => {
                 </Button>
               </div>
               <p className="text-xs text-muted-foreground mt-2">
-                Your API key is stored only for the current session and never saved to the server.
+                Your Google AI Studio API key is stored only for the current session and never saved to the server.
+                You can get an API key from <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" className="text-primary underline">Google AI Studio</a>.
               </p>
             </div>
           </div>

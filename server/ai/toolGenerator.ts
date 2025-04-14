@@ -1,4 +1,4 @@
-import Anthropic from '@anthropic-ai/sdk';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 
 // Function to generate MCP tool code based on a prompt
 export async function generateTool(prompt: string, apiKey: string): Promise<string> {
@@ -7,10 +7,11 @@ export async function generateTool(prompt: string, apiKey: string): Promise<stri
   }
 
   try {
-    // Initialize Anthropic client with user's API key
-    const anthropic = new Anthropic({
-      apiKey,
-    });
+    // Initialize Google Generative AI with user's API key
+    const genAI = new GoogleGenerativeAI(apiKey);
+    
+    // Use Gemini Pro model
+    const model = genAI.getGenerativeModel({ model: "gemini-pro" });
 
     // Create a system prompt that explains the task in detail
     const systemPrompt = `You are an expert MCP (Model Context Protocol) tool developer. 
@@ -58,29 +59,28 @@ async def get_weather_forecast(location: str, days: int) -> Dict[str, Any]:
 
 Now, implement an MCP tool based on the user's requirements.`;
 
-    // Send prompt to Anthropic API
-    // the newest Anthropic model is "claude-3-7-sonnet-20250219" which was released February 24, 2025
-    const response = await anthropic.messages.create({
-      model: 'claude-3-7-sonnet-20250219',
-      system: systemPrompt,
-      max_tokens: 3000,
-      messages: [
-        { role: 'user', content: prompt }
-      ],
-    });
-
-    // Extract the generated code from the response
-    if (response.content && response.content.length > 0) {
-      // Access the content safely using type assertion and nullish coalescing
-      const text = (response.content[0] as any).text ?? '';
-      return text.trim();
+    // The full prompt is the system prompt followed by the user's prompt
+    const fullPrompt = `${systemPrompt}\n\nUser requirements: ${prompt}`;
+    
+    // Generate content with Gemini
+    const result = await model.generateContent(fullPrompt);
+    const response = result.response;
+    const text = response.text();
+    
+    // Clean up the response - remove markdown formatting if present
+    let generatedCode = text.trim();
+    
+    // Remove markdown code block formatting if present
+    if (generatedCode.startsWith('```python') && generatedCode.endsWith('```')) {
+      generatedCode = generatedCode.substring('```python'.length, generatedCode.length - 3).trim();
+    } else if (generatedCode.startsWith('```') && generatedCode.endsWith('```')) {
+      generatedCode = generatedCode.substring(3, generatedCode.length - 3).trim();
     }
     
-    // Fallback in case of unexpected content type
-    throw new Error('Unexpected response format from Anthropic API');
+    return generatedCode;
     
   } catch (error) {
-    console.error('Error calling Anthropic API:', error);
+    console.error('Error calling Google Generative AI:', error);
     if (error instanceof Error) {
       throw new Error(`Failed to generate tool: ${error.message}`);
     }

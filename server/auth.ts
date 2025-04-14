@@ -1,5 +1,6 @@
 import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
+import { Strategy as GitHubStrategy } from "passport-github2";
 import { Express } from "express";
 import session from "express-session";
 import { scrypt, randomBytes, timingSafeEqual } from "crypto";
@@ -58,6 +59,7 @@ export function setupAuth(app: Express) {
   app.use(passport.initialize());
   app.use(passport.session());
 
+  // Configure local strategy for username/password authentication
   passport.use(
     new LocalStrategy(async (username, password, done) => {
       try {
@@ -72,6 +74,46 @@ export function setupAuth(app: Express) {
       }
     }),
   );
+  
+  // Configure GitHub strategy for OAuth authentication
+  if (process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET) {
+    passport.use(
+      new GitHubStrategy(
+        {
+          clientID: process.env.GITHUB_CLIENT_ID,
+          clientSecret: process.env.GITHUB_CLIENT_SECRET,
+          callbackURL: process.env.REPLIT_DOMAINS 
+            ? `https://${process.env.REPLIT_DOMAINS}/auth/github/callback` 
+            : 'http://localhost:5000/auth/github/callback',
+          scope: ['user:email']
+        },
+        async (accessToken, refreshToken, profile, done) => {
+          try {
+            // Look for a user with the GitHub ID or with the same username
+            const githubUsername = profile.username || `github_${profile.id}`;
+            let user = await storage.getUserByUsername(githubUsername);
+            
+            if (!user) {
+              // If no user exists, create a new one with the GitHub username
+              // Generate a random password since GitHub auth won't use it
+              const randomPassword = randomBytes(32).toString('hex');
+              user = await storage.createUser({
+                username: githubUsername,
+                password: await hashPassword(randomPassword),
+                // Add additional user info from GitHub if needed
+              });
+            }
+            
+            return done(null, user);
+          } catch (error) {
+            return done(error);
+          }
+        }
+      )
+    );
+  } else {
+    console.warn("GitHub authentication is disabled - missing GITHUB_CLIENT_ID or GITHUB_CLIENT_SECRET");
+  }
 
   passport.serializeUser((user: any, done) => done(null, user.id));
   passport.deserializeUser(async (id: number, done) => {

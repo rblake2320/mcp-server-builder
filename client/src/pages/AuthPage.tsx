@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/hooks/use-auth";
+import { useToast } from "@/hooks/use-toast";
 import { Loader2, Github, AlertTriangle } from "lucide-react";
 import { FormEvent, useState, useEffect } from "react";
 import { Redirect, useLocation } from "wouter";
@@ -15,11 +16,46 @@ export default function AuthPage() {
   const [activeTab, setActiveTab] = useState<string>("login");
   const [location] = useLocation();
   const [authError, setAuthError] = useState<string | null>(null);
+  const { toast } = useToast();
   
   // GitHub token login state
   const [showTokenLogin, setShowTokenLogin] = useState(false);
   const [githubToken, setGithubToken] = useState("");
   const [tokenLoginLoading, setTokenLoginLoading] = useState(false);
+  
+  // Handler for token login
+  const handleTokenLogin = async () => {
+    if (!githubToken) return;
+    
+    setTokenLoginLoading(true);
+    try {
+      const response = await fetch('/api/github-token-login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ token: githubToken }),
+      });
+      
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.error || 'Authentication failed');
+      }
+      
+      // Refresh page to confirm login
+      window.location.href = '/';
+    } catch (error) {
+      console.error('Token login error:', error);
+      toast({
+        title: "Authentication Failed",
+        description: error instanceof Error ? error.message : 'Failed to authenticate with GitHub token',
+        variant: "destructive",
+      });
+    } finally {
+      setTokenLoginLoading(false);
+    }
+  };
   
   // Parse URL parameters for error messages
   useEffect(() => {

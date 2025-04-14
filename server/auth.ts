@@ -111,13 +111,15 @@ export function setupAuth(app: Express) {
         {
           clientID: process.env.GITHUB_CLIENT_ID,
           clientSecret: process.env.GITHUB_CLIENT_SECRET,
-          callbackURL: "/auth/github/callback", // Will be dynamically replaced by our middleware
+          callbackURL: "/auth/github/callback",
+          passReqToCallback: true,
           scope: ['user:email', 'repo'],
           userAgent: 'MCP-Server-Builder'
         },
-        async (accessToken: string, refreshToken: string, profile: GitHubProfile, done: (error: any, user?: any) => void) => {
+        async (req: Request, accessToken: string, refreshToken: string, profile: GitHubProfile, done: (error: any, user?: any) => void) => {
           try {
             console.log("GitHub auth - Processing profile");
+            console.log("GitHub auth - Dynamic callback URL: ", req.callbackURL);
             
             // Look for a user with the GitHub ID 
             const githubId = profile.id;

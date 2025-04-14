@@ -39,6 +39,9 @@ const NavBar = () => {
               <Link href="/enhancements" className={`px-3 py-2 ${location === '/enhancements' ? 'text-primary border-b-2 border-primary font-medium' : 'text-neutral-700 font-medium hover:text-primary'}`}>
                 Enhancements
               </Link>
+              <Link href="/complexity" className={`px-3 py-2 ${location === '/complexity' ? 'text-primary border-b-2 border-primary font-medium' : 'text-neutral-700 font-medium hover:text-primary'}`}>
+                Code Analyzer
+              </Link>
               <Link href="/documentation" className={`px-3 py-2 ${location === '/documentation' ? 'text-primary border-b-2 border-primary font-medium' : 'text-neutral-700 font-medium hover:text-primary'}`}>
                 Documentation
               </Link>

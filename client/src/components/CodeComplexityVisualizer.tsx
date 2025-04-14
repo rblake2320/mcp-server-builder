@@ -73,7 +73,13 @@ export function CodeComplexityVisualizer({ initialCode = '' }: ComplexityVisuali
   // Mutation for analyzing code complexity
   const complexityMutation = useMutation({
     mutationFn: async (codeToAnalyze: string) => {
-      const response = await apiRequest('POST', '/api/analyze-complexity', { code: codeToAnalyze });
+      // Try to get API key from localStorage first
+      const savedApiKey = localStorage.getItem('google_api_key');
+      
+      const response = await apiRequest('POST', '/api/analyze-complexity', { 
+        code: codeToAnalyze,
+        apiKey: savedApiKey || undefined
+      });
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.message || 'Failed to analyze code complexity');

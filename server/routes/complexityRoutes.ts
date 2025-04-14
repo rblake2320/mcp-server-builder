@@ -6,7 +6,8 @@ const complexityRouter = Router();
 
 // Schema for validation
 const AnalyzeRequestSchema = z.object({
-  code: z.string().min(1, "Code is required").max(50000, "Code is too large")
+  code: z.string().min(1, "Code is required").max(50000, "Code is too large"),
+  apiKey: z.string().optional()
 });
 
 /**
@@ -19,7 +20,9 @@ complexityRouter.post('/analyze-complexity', async (req: Request, res: Response)
     const validatedData = AnalyzeRequestSchema.parse(req.body);
     
     // Check if Google API key is available
-    const apiKey = process.env.GOOGLE_API_KEY;
+    // First try to get it from request body (if provided by frontend)
+    // Then fallback to environment variable
+    const apiKey = req.body.apiKey || process.env.GOOGLE_API_KEY;
     if (!apiKey) {
       return res.status(500).json({ 
         message: "Server configuration error: Google API key is missing" 

@@ -23,6 +23,7 @@ function Router() {
       <ProtectedRoute path="/builder" component={Builder} />
       <ProtectedRoute path="/my-servers" component={MyServers} />
       <Route path="/enhancements" component={Enhancements} />
+      <Route path="/complexity" component={ComplexityPage} />
       <Route path="/documentation" component={Documentation} />
       <Route path="/about" component={About} />
       <Route path="/auth" component={AuthPage} />

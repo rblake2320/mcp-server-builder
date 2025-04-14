@@ -1,7 +1,7 @@
 import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
 import { Strategy as GitHubStrategy, Profile as GitHubProfile } from "passport-github2";
-import { Express } from "express";
+import { Express, Request, Response, NextFunction } from "express";
 import session from "express-session";
 import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
@@ -85,11 +85,10 @@ export function setupAuth(app: Express) {
         {
           clientID: process.env.GITHUB_CLIENT_ID,
           clientSecret: process.env.GITHUB_CLIENT_SECRET,
-          callbackURL: process.env.REPLIT_DOMAINS 
-            ? `https://${process.env.REPLIT_DOMAINS}/auth/github/callback` 
-            : 'http://localhost:5000/auth/github/callback',
+          callbackURL: "/auth/github/callback", // Use relative URL to avoid mismatches
           scope: ['user:email', 'repo'],
-          userAgent: 'MCP-Server-Builder'
+          userAgent: 'MCP-Server-Builder',
+          proxy: true // Enable proxy support for Replit environment
         },
         async (accessToken: string, refreshToken: string, profile: GitHubProfile, done: (error: any, user?: any) => void) => {
           try {
@@ -264,7 +263,7 @@ export function setupAuth(app: Express) {
       // Successful authentication, redirect home
       res.redirect("/");
     },
-    (err, req, res, next) => {
+    (err: Error, req: Request, res: Response, next: NextFunction) => {
       console.error("GitHub authentication error:", err);
       res.redirect(`/auth?error=github_error&message=${encodeURIComponent(err.message)}`);
     }

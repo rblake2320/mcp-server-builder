@@ -1,0 +1,89 @@
+Okay, the error message "github.com refused to connect" shown in your screenshot[1], occurring *after* you seemingly attempt to authorize on GitHub, is almost always a symptom of a **`redirect_uri_mismatch`** error, even if you don't see that specific text on the final error page.
+
+Here's what's happening:
+
+1.  Your application redirects the user to GitHub for authentication.
+2.  The user logs in and authorizes your application on GitHub.
+3.  GitHub attempts to redirect the user *back* to your application using the "Authorization callback URL" specified in your GitHub OAuth App settings.
+4.  **The Problem:** The URL GitHub tries to redirect to is either:
+    *   Not *exactly* matching the one registered in your GitHub OAuth App settings[2][4][5].
+    *   An address the browser cannot reach (e.g., `localhost` when running remotely, wrong port, incorrect protocol like `http` instead of `https`).
+5.  Because the destination URL is considered invalid by GitHub (due to mismatch) or unreachable by the browser, the connection fails, resulting in the "refused to connect" error page shown in the screenshot[1].
+
+**How to Fix This (Focus on Redirect URI):**
+
+1.  **Go to GitHub Developer Settings:**
+    *   Navigate to Settings > Developer settings > OAuth Apps.
+    *   Select the OAuth App you created for your MCP Server Builder.
+
+2.  **Verify "Authorization callback URL":**
+    *   **Exact Match is CRITICAL:** This URL must *exactly* match the callback route your backend server is configured to handle. Pay close attention to:
+        *   **`http` vs `https`: ** If your app (especially on Replit/production) runs on `https`, the callback URL *must* start with `https`.
+        *   **Domain Name:** Is it `localhost`, your Replit URL (`https://your-app-name.repl.co`), or a custom domain? It must match what your server is reachable at *from the user's browser*.
+        *   **Port Number:** If running locally and using a port other than 80/443, include it (e.g., `http://localhost:3000`). Replit usually handles ports automatically via its main URL.
+        *   **Path:** The path must match your backend route (e.g., `/auth/github/callback`).
+        *   **Trailing Slash:** Be consistent. If your backend route expects `/auth/github/callback/`, include the slash. If not, omit it. GitHub is strict about this.
+
+3.  **Verify Your Backend Configuration (Passport Strategy):**
+    *   In your backend code where you configure the `passport-github2` strategy, ensure the `callbackURL` option passed during setup *also* exactly matches the URL registered on GitHub. Ideally, read this from an environment variable.
+    ```javascript
+    // Example Passport setup
+    passport.use(new GitHubStrategy({
+        clientID: process.env.GITHUB_CLIENT_ID,
+        clientSecret: process.env.GITHUB_CLIENT_SECRET,
+        callbackURL: process.env.GITHUB_CALLBACK_URL // <-- THIS MUST MATCH GITHUB SETTINGS!
+      },
+      // ... verify function ...
+    ));
+    ```
+
+4.  **Check Environment Variables:**
+    *   Make sure `GITHUB_CALLBACK_URL` (or whatever you named it) in your `.env` file (and loaded correctly into your app) is the *exact* URL registered on GitHub.
+    *   Ensure `GITHUB_CLIENT_ID` and `GITHUB_CLIENT_SECRET` are also correct.
+
+5.  **Inspect Network Traffic (Browser Dev Tools):**
+    *   Open your browser's developer tools (usually F12) and go to the "Network" tab.
+    *   Clear the log and attempt the GitHub login again.
+    *   After you authenticate on GitHub, look for the request where GitHub redirects back. Examine the `Location` header in the response from GitHub. This will show the *exact* URL GitHub is trying to send you to. Compare this meticulously with what's registered in GitHub. This is often the best way to spot subtle differences.
+
+6.  **Consider Removing `redirect_uri` from Initial Request:** As mentioned in one Stack Overflow post[2], sometimes explicitly sending the `redirect_uri` parameter in the *initial* request to `https://github.com/login/oauth/authorize` can cause issues if it doesn't perfectly match. Try removing it and letting GitHub rely *only* on the registered "Authorization callback URL". Your Passport strategy usually handles this correctly if configured properly.
+
+**In summary, the "refused to connect" error in this context is highly likely a symptom of GitHub detecting a mismatch between the expected callback URL and the one registered in your OAuth App settings. Focus intensely on ensuring those two URLs are identical.**
+
+Citations:
+[1] https://pplx-res.cloudinary.com/image/upload/v1744595907/user_uploads/naGtpZpKCzquqzT/image.jpg
+[2] https://stackoverflow.com/questions/34730153/github-api-redirect-uri-mismatch
+[3] https://docs.github.com/en/desktop/installing-and-authenticating-to-github-desktop/authenticating-to-github-in-github-desktop
+[4] https://github.com/FusionAuth/fusionauth-issues/issues/134
+[5] https://community.grafana.com/t/github-enterprise-oauth-redirect-uri-mismatch/3673
+[6] https://docs.github.com/en/codespaces/troubleshooting/troubleshooting-authentication-to-a-repository
+[7] https://github.com/desktop/desktop/issues/18494
+[8] https://docs.github.com/en/apps/oauth-apps/maintaining-oauth-apps/troubleshooting-authorization-request-errors
+[9] https://docs.github.com/en/authentication/securing-your-account-with-two-factor-authentication-2fa/recovering-your-account-if-you-lose-your-2fa-credentials
+[10] https://support.github.com/contact/cannot_sign_in
+[11] https://github.com/directus/directus/issues/5814
+[12] https://www.reddit.com/r/github/comments/1e6179f/not_able_to_login_to_github_please_help/
+[13] https://www.reddit.com/r/github/comments/1hx1bs5/cant_login_in_github_in_any_way_possible/
+[14] https://github.com/Eugeny/tabby/issues/7934
+[15] https://docs.github.com/en/get-started/using-github/troubleshooting-connectivity-problems
+[16] https://community.auth0.com/t/always-getting-a-redirect-uri-mismatch-error-from-github/32845
+[17] https://developercommunity.visualstudio.com/content/problem/1167594/github-sign-in-not-working.html
+[18] https://github.com/orgs/community/discussions/37034
+[19] https://community.gravitee.io/t/github-identity-provider-redirect-uri-mismatch/845
+[20] https://answers.netlify.com/t/authentication-error-github-account/114948
+[21] https://stackoverflow.com/questions/72722729/problems-pushing-to-github-authentication-failed
+[22] https://docs.github.com/enterprise-cloud@latest/apps/oauth-apps/maintaining-oauth-apps/troubleshooting-oauth-app-access-token-request-errors
+[23] https://www.reddit.com/r/github/comments/lkfyc6/github_desktop_keeps_failing_connecting_to_github/
+[24] https://docs.github.com/en/authentication
+[25] https://docs.github.com/en/desktop/installing-and-authenticating-to-github-desktop/authenticating-to-github-in-github-desktop
+[26] https://stackoverflow.com/questions/71421219/unable-to-login-to-github-account-even-with-correct-credentials
+[27] https://github.com/desktop/desktop/issues/8860
+[28] https://community.grafana.com/t/github-enterprise-oauth-redirect-uri-mismatch/3673
+[29] https://community.atlassian.com/t5/Sourcetree-questions/Cannot-log-in-to-my-GitHub-account/qaq-p/1778207
+[30] https://stackoverflow.com/questions/64716921/authentication-failed-when-pushing-to-a-repository-on-github-from-github-deskto
+[31] https://www.youtube.com/watch?v=ePCBuIQJAUc
+[32] https://github.com/orgs/community/discussions/29193
+[33] https://stackoverflow.com/questions/17659206/git-push-results-in-authentication-failed
+
+---
+Answer from Perplexity: pplx.ai/share

@@ -257,6 +257,119 @@ export function setupAuth(app: Express) {
     })(req, res, next);
   });
   
+  // Manual GitHub token login route - as a fallback for testing
+  app.post("/api/github-token-login", async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { token } = req.body;
+      
+      if (!token) {
+        return res.status(400).json({ error: "GitHub token is required" });
+      }
+      
+      console.log("Manual GitHub token login attempt");
+      
+      // Make a request to GitHub API to get user profile
+      const githubRes = await fetch('https://api.github.com/user', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'User-Agent': 'MCP-Server-Builder'
+        }
+      });
+      
+      if (!githubRes.ok) {
+        const errorData = await githubRes.text();
+        console.error("GitHub API error:", githubRes.status, errorData);
+        return res.status(401).json({ error: "Invalid GitHub token" });
+      }
+      
+      const profile = await githubRes.json();
+      
+      // Process like GitHub strategy would
+      const githubId = profile.id.toString();
+      const githubUsername = profile.login || `github_${profile.id}`;
+      
+      // First try to find by GitHub ID
+      const result = await db.execute(sql`
+        SELECT * FROM users WHERE github_id = ${githubId}
+      `);
+      
+      // Use type assertion to handle the query result
+      const users = (result as any).rows as any[];
+      let user = users.length > 0 ? users[0] : null;
+      
+      if (!user) {
+        // Then try to find by username
+        user = await storage.getUserByUsername(githubUsername);
+      }
+      
+      if (user) {
+        // Update existing user with GitHub info
+        await db.execute(sql`
+          UPDATE users 
+          SET github_id = ${githubId}, 
+              github_username = ${githubUsername}, 
+              github_token = ${token}
+          WHERE id = ${user.id}
+        `);
+        
+        // Refresh user data
+        const updatedResult = await db.execute(sql`
+          SELECT * FROM users WHERE id = ${user.id}
+        `);
+        
+        // Use type assertion to handle the query result
+        const updatedUsers = (updatedResult as any).rows as any[];
+        if (updatedUsers.length > 0) {
+          user = updatedUsers[0];
+        }
+      } else {
+        // If no user exists, create a new one with the GitHub username
+        // Generate a random password since GitHub auth won't use it
+        const randomPassword = randomBytes(32).toString('hex');
+        user = await storage.createUser({
+          username: githubUsername,
+          password: await hashPassword(randomPassword),
+        });
+        
+        // Add GitHub details
+        await db.execute(sql`
+          UPDATE users 
+          SET github_id = ${githubId}, 
+              github_username = ${githubUsername}, 
+              github_token = ${token}
+          WHERE id = ${user.id}
+        `);
+        
+        // Refresh user data
+        const createdResult = await db.execute(sql`
+          SELECT * FROM users WHERE id = ${user.id}
+        `);
+        
+        // Use type assertion to handle the query result
+        const createdUsers = (createdResult as any).rows as any[];
+        if (createdUsers.length > 0) {
+          user = createdUsers[0];
+        }
+      }
+      
+      // Log in the user
+      req.login(user, (loginErr) => {
+        if (loginErr) {
+          console.error("Login error after manual GitHub auth:", loginErr);
+          return res.status(500).json({ error: "Login failed after token verification" });
+        }
+        
+        console.log("Manual GitHub authentication successful");
+        // Return user info without password
+        const { password, ...userInfo } = user;
+        return res.status(200).json(userInfo);
+      });
+    } catch (error: any) {
+      console.error("Manual GitHub auth error:", error);
+      res.status(500).json({ error: "Authentication failed", message: error.message });
+    }
+  });
+  
   app.get(
     "/auth/github/callback",
     (req: Request, res: Response, next: NextFunction) => {

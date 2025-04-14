@@ -159,6 +159,55 @@ export default function AuthPage() {
                       GitHub
                     </Button>
                   </a>
+                  
+                  <div className="mt-4">
+                    <Button 
+                      variant="outline" 
+                      className="w-full" 
+                      type="button"
+                      onClick={() => setShowTokenLogin(prev => !prev)}
+                    >
+                      <Github className="mr-2 h-4 w-4" />
+                      Login with GitHub Token
+                    </Button>
+                  </div>
+                  
+                  {showTokenLogin && (
+                    <div className="mt-4 space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="github-token">GitHub Personal Access Token</Label>
+                        <Input
+                          id="github-token"
+                          type="password"
+                          value={githubToken}
+                          onChange={(e) => setGithubToken(e.target.value)}
+                          placeholder="ghp_..."
+                        />
+                      </div>
+                      <Button 
+                        variant="default" 
+                        className="w-full" 
+                        disabled={!githubToken || tokenLoginLoading}
+                        onClick={handleTokenLogin}
+                      >
+                        {tokenLoginLoading ? (
+                          <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                        ) : null}
+                        Login with Token
+                      </Button>
+                      <p className="text-xs text-muted-foreground">
+                        Create a token with <span className="font-mono">user:email</span> and <span className="font-mono">repo</span> scopes at{" "}
+                        <a 
+                          href="https://github.com/settings/tokens/new" 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="text-primary hover:underline"
+                        >
+                          GitHub Developer Settings
+                        </a>
+                      </p>
+                    </div>
+                  )}
                 </div>
               </Card>
             </TabsContent>

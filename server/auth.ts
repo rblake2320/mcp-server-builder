@@ -79,16 +79,22 @@ export function setupAuth(app: Express) {
   
   // Configure GitHub strategy for OAuth authentication
   if (process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET) {
+    const callbackURL = process.env.REPLIT_DOMAINS 
+      ? `https://${process.env.REPLIT_DOMAINS}/auth/github/callback` 
+      : 'http://localhost:5000/auth/github/callback';
+      
     console.log("Initializing GitHub authentication strategy");
+    console.log("Using callback URL:", callbackURL);
+    console.log("For GitHub OAuth settings, use this exact URL as your Authorization callback URL");
+    
     passport.use(
       new GitHubStrategy(
         {
           clientID: process.env.GITHUB_CLIENT_ID,
           clientSecret: process.env.GITHUB_CLIENT_SECRET,
-          callbackURL: "/auth/github/callback", // Use relative URL to avoid mismatches
+          callbackURL: callbackURL,
           scope: ['user:email', 'repo'],
-          userAgent: 'MCP-Server-Builder',
-          proxy: true // Enable proxy support for Replit environment
+          userAgent: 'MCP-Server-Builder'
         },
         async (accessToken: string, refreshToken: string, profile: GitHubProfile, done: (error: any, user?: any) => void) => {
           try {
@@ -244,6 +250,8 @@ export function setupAuth(app: Express) {
   // GitHub auth routes
   app.get("/auth/github", (req: Request, res: Response, next: NextFunction) => {
     console.log("Starting GitHub authentication...");
+    console.log("Full request URL:", req.protocol + '://' + req.get('host') + req.originalUrl);
+    console.log("Headers:", JSON.stringify(req.headers, null, 2));
     passport.authenticate("github", { 
       scope: ["user:email", "repo"] 
     })(req, res, next);
@@ -253,6 +261,9 @@ export function setupAuth(app: Express) {
     "/auth/github/callback",
     (req: Request, res: Response, next: NextFunction) => {
       console.log("GitHub callback received");
+      console.log("Callback URL:", req.protocol + '://' + req.get('host') + req.originalUrl);
+      console.log("Query params:", req.query);
+      console.log("Headers:", JSON.stringify(req.headers, null, 2));
       
       // Use try-catch to handle potential errors
       try {

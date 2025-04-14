@@ -79,6 +79,7 @@ export function setupAuth(app: Express) {
   
   // Configure GitHub strategy for OAuth authentication
   if (process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET) {
+    console.log("Initializing GitHub authentication strategy");
     passport.use(
       new GitHubStrategy(
         {
@@ -87,7 +88,8 @@ export function setupAuth(app: Express) {
           callbackURL: process.env.REPLIT_DOMAINS 
             ? `https://${process.env.REPLIT_DOMAINS}/auth/github/callback` 
             : 'http://localhost:5000/auth/github/callback',
-          scope: ['user:email', 'repo']
+          scope: ['user:email', 'repo'],
+          userAgent: 'MCP-Server-Builder'
         },
         async (accessToken: string, refreshToken: string, profile: GitHubProfile, done: (error: any, user?: any) => void) => {
           try {
@@ -241,14 +243,30 @@ export function setupAuth(app: Express) {
   });
   
   // GitHub auth routes
-  app.get("/auth/github", passport.authenticate("github", { scope: ["user:email", "repo"] }));
+  app.get("/auth/github", (req, res, next) => {
+    console.log("Starting GitHub authentication...");
+    passport.authenticate("github", { 
+      scope: ["user:email", "repo"] 
+    })(req, res, next);
+  });
   
   app.get(
     "/auth/github/callback",
-    passport.authenticate("github", { failureRedirect: "/auth" }),
+    (req, res, next) => {
+      console.log("GitHub callback received");
+      passport.authenticate("github", { 
+        failureRedirect: "/auth?error=github_auth_failed",
+        failWithError: true
+      })(req, res, next);
+    },
     (req, res) => {
+      console.log("GitHub authentication successful");
       // Successful authentication, redirect home
       res.redirect("/");
+    },
+    (err, req, res, next) => {
+      console.error("GitHub authentication error:", err);
+      res.redirect(`/auth?error=github_error&message=${encodeURIComponent(err.message)}`);
     }
   );
   

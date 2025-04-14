@@ -12,6 +12,7 @@ import About from "@/pages/About";
 import AuthPage from "@/pages/AuthPage";
 import MyServers from "@/pages/MyServers";
 import Enhancements from "@/pages/Enhancements";
+import ComplexityPage from "@/pages/ComplexityPage";
 import { AuthProvider } from "@/hooks/use-auth";
 import { ProtectedRoute } from "@/lib/protected-route";
 

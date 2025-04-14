@@ -219,11 +219,11 @@ function generateComplexityVisualization(functions: { name: string; complexity: 
   
   // Create scales
   const x = d3.scaleLinear()
-    .domain([0, d3.max(functions, d => d.complexity) || 10])
+    .domain([0, d3.max(functions, (d) => d.complexity) || 10])
     .range([0, width]);
   
   const y = d3.scaleBand()
-    .domain(functions.map(d => d.name))
+    .domain(functions.map((d) => d.name))
     .range([0, height])
     .padding(0.1);
   
@@ -249,20 +249,20 @@ function generateComplexityVisualization(functions: { name: string; complexity: 
     .data(functions)
     .join("rect")
     .attr("x", 0)
-    .attr("y", d => y(d.name) || 0)
-    .attr("width", d => x(d.complexity))
+    .attr("y", (d) => y(d.name) || 0)
+    .attr("width", (d) => x(d.complexity))
     .attr("height", y.bandwidth())
-    .attr("fill", d => colorScale(d.complexity));
+    .attr("fill", (d) => colorScale(d.complexity));
   
   // Add labels
   svg.selectAll(".label")
     .data(functions)
     .join("text")
     .attr("class", "label")
-    .attr("x", d => x(d.complexity) + 5)
-    .attr("y", d => (y(d.name) || 0) + y.bandwidth() / 2)
+    .attr("x", (d) => x(d.complexity) + 5)
+    .attr("y", (d) => (y(d.name) || 0) + y.bandwidth() / 2)
     .attr("dy", "0.35em")
-    .text(d => d.complexity);
+    .text((d) => d.complexity);
   
   // Add title
   svg.append("text")

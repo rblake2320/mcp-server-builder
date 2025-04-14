@@ -85,7 +85,7 @@ export function setupAuth(app: Express) {
           callbackURL: process.env.REPLIT_DOMAINS 
             ? `https://${process.env.REPLIT_DOMAINS}/auth/github/callback` 
             : 'http://localhost:5000/auth/github/callback',
-          scope: ['user:email']
+          scope: ['user:email', 'repo']
         },
         async (accessToken: string, refreshToken: string, profile: GitHubProfile, done: (error: any, user?: any) => void) => {
           try {
@@ -183,7 +183,7 @@ export function setupAuth(app: Express) {
   });
   
   // GitHub auth routes
-  app.get("/auth/github", passport.authenticate("github", { scope: ["user:email"] }));
+  app.get("/auth/github", passport.authenticate("github", { scope: ["user:email", "repo"] }));
   
   app.get(
     "/auth/github/callback",

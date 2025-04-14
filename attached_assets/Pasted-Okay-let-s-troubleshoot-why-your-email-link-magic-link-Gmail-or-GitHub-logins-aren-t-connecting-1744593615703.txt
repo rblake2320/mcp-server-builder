@@ -1,0 +1,151 @@
+Okay, let's troubleshoot why your email link (magic link), Gmail, or GitHub logins aren't connecting or working, potentially leading to the 404 error seen in your screenshot[2]. This usually points to configuration issues in either your application or the third-party provider settings.
+
+Based on the search results and common practices (especially using Passport.js as suggested by your `package.json`), here’s a breakdown of potential issues and how to fix them:
+
+**I. GitHub Login Issues (Likely Cause of 404 Error)**
+
+The 404 error after attempting GitHub login[2] strongly suggests a problem with the **Authorization Callback URL**. GitHub doesn't know where to send the user back to *within your application* after they authorize.
+
+**Troubleshooting Steps:**
+
+1.  **Verify GitHub OAuth App Settings:**[6][7][10]
+    *   Go to your GitHub Developer settings > OAuth Apps > Your Application.
+    *   **Crucially:** Double-check the "Authorization callback URL". This MUST *exactly* match the URL your application's backend is listening on to handle the GitHub callback.
+        *   **Common Mismatch:** `http` vs `https`.
+        *   **Localhost:** If developing locally, it's often `http://localhost:PORT/auth/github/callback` (replace `PORT` with your actual port, e.g., 3000 or 5173).
+        *   **Replit/Production:** If deployed, it must be your *production* URL, e.g., `https://your-replit-app-name.replit.dev/auth/github/callback`.
+        *   **Trailing Slashes:** Ensure consistency (or lack thereof) in trailing slashes.
+    *   **Client ID & Secret:** Ensure the Client ID and Client Secret stored in your application's environment variables (`.env` file) exactly match those shown in the GitHub OAuth App settings.
+
+2.  **Check Your Application's Backend Routes:**[6]
+    *   **Initiation Route:** Ensure you have a route (e.g., `/auth/github`) that initiates the process using `passport.authenticate('github', { scope: ['user:email'] })`. Your frontend "Login with GitHub" button should link to this route.
+    *   **Callback Route:** Ensure you have the *exact* callback route defined (e.g., `/auth/github/callback`) that handles the response from GitHub. This route should use `passport.authenticate('github', { failureRedirect: '/login' })` and then redirect the user upon success (e.g., to `/profile` or `/`).
+    *   **Passport Strategy:** Make sure you have configured the `passport-github2` strategy (you might need to install it: `npm install passport-github2`) with the correct `clientID`, `clientSecret`, and `callbackURL` read from your environment variables.
+
+3.  **Environment Variables:**[6]
+    *   Are `GITHUB_CLIENT_ID` and `GITHUB_CLIENT_SECRET` correctly defined in your `.env` file?
+    *   Is your backend correctly loading these variables (e.g., using `require('dotenv').config()` at the top of your server file)?
+
+4.  **Scope:** Ensure the scope requested (e.g., `user:email`) matches what you need and potentially what GitHub expects[7][9].
+
+5.  **Error Handling:** Check your backend server logs for any specific errors occurring during the `/auth/github/callback` handling. The 404 might be *within your app* if the route isn't defined, or it could be GitHub returning the user to a non-existent URL. Look for `redirect_uri_mismatch` errors[11].
+
+**II. Email Link (Magic Link) Login Issues**
+
+This requires a different setup involving token generation, email sending, and token verification.
+
+**Troubleshooting Steps:**
+
+1.  **Implementation Method:** Are you using:
+    *   **Firebase Auth?**[3] This is a common and recommended way.
+    *   Another service (Auth0, Supabase)?
+    *   A custom implementation?
+
+2.  **If Using Firebase Auth:**[3]
+    *   **Firebase Console Setup:**
+        *   In the Auth section, is the "Email/Password" provider enabled?
+        *   Within the Email/Password provider settings, is "Email link (passwordless sign-in)" explicitly enabled?
+    *   **Sending the Link:**
+        *   Is `sendSignInLinkToEmail` being called successfully? Check for errors in the `.catch()` block.
+        *   Are the `actionCodeSettings` configured correctly, especially the `url` property? This URL must point to the page in *your* application that will handle the sign-in completion.
+    *   **Handling the Link:**
+        *   Does the page specified in `actionCodeSettings.url` exist?
+        *   Does that page's JavaScript code correctly call `isSignInWithEmailLink(auth, window.location.href)`?
+        *   Does it retrieve the user's email (prompting if necessary, as shown in the Firebase docs)?
+        *   Does it successfully call `signInWithEmailLink(auth, email, window.location.href)`? Check the `.catch()` block here for errors like invalid/expired codes.
+    *   **Email Delivery:** Is the email actually being sent and received? Check spam folders. Firebase handles sending by default, but deliverability can sometimes be an issue.
+
+3.  **If Using Custom Implementation / Other Service:**
+    *   **Token Generation:** Is a unique, secure, and time-limited token being generated for each request?
+    *   **Email Sending:**
+        *   Is your email sending service configured correctly? Are API keys valid?
+        *   Are you using a service like SendGrid, Postmark, or trying to use Gmail API[4]? (Gmail API requires significant setup including Google Cloud project, enabling API, and OAuth consent screen configuration).
+        *   Is the email containing the magic link actually being sent? Check sending logs and spam folders.
+    *   **Link URL:** Does the link in the email correctly point back to a specific verification endpoint in your application, including the token?
+    *   **Verification Endpoint:** Does your backend endpoint correctly:
+        *   Receive the token from the link?
+        *   Validate the token against your database (check if it exists, hasn't expired, hasn't been used)?
+        *   Look up the associated user?
+        *   Log the user in (e.g., create a session)?
+        *   Invalidate the token after use?
+
+**III. General Checks**
+
+1.  **Console Logs:** Check *both* your browser's developer console and your backend server's logs for any specific error messages during the login attempts.
+2.  **Network Requests:** Use your browser's developer tools (Network tab) to inspect the requests made when you click the login buttons and during the redirect process. Look at the status codes and response bodies for clues.
+3.  **Session Management:** Ensure `express-session` (which you have installed) is correctly configured with a working session store (`connect-pg-simple` connected to NeonDB seems like your intended setup). Authentication relies heavily on sessions working correctly.
+4.  **Dependencies:** Ensure you have installed necessary Passport strategies (`npm install passport-github2` if using Passport for GitHub).
+
+To help me pinpoint the issue, please clarify:
+
+1.  **Which login method is the primary one failing (GitHub or Email Link)?**
+2.  **For Email Link:** Are you using Firebase Auth or a different method?
+3.  **For GitHub:** Can you double-check your GitHub OAuth App's "Authorization callback URL" and compare it exactly to the callback route defined in your backend code?
+4.  **Can you share any specific error messages from your browser console or backend logs?**
+
+Citations:
+[1] https://pplx-res.cloudinary.com/image/upload/v1744593675/user_uploads/WhURBfVqvRHvENX/Screenshot-2025-04-13-201653.jpg
+[2] https://pplx-res.cloudinary.com/image/upload/v1744593676/user_uploads/EuEJYuFdQhBFVsw/Screenshot-2025-04-13-201745.jpg
+[3] https://firebase.google.com/docs/auth/web/email-link-auth
+[4] https://mailtrap.io/blog/send-emails-with-gmail-api/
+[5] https://postmarkapp.com/blog/magic-links
+[6] https://www.youtube.com/watch?v=wvAqie4soNc
+[7] https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/authorizing-oauth-apps
+[8] https://www.consumersearch.com/technology/troubleshooting-common-issues-trying-login-email
+[9] https://www.reddit.com/r/portainer/comments/1gpid0z/anyone_have_trouble_with_login_via_github_oauth/
+[10] https://authjs.dev/guides/configuring-github
+[11] https://docs.github.com/en/apps/oauth-apps/maintaining-oauth-apps/troubleshooting-authorization-request-errors
+[12] https://www.reddit.com/r/node/comments/1bys7mb/how_to_implement_a_magic_link_authentication/
+[13] https://www.youtube.com/watch?v=b_BZKpeLxO0
+[14] https://cheatsheetseries.owasp.org/cheatsheets/Authentication_Cheat_Sheet.html
+[15] https://usegravity.app/blog/how-to-a-create-magic-sign-in-link-with-node-js-jwt/
+[16] https://developers.google.com/workspace/gmail/api/guides
+[17] https://www.valimail.com/blog/the-five-key-standards-of-email-authentication/
+[18] https://reallifeprogramming.com/how-to-implement-magic-link-authentication-using-jwt-in-node-8193196bcd78
+[19] https://stackoverflow.com/questions/52621887/accessing-link-in-email-message-using-gmail-api
+[20] https://firebase.blog/posts/2023/07/best-practices-for-anonymous-authentication/
+[21] https://implementing.substack.com/p/how-to-implement-a-magic-link-authentication
+[22] https://stackoverflow.com/questions/37534548/how-to-access-a-gmail-account-i-own-using-gmail-api
+[23] https://www.pingidentity.com/en/resources/blog/post/what-is-magic-link-login.html
+[24] https://stackoverflow.com/questions/69876275/how-to-let-user-login-with-either-username-or-email-in-nodejs
+[25] https://docs.emailengine.app/setting-up-gmail-api-access/
+[26] https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/about-authentication-to-github
+[27] https://github.com/bezkoder/node-js-express-login-example
+[28] https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/creating-an-oauth-app
+[29] https://docs.github.com/en/code-security/supply-chain-security/end-to-end-supply-chain/securing-accounts
+[30] https://stateful.com/blog/github-oauth
+[31] https://docs.readme.com/ent/docs/setting-up-github-oauth
+[32] https://www.gitguardian.com/glossary/what-are-github-security-best-practices
+[33] https://github.com/abhi7585/login-system-nodejs
+[34] https://www.youtube.com/watch?v=Bx1JqfPROXA
+[35] https://gitprotect.io/blog/github-security-best-practices-15-tips-to-keep-in-mind/
+[36] https://github.com/SoheelGadad/Userpage_nodejs
+[37] https://docs.github.com/en/apps/creating-github-apps/writing-code-for-a-github-app/building-a-login-with-github-button-with-a-github-app
+[38] https://stackoverflow.com/questions/54061804/cannot-push-to-my-repo-on-github-inspite-of-correct-username-and-email-in-git-co
+[39] https://www.web.com/help/article/troubleshooting-issues-connecting-to-email
+[40] https://docs.github.com/en/apps/oauth-apps/maintaining-oauth-apps/troubleshooting-oauth-app-access-token-request-errors
+[41] https://docs.github.com/en/get-started/using-github/troubleshooting-connectivity-problems
+[42] https://answers.microsoft.com/en-us/outlook_com/forum/all/why-cant-i-log-on-to-my-email-account/9124c239-9609-4df4-80ef-f0cb5509349b
+[43] https://community.grafana.com/t/github-oauth-not-working/59130
+[44] https://github.com/desktop/desktop/issues/8860
+[45] https://support.google.com/accounts/troubleshooter/2402620
+[46] https://community.atlassian.com/t5/Sourcetree-questions/Github-OAuth-not-working/qaq-p/1644770
+[47] https://answers.netlify.com/t/cannot-login-through-github-or-email/116597
+[48] https://github.com/outline/outline/discussions/6996
+[49] https://forums.meteor.com/t/github-oauth-failing/57274
+[50] https://mailmeteor.com/blog/gmail-api
+[51] https://security.stackexchange.com/questions/177643/is-emailing-sign-in-links-bad-practice
+[52] https://developers.google.com/gmail/api/auth/web-server
+[53] https://snyk.io/blog/ten-git-hub-security-best-practices/
+[54] https://www.youtube.com/watch?v=zkOXQSR3ClM
+[55] https://docs.github.com/enterprise-cloud@latest/code-security/supply-chain-security/end-to-end-supply-chain/securing-accounts
+[56] https://www.loginradius.com/blog/engineering/oauth-implemenation-using-node/
+[57] https://www.freecodecamp.org/news/how-to-set-up-a-github-oauth-application/
+[58] https://www.mongodb.com/community/forums/t/could-not-access-via-github/276081
+[59] https://www.ask.com/news/log-email-address-troubleshooting-tips-tricks
+[60] https://stackoverflow.com/questions/71421219/unable-to-login-to-github-account-even-with-correct-credentials
+[61] https://www.finalsitesupport.com/hc/en-us/articles/32418115019917-Troubleshoot-Email-links-not-opening-up
+[62] https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/authorizing-oauth-apps
+
+---
+Answer from Perplexity: pplx.ai/share

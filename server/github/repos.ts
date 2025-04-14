@@ -56,8 +56,9 @@ async function checkForMcpConfig(token: string, repo: GitHubRepo): Promise<boole
       const url = `${GITHUB_API_URL}/repos/${repo.full_name}/contents/${file}`;
       const response = await fetch(url, {
         headers: {
-          'Authorization': `token ${token}`,
-          'Accept': 'application/vnd.github.v3+json'
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/vnd.github.v3+json',
+          'User-Agent': 'MCP-Server-Builder'
         }
       });
       
@@ -95,18 +96,36 @@ export async function getUserRepositories(req: Request, res: Response) {
     // Fetch repositories from GitHub API
     const response = await fetch(`${GITHUB_API_URL}/user/repos?sort=updated&per_page=100`, {
       headers: {
-        'Authorization': `token ${user.githubToken}`,
-        'Accept': 'application/vnd.github.v3+json'
+        'Authorization': `Bearer ${user.githubToken}`,
+        'Accept': 'application/vnd.github.v3+json',
+        'User-Agent': 'MCP-Server-Builder'
       }
     });
     
     if (!response.ok) {
-      const error = await response.json();
-      console.error('GitHub API error:', error);
-      return res.status(response.status).json({ 
-        error: 'Failed to fetch repositories',
-        githubError: error
-      });
+      try {
+        const error = await response.json();
+        console.error('GitHub API error:', error);
+        console.error('GitHub API response status:', response.status);
+        console.error('GitHub API response URL:', response.url);
+        
+        return res.status(response.status).json({ 
+          error: 'Failed to fetch repositories',
+          githubError: error,
+          status: response.status,
+          message: `GitHub API returned ${response.status} status code. Please check your GitHub token permissions.`
+        });
+      } catch (parseError) {
+        console.error('Failed to parse GitHub error response:', parseError);
+        console.error('GitHub API response status:', response.status);
+        console.error('GitHub API response URL:', response.url);
+        
+        return res.status(response.status).json({
+          error: 'Failed to fetch repositories',
+          status: response.status,
+          message: `GitHub API returned ${response.status} status code with unparseable response. Please check your GitHub token permissions.`
+        });
+      }
     }
     
     const repos = await response.json() as GitHubRepo[];
@@ -158,17 +177,36 @@ export async function importRepositoryServer(req: Request, res: Response) {
     // Fetch repository details
     const repoResponse = await fetch(`${GITHUB_API_URL}/repos/${repoFullName}`, {
       headers: {
-        'Authorization': `token ${user.githubToken}`,
-        'Accept': 'application/vnd.github.v3+json'
+        'Authorization': `Bearer ${user.githubToken}`,
+        'Accept': 'application/vnd.github.v3+json',
+        'User-Agent': 'MCP-Server-Builder'
       }
     });
     
     if (!repoResponse.ok) {
-      const error = await repoResponse.json();
-      return res.status(repoResponse.status).json({ 
-        error: 'Failed to fetch repository',
-        githubError: error
-      });
+      try {
+        const error = await repoResponse.json();
+        console.error('GitHub API error:', error);
+        console.error('GitHub API response status:', repoResponse.status);
+        console.error('GitHub API response URL:', repoResponse.url);
+        
+        return res.status(repoResponse.status).json({ 
+          error: 'Failed to fetch repository',
+          githubError: error,
+          status: repoResponse.status,
+          message: `GitHub API returned ${repoResponse.status} status code. Please check your GitHub token permissions.`
+        });
+      } catch (parseError) {
+        console.error('Failed to parse GitHub error response:', parseError);
+        console.error('GitHub API response status:', repoResponse.status);
+        console.error('GitHub API response URL:', repoResponse.url);
+        
+        return res.status(repoResponse.status).json({
+          error: 'Failed to fetch repository',
+          status: repoResponse.status,
+          message: `GitHub API returned ${repoResponse.status} status code with unparseable response. Please check your GitHub token permissions.`
+        });
+      }
     }
     
     const repo = await repoResponse.json() as GitHubRepo;

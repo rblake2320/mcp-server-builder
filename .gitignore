@@ -1,6 +1,49 @@
-node_modules
-dist
+# Dependency directories
+node_modules/
+.pnp/
+.pnp.js
+
+# Build output
+dist/
+build/
+
+# Temporary files
 .DS_Store
-server/public
-vite.config.ts.*
-*.tar.gz
+tmp/
+*.tgz
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Generated files
+builds/
+downloads/
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# IDE configuration
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Coverage directory
+coverage/
+
+# Replit-specific
+.replit
+.cache/
+replit.nix

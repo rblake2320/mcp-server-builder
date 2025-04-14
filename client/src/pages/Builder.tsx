@@ -491,7 +491,7 @@ const Builder = () => {
                 <DialogHeader>
                   <DialogTitle>AI Tool Generator</DialogTitle>
                   <DialogDescription>
-                    Describe the tool you want to create and let AI generate it for you. You'll need a Google Studio API key.
+                    Describe the tool you want to create and let Google AI Studio generate it for you. You'll need a Google AI Studio API key.
                   </DialogDescription>
                 </DialogHeader>
                 <div className="py-4">

@@ -11,13 +11,26 @@ interface GitHubRepo {
   name: string;
   full_name: string;
   html_url: string;
-  description: string;
+  description: string | null;
   default_branch: string;
   owner: {
     login: string;
     avatar_url: string;
   };
   hasMcpConfig?: boolean;
+}
+
+interface GitHubRepoResponse {
+  id: number;
+  name: string;
+  full_name: string;
+  html_url: string;
+  description: string | null;
+  default_branch: string;
+  owner: {
+    login: string;
+    avatar_url: string;
+  };
 }
 
 /**
@@ -96,7 +109,7 @@ export async function getUserRepositories(req: Request, res: Response) {
       });
     }
     
-    const repos: GitHubRepo[] = await response.json();
+    const repos = await response.json() as GitHubRepo[];
     
     // Check each repository for MCP configuration
     const reposWithMcpStatus = await Promise.all(
@@ -158,7 +171,7 @@ export async function importRepositoryServer(req: Request, res: Response) {
       });
     }
     
-    const repo = await repoResponse.json();
+    const repo = await repoResponse.json() as GitHubRepo;
     
     // The implementation for actually importing the server would go here
     // This would involve:

@@ -7,6 +7,7 @@ import path from "path";
 import archiver from "archiver";
 import { v4 as uuidv4 } from "uuid";
 import { insertServerSchema, User, InsertTemplate } from "@shared/schema";
+import { getUserRepositories, importRepositoryServer } from './github/repos';
 import { 
   pythonTemplate, 
   typescriptTemplate, 
@@ -376,6 +377,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: 'Failed to list servers' });
     }
   });
+  
+  // Get GitHub repositories for the authenticated user
+  app.get('/api/github/repositories', getUserRepositories);
+  
+  // Import MCP server from GitHub repository
+  app.post('/api/github/import', importRepositoryServer);
 
   // MCP Protocol validation info endpoint
   app.get('/api/mcp-validation', (req, res) => {

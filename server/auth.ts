@@ -98,10 +98,11 @@ export function setupAuth(app: Express) {
             const githubUsername = profile.username || `github_${profile.id}`;
             
             // First try to find by GitHub ID
-            let users = await db.execute(sql`
+            const result = await db.execute(sql`
               SELECT * FROM users WHERE github_id = ${githubId}
             `);
             
+            const users = result.rows as any[];
             let user = users.length > 0 ? users[0] : null;
             
             if (!user) {

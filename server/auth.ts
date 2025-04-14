@@ -6,6 +6,8 @@ import session from "express-session";
 import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
 import { storage } from "./db-storage";
+import { db } from "./db";
+import { sql } from "drizzle-orm";
 import { User } from "@shared/schema";
 
 // Define the actual user structure for Express
@@ -89,23 +91,63 @@ export function setupAuth(app: Express) {
         },
         async (accessToken: string, refreshToken: string, profile: GitHubProfile, done: (error: any, user?: any) => void) => {
           try {
-            // Look for a user with the GitHub ID or with the same username
+            console.log("GitHub auth - Profile:", JSON.stringify(profile, null, 2));
+            
+            // Look for a user with the GitHub ID 
+            const githubId = profile.id;
             const githubUsername = profile.username || `github_${profile.id}`;
-            let user = await storage.getUserByUsername(githubUsername);
+            
+            // First try to find by GitHub ID
+            let users = await db.execute(sql`
+              SELECT * FROM users WHERE github_id = ${githubId}
+            `);
+            
+            let user = users.length > 0 ? users[0] : null;
             
             if (!user) {
+              // Then try to find by username
+              user = await storage.getUserByUsername(githubUsername);
+            }
+            
+            if (user) {
+              // Update existing user with GitHub info
+              await db.execute(sql`
+                UPDATE users 
+                SET github_id = ${githubId}, 
+                    github_username = ${githubUsername}, 
+                    github_token = ${accessToken}
+                WHERE id = ${user.id}
+              `);
+              
+              // Refresh user data
+              users = await db.execute(sql`SELECT * FROM users WHERE id = ${user.id}`);
+              user = users[0];
+            } else {
               // If no user exists, create a new one with the GitHub username
               // Generate a random password since GitHub auth won't use it
               const randomPassword = randomBytes(32).toString('hex');
               user = await storage.createUser({
                 username: githubUsername,
                 password: await hashPassword(randomPassword),
-                // Add additional user info from GitHub if needed
               });
+              
+              // Add GitHub details
+              await db.execute(sql`
+                UPDATE users 
+                SET github_id = ${githubId}, 
+                    github_username = ${githubUsername}, 
+                    github_token = ${accessToken}
+                WHERE id = ${user.id}
+              `);
+              
+              // Refresh user data
+              users = await db.execute(sql`SELECT * FROM users WHERE id = ${user.id}`);
+              user = users[0];
             }
             
             return done(null, user);
           } catch (error) {
+            console.error("GitHub auth error:", error);
             return done(error);
           }
         }

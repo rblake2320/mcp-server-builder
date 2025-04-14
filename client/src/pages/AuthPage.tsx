@@ -16,6 +16,11 @@ export default function AuthPage() {
   const [location] = useLocation();
   const [authError, setAuthError] = useState<string | null>(null);
   
+  // GitHub token login state
+  const [showTokenLogin, setShowTokenLogin] = useState(false);
+  const [githubToken, setGithubToken] = useState("");
+  const [tokenLoginLoading, setTokenLoginLoading] = useState(false);
+  
   // Parse URL parameters for error messages
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);

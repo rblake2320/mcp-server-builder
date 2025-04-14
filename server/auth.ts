@@ -19,6 +19,12 @@ declare global {
       username: string;
       createdAt: Date;
     }
+    
+    // Add custom properties to Request interface
+    interface Request {
+      callbackURL?: string;
+      callbackURLSet?: boolean;
+    }
   }
 }
 
@@ -78,21 +84,34 @@ export function setupAuth(app: Express) {
   );
   
   // Configure GitHub strategy for OAuth authentication
-  if (process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET) {
-    const callbackURL = process.env.REPLIT_DOMAINS 
-      ? `https://${process.env.REPLIT_DOMAINS}/auth/github/callback` 
-      : 'http://localhost:5000/auth/github/callback';
+  // Add middleware to dynamically determine the callback URL
+  app.use((req, res, next) => {
+    // Only set this once per request
+    if (!req.callbackURLSet) {
+      // Get protocol from headers or default to https
+      const protocol = req.headers['x-forwarded-proto'] || 'https';
+      // Get host from headers
+      const host = req.headers['x-forwarded-host'] || req.headers.host;
       
+      // Set the callback URL for this request
+      req.callbackURL = `${protocol}://${host}/auth/github/callback`;
+      req.callbackURLSet = true;
+      
+      console.log("Detected callback URL:", req.callbackURL);
+    }
+    next();
+  });
+  
+  if (process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET) {
     console.log("Initializing GitHub authentication strategy");
-    console.log("Using callback URL:", callbackURL);
-    console.log("For GitHub OAuth settings, use this exact URL as your Authorization callback URL");
+    console.log("For GitHub OAuth settings, use your Replit domain with /auth/github/callback path");
     
     passport.use(
       new GitHubStrategy(
         {
           clientID: process.env.GITHUB_CLIENT_ID,
           clientSecret: process.env.GITHUB_CLIENT_SECRET,
-          callbackURL: callbackURL,
+          callbackURL: "/auth/github/callback", // Will be dynamically replaced by our middleware
           scope: ['user:email', 'repo'],
           userAgent: 'MCP-Server-Builder'
         },

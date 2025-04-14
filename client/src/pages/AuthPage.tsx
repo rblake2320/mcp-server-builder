@@ -4,9 +4,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/hooks/use-auth";
-import { Loader2 } from "lucide-react";
+import { Loader2, Github } from "lucide-react";
 import { FormEvent, useState } from "react";
 import { Redirect } from "wouter";
+import { Separator } from "@/components/ui/separator";
 
 export default function AuthPage() {
   const { user, loginMutation, registerMutation } = useAuth();
@@ -103,6 +104,24 @@ export default function AuthPage() {
                     </Button>
                   </CardFooter>
                 </form>
+                
+                <div className="px-6 pb-4">
+                  <div className="relative my-4">
+                    <div className="absolute inset-0 flex items-center">
+                      <Separator className="w-full" />
+                    </div>
+                    <div className="relative flex justify-center text-xs uppercase">
+                      <span className="bg-card px-2 text-muted-foreground">Or continue with</span>
+                    </div>
+                  </div>
+                  
+                  <a href="/auth/github" className="w-full">
+                    <Button variant="outline" className="w-full" type="button">
+                      <Github className="mr-2 h-4 w-4" />
+                      GitHub
+                    </Button>
+                  </a>
+                </div>
               </Card>
             </TabsContent>
             
@@ -160,6 +179,24 @@ export default function AuthPage() {
                     </Button>
                   </CardFooter>
                 </form>
+                
+                <div className="px-6 pb-4">
+                  <div className="relative my-4">
+                    <div className="absolute inset-0 flex items-center">
+                      <Separator className="w-full" />
+                    </div>
+                    <div className="relative flex justify-center text-xs uppercase">
+                      <span className="bg-card px-2 text-muted-foreground">Or sign up with</span>
+                    </div>
+                  </div>
+                  
+                  <a href="/auth/github" className="w-full">
+                    <Button variant="outline" className="w-full" type="button">
+                      <Github className="mr-2 h-4 w-4" />
+                      GitHub
+                    </Button>
+                  </a>
+                </div>
               </Card>
             </TabsContent>
           </Tabs>

@@ -1,6 +1,6 @@
 import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
-import { Strategy as GitHubStrategy } from "passport-github2";
+import { Strategy as GitHubStrategy, Profile as GitHubProfile } from "passport-github2";
 import { Express } from "express";
 import session from "express-session";
 import { scrypt, randomBytes, timingSafeEqual } from "crypto";
@@ -87,7 +87,7 @@ export function setupAuth(app: Express) {
             : 'http://localhost:5000/auth/github/callback',
           scope: ['user:email']
         },
-        async (accessToken, refreshToken, profile, done) => {
+        async (accessToken: string, refreshToken: string, profile: GitHubProfile, done: (error: any, user?: any) => void) => {
           try {
             // Look for a user with the GitHub ID or with the same username
             const githubUsername = profile.username || `github_${profile.id}`;
@@ -181,6 +181,18 @@ export function setupAuth(app: Express) {
     const { password, ...userInfo } = req.user as User;
     res.json(userInfo);
   });
+  
+  // GitHub auth routes
+  app.get("/auth/github", passport.authenticate("github", { scope: ["user:email"] }));
+  
+  app.get(
+    "/auth/github/callback",
+    passport.authenticate("github", { failureRedirect: "/auth" }),
+    (req, res) => {
+      // Successful authentication, redirect home
+      res.redirect("/");
+    }
+  );
   
   // Add middleware to protect routes
   app.use('/api/my-servers', (req, res, next) => {

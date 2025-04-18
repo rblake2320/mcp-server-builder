@@ -83,7 +83,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   fs.ensureDirSync(path.join(process.cwd(), 'public/logos'));
   fs.ensureDirSync(path.join(process.cwd(), 'server/ai'));
   
-  // AI tool generation endpoint
+  // AI tool generation with Google Gemini
   app.post('/api/ai/generate-tool', async (req, res) => {
     try {
       const { prompt, apiKey } = req.body;
@@ -116,6 +116,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ 
         error: 'Failed to generate tool',
         message: error instanceof Error ? error.message : 'An unexpected error occurred'
+      });
+    }
+  });
+  
+  // Anthropic Claude AI routes for tool generation, code analysis, and documentation
+  app.post('/api/ai/anthropic/generate-tool', async (req, res) => {
+    try {
+      const { generateToolHandler } = await import('./ai/anthropicHandler');
+      return generateToolHandler(req, res);
+    } catch (error) {
+      console.error('Error in Anthropic tool generation route:', error);
+      return res.status(500).json({
+        success: false,
+        error: error instanceof Error ? error.message : 'An unexpected error occurred'
+      });
+    }
+  });
+  
+  app.post('/api/ai/anthropic/analyze-code', async (req, res) => {
+    try {
+      const { analyzeCodeHandler } = await import('./ai/anthropicHandler');
+      return analyzeCodeHandler(req, res);
+    } catch (error) {
+      console.error('Error in Anthropic code analysis route:', error);
+      return res.status(500).json({
+        success: false,
+        error: error instanceof Error ? error.message : 'An unexpected error occurred'
+      });
+    }
+  });
+  
+  app.post('/api/ai/anthropic/generate-documentation', async (req, res) => {
+    try {
+      const { generateDocumentationHandler } = await import('./ai/anthropicHandler');
+      return generateDocumentationHandler(req, res);
+    } catch (error) {
+      console.error('Error in Anthropic documentation generation route:', error);
+      return res.status(500).json({
+        success: false,
+        error: error instanceof Error ? error.message : 'An unexpected error occurred'
       });
     }
   });

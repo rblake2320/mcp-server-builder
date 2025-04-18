@@ -1,0 +1,101 @@
+The 404 you’re seeing is simply GitHub rejecting your OAuth callback because the URL your app is actually using doesn’t match the one you registered in your GitHub “Authorization callback URL” field. In Replit you get two different public URLs:
+
+- The stable `<replName>.<username>.repl.co` URL  
+- The dynamic `.replit.dev` URL that shows up in your logs
+
+Because GitHub only allows *exact* matches, you have two options:
+
+---
+
+## 1) Use the Stable `*.repl.co` Domain
+
+1. **In your Replit environment variables** set:  
+   ```bash
+   REPLIT_APP_URL=https://workspace.rblake2320.repl.co
+   GITHUB_CALLBACK_URL=${REPLIT_APP_URL}/auth/github/callback
+   GITHUB_CLIENT_ID=…
+   GITHUB_CLIENT_SECRET=…
+   ```
+2. **In your GitHub OAuth app settings**, register exactly:  
+   ```
+   https://workspace.rblake2320.repl.co/auth/github/callback
+   ```
+3. **In your `server/auth.ts`** (or wherever you configure Passport):  
+   ```ts
+   import passport from 'passport';
+   import { Strategy as GitHubStrategy } from 'passport-github2';
+
+   passport.use(new GitHubStrategy({
+     clientID:     process.env.GITHUB_CLIENT_ID!,
+     clientSecret: process.env.GITHUB_CLIENT_SECRET!,
+     callbackURL:  process.env.GITHUB_CALLBACK_URL!,
+   }, async (accessToken, refreshToken, profile, done) => {
+     // …your verify callback…
+   }));
+   ```
+4. **Restart** your Repl.  
+
+Now everything will flow through the stable `repl.co` domain, matching GitHub’s registered URL.
+
+---
+
+## 2) Dynamically Detect the Callback URL at Runtime
+
+If you really want to support whichever hostname Replit gives you (the `.replit.dev` one), you can override `callbackURL` at authenticate‑time:
+
+```ts
+import express from 'express';
+import passport from 'passport';
+import { Strategy as GitHubStrategy } from 'passport-github2';
+
+passport.use(new GitHubStrategy({
+  clientID:     process.env.GITHUB_CLIENT_ID!,
+  clientSecret: process.env.GITHUB_CLIENT_SECRET!,
+  // you can leave this blank or set a default:
+  callbackURL:  process.env.GITHUB_CALLBACK_URL || 'http://localhost:5000/auth/github/callback',
+}, async (token, tokenSecret, profile, done) => {
+  // …your verify callback…
+}));
+
+const app = express();
+
+// Kick off the OAuth flow, telling Passport exactly which callback URL to use:
+app.get('/auth/github', (req, res, next) => {
+  const host = req.get('host')!;
+  const proto = req.headers['x-forwarded-proto'] || req.protocol;
+  const dynamicCallback = `${proto}://${host}/auth/github/callback`;
+
+  passport.authenticate('github', { callbackURL: dynamicCallback })(req, res, next);
+});
+
+// Handle GitHub’s redirect:
+app.get('/auth/github/callback', (req, res, next) => {
+  const host = req.get('host')!;
+  const proto = req.headers['x-forwarded-proto'] || req.protocol;
+  const dynamicCallback = `${proto}://${host}/auth/github/callback`;
+
+  passport.authenticate('github', {
+    callbackURL: dynamicCallback,
+    failureRedirect: '/login',
+  })(req, res, next);
+}, (req, res) => {
+  res.redirect('/');
+});
+```
+
+What this does is:
+
+1. **Detect** at runtime exactly which host (and protocol) Replit is using.  
+2. **Pass** that full URL to Passport’s `authenticate()` call.  
+3. **Match** it against whatever you registered in GitHub’s OAuth app.
+
+If you go this route, you’ll need to register *both* possible callback URLs in GitHub (the `.repl.co` one and your current `.replit.dev` URL). But since the `.replit.dev` address can (and often does) change, I strongly recommend **Option 1** unless you really need that dynamic host.
+
+---
+
+### TL;DR
+
+- **Simplest**: register `https://workspace.rblake2320.repl.co/auth/github/callback` in GitHub, set `REPLIT_APP_URL` to that in `.env`, and point `callbackURL` to `${REPLIT_APP_URL}/auth/github/callback`.
+- **Advanced**: override `callbackURL` in your `/auth/github` and `/auth/github/callback` routes by building it from `req.protocol + req.get('host')`.
+
+Either way, once the *exact* URL GitHub sees matches the one you’ve registered, your 404 will disappear.

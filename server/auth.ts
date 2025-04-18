@@ -11,6 +11,13 @@ import { sql } from "drizzle-orm";
 import { User } from "@shared/schema";
 import { getOAuthCallbackUrl } from './utils/urlUtils';
 
+// Extend passport interfaces to add callbackURL property
+declare module 'passport' {
+  interface AuthenticateOptions {
+    callbackURL?: string;
+  }
+}
+
 // Define the actual user structure for Express
 declare global {
   namespace Express {
@@ -84,8 +91,11 @@ export function setupAuth(app: Express) {
     }),
   );
   
-  // Configure GitHub strategy for OAuth authentication
-  // Add middleware to dynamically determine the callback URL
+  // We need a fixed callback URL that matches what's registered in GitHub
+  // This will be set to: https://workspace.rblake2320.repl.co/auth/github/callback
+  const GITHUB_CALLBACK_URL = "https://workspace.rblake2320.repl.co/auth/github/callback";
+  
+  // Add middleware to track the original URL for login redirects
   app.use((req, res, next) => {
     // Only set this once per request
     if (!req.callbackURLSet) {
@@ -94,11 +104,12 @@ export function setupAuth(app: Express) {
       // Get host from headers
       const host = req.headers['x-forwarded-host'] || req.headers.host;
       
-      // Set the callback URL for this request
+      // Set the callback URL for this request (this is just for logging)
       req.callbackURL = `${protocol}://${host}/auth/github/callback`;
       req.callbackURLSet = true;
       
-      console.log("Detected callback URL:", req.callbackURL);
+      console.log("Detected request URL:", req.callbackURL);
+      console.log("Using fixed callback URL:", GITHUB_CALLBACK_URL);
     }
     next();
   });
@@ -112,7 +123,7 @@ export function setupAuth(app: Express) {
         {
           clientID: process.env.GITHUB_CLIENT_ID,
           clientSecret: process.env.GITHUB_CLIENT_SECRET,
-          callbackURL: "https://workspace.rblake2320.repl.co/auth/github/callback", // Fixed hardcoded URL matching GitHub OAuth config
+          callbackURL: GITHUB_CALLBACK_URL, // Use the constant to ensure consistency
           passReqToCallback: true,
           scope: ['user:email', 'repo'],
           userAgent: 'MCP-Server-Builder'
@@ -274,6 +285,8 @@ export function setupAuth(app: Express) {
     console.log("Starting GitHub authentication...");
     console.log("Full request URL:", req.protocol + '://' + req.get('host') + req.originalUrl);
     console.log("Headers:", JSON.stringify(req.headers, null, 2));
+    
+    // Just use the fixed callback URL and scope
     passport.authenticate("github", { 
       scope: ["user:email", "repo"] 
     })(req, res, next);

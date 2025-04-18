@@ -13,6 +13,7 @@ import AuthPage from "@/pages/AuthPage";
 import MyServers from "@/pages/MyServers";
 import Enhancements from "@/pages/Enhancements";
 import ComplexityPage from "@/pages/ComplexityPage";
+import AnthropicPage from "@/pages/AnthropicPage";
 import { AuthProvider } from "@/hooks/use-auth";
 import { ProtectedRoute } from "@/lib/protected-route";
 
@@ -24,6 +25,7 @@ function Router() {
       <ProtectedRoute path="/my-servers" component={MyServers} />
       <Route path="/enhancements" component={Enhancements} />
       <Route path="/complexity" component={ComplexityPage} />
+      <Route path="/anthropic" component={AnthropicPage} />
       <Route path="/documentation" component={Documentation} />
       <Route path="/about" component={About} />
       <Route path="/auth" component={AuthPage} />

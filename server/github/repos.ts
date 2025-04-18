@@ -80,7 +80,10 @@ async function checkForMcpConfig(token: string, repo: GitHubRepo): Promise<boole
 export async function getUserRepositories(req: Request, res: Response) {
   try {
     if (!req.isAuthenticated()) {
-      return res.status(401).json({ error: 'Authentication required' });
+      return res.status(401).json({ 
+        error: 'Authentication required',
+        userMessage: 'Please sign in to access this feature'
+      });
     }
     
     const user = req.user as User;
@@ -89,7 +92,7 @@ export async function getUserRepositories(req: Request, res: Response) {
     if (!user.githubToken) {
       return res.status(400).json({ 
         error: 'GitHub token not found', 
-        message: 'Please connect your GitHub account' 
+        userMessage: 'To access GitHub repositories, you need to connect your GitHub account. Please use the GitHub login button at the top right.' 
       });
     }
     
@@ -109,21 +112,34 @@ export async function getUserRepositories(req: Request, res: Response) {
         console.error('GitHub API response status:', response.status);
         console.error('GitHub API response URL:', response.url);
         
-        return res.status(response.status).json({ 
+        let userMessage = 'We encountered an issue connecting to GitHub. ';
+        
+        // Handle specific error cases
+        if (response.status === 401) {
+          userMessage += 'Your GitHub token appears to be invalid or expired. Please try signing in with GitHub again.';
+        } else if (response.status === 403) {
+          userMessage += 'GitHub API rate limit exceeded or insufficient permissions. Please try again later or check your GitHub account permissions.';
+        } else if (response.status === 404) {
+          userMessage += 'We couldn\'t find your GitHub repositories. Please make sure your GitHub account has repositories.';
+        } else {
+          userMessage += 'Please try again later or contact support.';
+        }
+        
+        return res.status(200).json({ // Return 200 so frontend can handle it gracefully
           error: 'Failed to fetch repositories',
           githubError: error,
           status: response.status,
-          message: `GitHub API returned ${response.status} status code. Please check your GitHub token permissions.`
+          userMessage
         });
       } catch (parseError) {
         console.error('Failed to parse GitHub error response:', parseError);
         console.error('GitHub API response status:', response.status);
         console.error('GitHub API response URL:', response.url);
         
-        return res.status(response.status).json({
+        return res.status(200).json({ // Return 200 so frontend can display a user-friendly message
           error: 'Failed to fetch repositories',
           status: response.status,
-          message: `GitHub API returned ${response.status} status code with unparseable response. Please check your GitHub token permissions.`
+          userMessage: 'We couldn\'t connect to GitHub properly. Please try again later or try reconnecting your GitHub account.'
         });
       }
     }

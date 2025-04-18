@@ -5,11 +5,12 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Github, AlertTriangle } from "lucide-react";
+import { Loader2, Github, AlertTriangle, Info, Copy } from "lucide-react";
 import { FormEvent, useState, useEffect } from "react";
 import { Redirect, useLocation } from "wouter";
 import { Separator } from "@/components/ui/separator";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 
 export default function AuthPage() {
   const { user, loginMutation, registerMutation } = useAuth();
@@ -249,6 +250,63 @@ export default function AuthPage() {
                       </p>
                     </div>
                   )}
+                  
+                  {/* GitHub OAuth troubleshooting guide */}
+                  <Accordion type="single" collapsible className="mt-4">
+                    <AccordionItem value="github-oauth-help">
+                      <AccordionTrigger className="text-sm">
+                        <div className="flex items-center">
+                          <Info className="h-4 w-4 mr-2" />
+                          Trouble with GitHub login?
+                        </div>
+                      </AccordionTrigger>
+                      <AccordionContent>
+                        <div className="text-sm space-y-3 mt-2">
+                          <p>If you're seeing a <strong>"redirect_uri is not associated with this application"</strong> error:</p>
+                          
+                          <Alert variant="info" className="bg-muted">
+                            <div className="mb-2">
+                              <p className="text-xs text-muted-foreground">Your callback URL needs to be registered in your GitHub OAuth app settings.</p>
+                            </div>
+                            
+                            <div className="flex items-center justify-between bg-background/50 p-2 rounded text-xs font-mono overflow-hidden">
+                              <div className="truncate">
+                                {window.location.origin}/auth/github/callback
+                              </div>
+                              <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                className="h-6 w-6"
+                                onClick={() => {
+                                  navigator.clipboard.writeText(`${window.location.origin}/auth/github/callback`);
+                                  toast({
+                                    description: "Callback URL copied to clipboard",
+                                  });
+                                }}
+                              >
+                                <Copy className="h-3 w-3" />
+                              </Button>
+                            </div>
+                            
+                            <p className="text-xs mt-2">
+                              1. Go to your <a 
+                                href="https://github.com/settings/developers" 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                className="text-primary hover:underline"
+                              >GitHub OAuth Apps</a>
+                            </p>
+                            <p className="text-xs">
+                              2. Select your app and update the "Authorization callback URL" with the URL above
+                            </p>
+                            <p className="text-xs">
+                              3. Alternatively, set the <code>GITHUB_CALLBACK_URL</code> environment variable to match what's registered in GitHub
+                            </p>
+                          </Alert>
+                        </div>
+                      </AccordionContent>
+                    </AccordionItem>
+                  </Accordion>
                 </div>
               </Card>
             </TabsContent>

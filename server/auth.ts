@@ -91,9 +91,12 @@ export function setupAuth(app: Express) {
     }),
   );
   
-  // We need a fixed callback URL that matches what's registered in GitHub
-  // This will be set to: https://workspace.rblake2320.repl.co/auth/github/callback
-  const GITHUB_CALLBACK_URL = "https://workspace.rblake2320.repl.co/auth/github/callback";
+  // Get the GitHub callback URL from environment variable or use a fixed URL
+  // You MUST set this to match what's registered in your GitHub OAuth app settings
+  const GITHUB_CALLBACK_URL = process.env.GITHUB_CALLBACK_URL || 
+    (process.env.REPLIT_DB_URL ? 
+      `https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co/auth/github/callback` : 
+      "https://workspace.rblake2320.repl.co/auth/github/callback");
   
   // Add middleware to track the original URL for login redirects
   app.use((req, res, next) => {

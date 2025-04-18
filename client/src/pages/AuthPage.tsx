@@ -210,7 +210,7 @@ export default function AuthPage() {
                       onClick={() => setShowTokenLogin(prev => !prev)}
                     >
                       <Github className="mr-2 h-4 w-4" />
-                      Login with GitHub Token
+                      {showTokenLogin ? "Hide Token Login" : "Login with GitHub Token"}
                     </Button>
                   </div>
                   
@@ -234,20 +234,26 @@ export default function AuthPage() {
                       >
                         {tokenLoginLoading ? (
                           <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                        ) : null}
+                        ) : (
+                          <Github className="mr-2 h-4 w-4" />
+                        )}
                         Login with Token
                       </Button>
-                      <p className="text-xs text-muted-foreground">
-                        Create a token with <span className="font-mono">user:email</span> and <span className="font-mono">repo</span> scopes at{" "}
-                        <a 
-                          href="https://github.com/settings/tokens/new" 
-                          target="_blank" 
-                          rel="noopener noreferrer"
-                          className="text-primary hover:underline"
-                        >
-                          GitHub Developer Settings
-                        </a>
-                      </p>
+                      <div className="bg-muted p-3 rounded-md">
+                        <h4 className="text-sm font-medium mb-2">How to create a token:</h4>
+                        <ol className="text-xs text-muted-foreground list-decimal pl-4 space-y-1">
+                          <li>Go to <a 
+                            href="https://github.com/settings/tokens/new" 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="text-primary hover:underline"
+                          >GitHub Developer Settings</a></li>
+                          <li>Give your token a descriptive name</li>
+                          <li>Select the <span className="font-mono">user:email</span> and <span className="font-mono">repo</span> scopes</li>
+                          <li>Click "Generate token" and copy the value</li>
+                          <li>Paste the token above and click "Login with Token"</li>
+                        </ol>
+                      </div>
                     </div>
                   )}
                   

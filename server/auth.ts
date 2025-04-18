@@ -416,14 +416,38 @@ export function setupAuth(app: Express) {
       console.log("Query params:", req.query);
       console.log("Headers:", JSON.stringify(req.headers, null, 2));
       
+      // Check for error in the callback
+      if (req.query.error) {
+        console.error("GitHub OAuth error:", req.query.error);
+        const errorDescription = req.query.error_description || 'Unknown error';
+        return res.redirect(`/auth?error=github_error&message=${encodeURIComponent(errorDescription as string)}`);
+      }
+      
+      // Check for the code parameter
+      if (!req.query.code) {
+        console.error("No authorization code received from GitHub");
+        return res.redirect('/auth?error=github_error&message=No%20authorization%20code%20received');
+      }
+      
       // Use try-catch to handle potential errors
       try {
+        // Log the code for debugging (don't do this in production)
+        console.log("GitHub authorization code received:", req.query.code);
+        
         passport.authenticate("github", { 
           failureRedirect: "/auth?error=github_auth_failed"
         }, (err: any, user: any, info: any) => {
+          // Handle token exchange errors
           if (err) {
             console.error("GitHub auth error:", err);
-            return res.redirect(`/auth?error=github_error&message=${encodeURIComponent(err.message)}`);
+            const errorMessage = err.message || 'Authentication failed';
+            
+            // Check for specific token errors
+            if (errorMessage.includes('Failed to obtain access token')) {
+              return res.redirect('/auth?error=github_error&message=Failed%20to%20obtain%20access%20token.%20Please%20verify%20your%20GitHub%20app%20settings.');
+            }
+            
+            return res.redirect(`/auth?error=github_error&message=${encodeURIComponent(errorMessage)}`);
           }
           
           if (!user) {

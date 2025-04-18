@@ -112,7 +112,7 @@ export function setupAuth(app: Express) {
         {
           clientID: process.env.GITHUB_CLIENT_ID,
           clientSecret: process.env.GITHUB_CLIENT_SECRET,
-          callbackURL: "/auth/github/callback",
+          callbackURL: "https://workspace.rblake2320.repl.co/auth/github/callback", // Fixed hardcoded URL matching GitHub OAuth config
           passReqToCallback: true,
           scope: ['user:email', 'repo'],
           userAgent: 'MCP-Server-Builder'

@@ -264,7 +264,7 @@ export default function AuthPage() {
                         <div className="text-sm space-y-3 mt-2">
                           <p>If you're seeing a <strong>"redirect_uri is not associated with this application"</strong> error:</p>
                           
-                          <Alert variant="info" className="bg-muted">
+                          <Alert className="bg-muted">
                             <div className="mb-2">
                               <p className="text-xs text-muted-foreground">Your callback URL needs to be registered in your GitHub OAuth app settings.</p>
                             </div>

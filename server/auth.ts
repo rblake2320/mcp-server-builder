@@ -91,12 +91,12 @@ export function setupAuth(app: Express) {
     }),
   );
   
-  // Get the GitHub callback URL from environment variable or use a fixed URL
-  // You MUST set this to match what's registered in your GitHub OAuth app settings
+  // For GitHub OAuth, we need to use the specific dev.replit domain for this specific session
+  const CALLBACK_DOMAIN = "https://de6ed53b-6843-4a2f-bdff-e63788c5e6f8-00-wzyfalkgob1e.picard.replit.dev";
+  
+  // Use environment variable if set, otherwise use current domain
   const GITHUB_CALLBACK_URL = process.env.GITHUB_CALLBACK_URL || 
-    (process.env.REPLIT_DB_URL ? 
-      `https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co/auth/github/callback` : 
-      "https://workspace.rblake2320.repl.co/auth/github/callback");
+    `${CALLBACK_DOMAIN}/auth/github/callback`;
   
   // Add middleware to track the original URL for login redirects
   app.use((req, res, next) => {

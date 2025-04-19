@@ -1,0 +1,17 @@
+{
+  "current": "version_2",
+  "versions": {
+    "version_1": {
+      "name": "Initial Version",
+      "created": "2025-04-19T14:32:19.887Z",
+      "description": "Original MCP Server Builder implementation",
+      "path": "."
+    },
+    "version_2": {
+      "name": "Version 2",
+      "created": "2025-04-19T14:32:24.434Z",
+      "description": "Enhanced MCP Server Builder with improved UI and functionality",
+      "path": "version_2"
+    }
+  }
+}

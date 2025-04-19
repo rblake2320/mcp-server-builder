@@ -76,6 +76,7 @@ router.get('/:serverPath(*)', (req, res) => {
 
 // GET /api/mcp-servers/download/:path - Download server code as ZIP
 router.get('/download/:serverPath(*)', (req, res) => {
+  console.log("Download request for:", req.params.serverPath);
   try {
     const serverPath = req.params.serverPath;
     const fullPath = path.join(mcpServersDir, serverPath);

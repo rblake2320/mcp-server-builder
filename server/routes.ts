@@ -24,6 +24,7 @@ import { initiatePlatformDeployment, downloadDeployment, cleanupDeployments } fr
 import complexityRoutes from './routes/complexityRoutes';
 import terminalToolsRouter from './routes/terminal-tools';
 import mcpServersRouter from './routes/mcp-servers';
+import twentyfirstRouter from './routes/twentyfirst';
 
 // Validation function to ensure server templates are following protocol specifications
 function validateServerConfig(config: any): { valid: boolean; errors: string[] } {
@@ -1053,6 +1054,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Mount the MCP servers routes
   app.use('/api/mcp-servers', mcpServersRouter);
+  
+  // 21st.dev Magic MCP server integration
+  app.use('/api/twentyfirst', twentyfirstRouter);
 
   const httpServer = createServer(app);
   return httpServer;

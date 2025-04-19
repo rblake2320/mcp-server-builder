@@ -103,7 +103,7 @@ router.post('/import/:id', async (req, res) => {
     
     // Update server index
     const indexPath = path.join(mcpServersDir, 'server_index.json');
-    let serverIndex = { templates: [], examples: [] };
+    let serverIndex: { templates: any[], examples: any[] } = { templates: [], examples: [] };
     
     if (fs.existsSync(indexPath)) {
       serverIndex = JSON.parse(fs.readFileSync(indexPath, 'utf8'));
@@ -124,7 +124,7 @@ router.post('/import/:id', async (req, res) => {
     
     // Check if server already exists in index
     const existingIndex = serverIndex.examples.findIndex(
-      s => s.source === '21st.dev' && s.sourceId === serverId
+      (s: any) => s.source === '21st.dev' && s.sourceId === serverId
     );
     
     if (existingIndex >= 0) {

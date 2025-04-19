@@ -1,5 +1,5 @@
 import express from 'express';
-import { analyzeCode } from '../services/code-analyzer';
+import { analyzeCode } from '../services/simplifiedCodeAnalyzer';
 
 const router = express.Router();
 

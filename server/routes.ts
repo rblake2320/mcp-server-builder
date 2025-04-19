@@ -1048,8 +1048,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Set up a cleanup job to run periodically (every hour)
   setInterval(cleanupDeployments, 60 * 60 * 1000);
   
-  // Mount the code complexity analysis routes
-  app.use('/api', complexityRoutes);
+  // Mount the simplified code analyzer routes - this replaces the old complexity routes
+  app.use('/api/code-analyzer', codeAnalyzerRouter);
   
   // Mount the terminal tools routes
   app.use('/api/tools/terminal', terminalToolsRouter);
@@ -1060,7 +1060,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // 21st.dev Magic MCP server integration
   app.use('/api/twentyfirst', twentyfirstRouter);
   app.use('/api/deployment', deploymentRouter);
-  app.use('/api/code-analyzer', codeAnalyzerRouter);
 
   const httpServer = createServer(app);
   return httpServer;

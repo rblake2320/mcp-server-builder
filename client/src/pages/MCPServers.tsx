@@ -15,6 +15,7 @@ import { Download, FileCode, Github, ExternalLink, Copy, Server, Loader2 } from 
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { DialogFooter } from "@/components/ui/dialog";
+import { TwentyfirstServers } from "@/components/TwentyfirstServers";
 
 // Define types for our server index
 interface MCPServer {
@@ -295,6 +296,9 @@ const MCPServers = () => {
         </TabsList>
         
         <TabsContent value="examples">
+          {/* 21st.dev Magic MCP Servers Integration */}
+          <TwentyfirstServers />
+          
           {isLoading ? (
             <div className="flex justify-center py-12">
               <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full"></div>

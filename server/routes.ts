@@ -22,6 +22,7 @@ import {
 import { platforms, generateDeploymentInstructions } from "./deployment/platforms";
 import { initiatePlatformDeployment, downloadDeployment, cleanupDeployments } from './deployment/deploymentController';
 import complexityRoutes from './routes/complexityRoutes';
+import terminalToolsRouter from './routes/terminal-tools';
 
 // Validation function to ensure server templates are following protocol specifications
 function validateServerConfig(config: any): { valid: boolean; errors: string[] } {

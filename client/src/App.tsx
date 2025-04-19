@@ -29,6 +29,7 @@ function Router() {
       <Route path="/anthropic" component={AnthropicPage} />
       <Route path="/documentation" component={Documentation} />
       <Route path="/about" component={About} />
+      <Route path="/terminal-tool" component={TerminalTool} />
       <Route path="/auth" component={AuthPage} />
       <Route component={NotFound} />
     </Switch>

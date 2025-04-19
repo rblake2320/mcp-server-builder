@@ -11,7 +11,10 @@ import {
   DialogTitle,
   DialogTrigger
 } from "@/components/ui/dialog";
-import { Download, FileCode, Github, ExternalLink, Copy, Server } from "lucide-react";
+import { Download, FileCode, Github, ExternalLink, Copy, Server, Loader2 } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { DialogFooter } from "@/components/ui/dialog";
 
 // Define types for our server index
 interface MCPServer {
@@ -173,6 +176,54 @@ const MCPServers = () => {
     }
   };
 
+  // Import server from URL
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
+  const [importUrl, setImportUrl] = useState('');
+  const [importLoading, setImportLoading] = useState(false);
+  const [importError, setImportError] = useState<string | null>(null);
+  
+  const handleImportSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!importUrl) return;
+    
+    setImportLoading(true);
+    setImportError(null);
+    
+    try {
+      const response = await fetch('/api/mcp-servers/import', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ url: importUrl }),
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to import server');
+      }
+      
+      // Refresh server list
+      const indexResponse = await fetch('/api/mcp-servers');
+      if (indexResponse.ok) {
+        const data = await indexResponse.json();
+        setServerIndex(data);
+      }
+      
+      // Close dialog and reset form
+      setImportDialogOpen(false);
+      setImportUrl('');
+      
+      // Show success toast
+      alert('Server imported successfully!');
+    } catch (error) {
+      console.error('Error importing server:', error);
+      setImportError(error instanceof Error ? error.message : 'Failed to import server');
+    } finally {
+      setImportLoading(false);
+    }
+  };
+
   return (
     <div className="container py-8 max-w-7xl">
       <div className="flex justify-between items-center mb-8">
@@ -182,10 +233,59 @@ const MCPServers = () => {
             Browse and download ready-to-use Model Context Protocol servers for Claude
           </p>
         </div>
-        <Button variant="outline" onClick={() => window.open("https://github.com/anthropics/anthropic-cookbook/tree/main/mcp", "_blank")}>
-          <Github className="h-4 w-4 mr-2" />
-          MCP Resources
-        </Button>
+        <div className="flex gap-2">
+          <Dialog open={importDialogOpen} onOpenChange={setImportDialogOpen}>
+            <DialogTrigger asChild>
+              <Button>
+                <Download className="h-4 w-4 mr-2" />
+                Import URL
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Import MCP Server</DialogTitle>
+                <DialogDescription>
+                  Import an MCP server from a GitHub repository, Gist, or direct file URL.
+                </DialogDescription>
+              </DialogHeader>
+              <form onSubmit={handleImportSubmit}>
+                <div className="space-y-4 py-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="url">Server URL</Label>
+                    <Input 
+                      id="url" 
+                      placeholder="https://github.com/username/repo/blob/main/server.js" 
+                      value={importUrl}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => setImportUrl(e.target.value)}
+                    />
+                    <p className="text-sm text-muted-foreground">
+                      Supported: GitHub files, Gists, or raw file URLs
+                    </p>
+                  </div>
+                  
+                  {importError && (
+                    <div className="text-sm font-medium text-destructive">
+                      {importError}
+                    </div>
+                  )}
+                </div>
+                <DialogFooter>
+                  <Button type="button" variant="outline" onClick={() => setImportDialogOpen(false)}>
+                    Cancel
+                  </Button>
+                  <Button type="submit" disabled={importLoading || !importUrl}>
+                    {importLoading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                    Import Server
+                  </Button>
+                </DialogFooter>
+              </form>
+            </DialogContent>
+          </Dialog>
+          <Button variant="outline" onClick={() => window.open("https://github.com/anthropics/anthropic-cookbook/tree/main/mcp", "_blank")}>
+            <Github className="h-4 w-4 mr-2" />
+            MCP Resources
+          </Button>
+        </div>
       </div>
       
       <Tabs defaultValue="examples" value={activeTab} onValueChange={setActiveTab}>

@@ -6,6 +6,27 @@ This directory contains a curated collection of Model Context Protocol (MCP) ser
 
 - `/templates`: Starter templates for building your own MCP servers
 - `/examples`: Fully functional example MCP servers for specific use cases
+- `/utils`: Utilities for working with MCP servers
+- `/twentyfirst`: Integration with 21st.dev Magic MCP servers
+
+## Browsing the Collection
+
+To browse the available MCP servers, you can use the built-in server browser:
+
+```bash
+node browse_servers.js
+```
+
+The browser offers two viewing modes:
+
+1. **List View**: A simple list of all servers with basic information
+2. **A-Z View**: Servers grouped alphabetically by name
+
+You can filter servers by:
+- Starting letter (A-Z or # for non-alphabetic)
+- Type (Template or Example)
+- Keyword search
+- And sort by name or language
 
 ## What is MCP?
 
@@ -43,7 +64,9 @@ The Model Context Protocol (MCP) is a standardized protocol developed by Anthrop
 ## Examples Included
 
 - **File Browser Server**: Browse and access files on the host system
-- **Basic Template**: A minimal starting point for building your own MCP server
+- **Weather API Server**: Get weather data from external APIs
+- **Database Server**: Interact with databases using SQL and ORM operations
+- **LLM Integration Server**: Connect with AI models for text processing tasks
 
 ## Contributing
 

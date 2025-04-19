@@ -46,7 +46,7 @@ const About = () => {
                 </a>
               </li>
               <li>
-                <a href="https://github.com/mcp-protocol" className="text-primary hover:underline flex items-center" target="_blank" rel="noopener noreferrer">
+                <a href="https://github.com/rblake2320/mcp-server-builder" className="text-primary hover:underline flex items-center" target="_blank" rel="noopener noreferrer">
                   <i className="fab fa-github mr-2"></i>
                   GitHub Repository
                 </a>

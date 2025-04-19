@@ -55,7 +55,7 @@ const NavBar = () => {
           </div>
           <div className="hidden sm:ml-6 sm:flex sm:items-center space-x-4">
             <a 
-              href="https://github.com/mcp-protocol" 
+              href="https://github.com/rblake2320/mcp-server-builder" 
               target="_blank" 
               rel="noopener noreferrer" 
               className="text-neutral-500 hover:text-neutral-700 mr-4"

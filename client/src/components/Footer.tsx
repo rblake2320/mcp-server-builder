@@ -21,9 +21,9 @@ const Footer = () => {
           <div>
             <h3 className="font-heading font-semibold text-white text-lg mb-4">Connect</h3>
             <ul className="space-y-2 text-sm">
-              <li><a href="https://github.com/mcp-protocol" className="hover:text-white" target="_blank" rel="noopener noreferrer">GitHub</a></li>
+              <li><a href="https://github.com/rblake2320/mcp-server-builder" className="hover:text-white" target="_blank" rel="noopener noreferrer">GitHub</a></li>
               <li><a href="https://discord.gg/mcp-protocol" className="hover:text-white" target="_blank" rel="noopener noreferrer">Discord Community</a></li>
-              <li><a href="https://github.com/mcp-protocol/issues/new" className="hover:text-white" target="_blank" rel="noopener noreferrer">Report Issues</a></li>
+              <li><a href="https://github.com/rblake2320/mcp-server-builder/issues/new" className="hover:text-white" target="_blank" rel="noopener noreferrer">Report Issues</a></li>
             </ul>
           </div>
         </div>

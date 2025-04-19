@@ -14,6 +14,7 @@ import MyServers from "@/pages/MyServers";
 import Enhancements from "@/pages/Enhancements";
 import ComplexityPage from "@/pages/ComplexityPage";
 import AnthropicPage from "@/pages/AnthropicPage";
+import TerminalTool from "@/pages/TerminalTool";
 import { AuthProvider } from "@/hooks/use-auth";
 import { ProtectedRoute } from "@/lib/protected-route";
 

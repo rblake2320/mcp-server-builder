@@ -1,6 +1,11 @@
 import { parse } from '@babel/parser';
 import traverse from '@babel/traverse';
-import type { Node, Statement, Expression } from '@babel/types';
+import type { Node, Statement, Expression, Identifier } from '@babel/types';
+
+// TypeScript type for node with ID
+type NodeWithId = Node & {
+  id?: { name: string };
+};
 
 // Interface for the analysis result
 interface AnalysisResult {
@@ -46,7 +51,7 @@ export async function analyzeCode(code: string): Promise<AnalysisResult> {
     };
     
     // Helper to get function name
-    const getFunctionName = (node: any): string => {
+    const getFunctionName = (node: NodeWithId): string => {
       if (node.id && node.id.name) {
         return node.id.name;
       }

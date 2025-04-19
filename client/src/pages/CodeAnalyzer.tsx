@@ -269,7 +269,7 @@ function processData(input) {
                     </Card>
 
                     <Card className="flex flex-col items-center justify-center p-6">
-                      <Function className="h-8 w-8 mb-2 text-primary" />
+                      <Code2 className="h-8 w-8 mb-2 text-primary" />
                       <div className="text-xl font-bold">{analysisResult.functionCount}</div>
                       <div className="text-sm font-medium mb-1">Function Count</div>
                       <p className="text-xs text-center text-muted-foreground">

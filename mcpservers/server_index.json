@@ -1,0 +1,44 @@
+{
+  "templates": [
+    {
+      "name": "Basic JavaScript MCP Server",
+      "path": "templates/basic_mcp_server.js",
+      "language": "javascript",
+      "description": "A minimal JavaScript MCP server template using Express",
+      "difficulty": "beginner",
+      "dependencies": ["express", "cors", "body-parser"],
+      "tools": ["hello_world"]
+    },
+    {
+      "name": "Basic Python MCP Server",
+      "path": "templates/basic_mcp_server.py",
+      "language": "python",
+      "description": "A minimal Python MCP server template using http.server",
+      "difficulty": "beginner",
+      "dependencies": [],
+      "tools": ["hello_world"]
+    }
+  ],
+  "examples": [
+    {
+      "name": "File Browser MCP Server",
+      "path": "examples/file_browser_server.py",
+      "language": "python",
+      "description": "Browse files and directories on the host system",
+      "difficulty": "intermediate",
+      "dependencies": [],
+      "tools": ["list_directory", "read_file", "get_file_info"]
+    },
+    {
+      "name": "Weather API Server",
+      "path": "examples/weather_api_server.js",
+      "language": "javascript",
+      "description": "Get weather data and forecasts for any location",
+      "difficulty": "intermediate",
+      "dependencies": ["express", "cors", "axios"],
+      "requires_api_key": true, 
+      "api_provider": "OpenWeatherMap",
+      "tools": ["get_current_weather", "get_weather_forecast"]
+    }
+  ]
+}

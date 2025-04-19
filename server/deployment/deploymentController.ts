@@ -1,221 +1,171 @@
 import fs from 'fs-extra';
 import path from 'path';
-import { Request, Response } from 'express';
-import archiver from 'archiver';
-import { createDeploymentService } from './services/deploymentServiceFactory';
-import { DeploymentOptions, DeploymentResult } from './services/DeploymentService';
-import { platforms, generateDeploymentInstructions } from './platforms';
+import { v4 as uuidv4 } from 'uuid';
+import { generateDeploymentFiles } from './platforms';
 
-// Store deployments temporarily for download
-const deployments = new Map<string, { path: string; platformId: string; }>();
+// Keep track of deployments
+const deployments: Record<string, {
+  buildId: string;
+  platformId: string;
+  status: 'pending' | 'complete' | 'failed';
+  downloadPath?: string;
+  error?: string;
+  timestamp: number;
+}> = {};
 
 /**
- * Initialize deployment for a specific platform
+ * Initiate deployment to a specific platform
  */
-export async function initiatePlatformDeployment(req: Request, res: Response) {
+export async function initiatePlatformDeployment(buildId: string, platformId: string) {
   try {
-    const { buildId, serverName, platformId, credentials } = req.body;
-
-    if (!buildId || !serverName || !platformId) {
-      return res.status(400).json({
-        success: false,
-        message: 'Missing required parameters'
-      });
-    }
-
-    // Check if platform exists
-    const platform = platforms.find(p => p.id === platformId);
-    if (!platform) {
-      return res.status(404).json({
-        success: false,
-        message: 'Platform not found'
-      });
-    }
-
-    // Create deployment directory
-    const tmpDir = path.join(process.cwd(), 'tmp');
+    // Create a unique deployment ID
+    const deploymentId = uuidv4();
     
-    // First look in tmp/builds
-    let deploymentDir = path.join(tmpDir, 'builds', buildId);
+    // Create temp directory for this deployment
+    const baseDir = path.join(process.cwd(), 'deployments');
+    const deploymentDir = path.join(baseDir, deploymentId);
     
-    // If not found in tmp/builds, look in the main builds directory
-    if (!fs.existsSync(deploymentDir)) {
-      deploymentDir = path.join(process.cwd(), 'builds', buildId);
-      
-      // If still not found, return error
-      if (!fs.existsSync(deploymentDir)) {
-        console.error(`Build not found: ${buildId} not in tmp/builds or builds`);
-        return res.status(404).json({
-          success: false,
-          message: 'Build not found'
-        });
-      }
-      
-      console.log(`Found build in main builds directory: ${deploymentDir}`);
-    }
-
-    // Skip generating platform-specific files for now
-    // We'll handle this in each deployment service's generateConfig method
-
-    // Get deployment service
-    const deploymentOptions: DeploymentOptions = {
+    // Save deployment info
+    deployments[deploymentId] = {
       buildId,
-      serverName,
       platformId,
-      credentials: credentials || {},
-      deploymentDir
+      status: 'pending',
+      timestamp: Date.now()
     };
-
-    const deploymentService = createDeploymentService(deploymentOptions);
-    if (!deploymentService) {
-      return res.status(400).json({
-        success: false,
-        message: 'Unsupported platform'
-      });
+    
+    // Ensure directory exists
+    fs.ensureDirSync(deploymentDir);
+    
+    // Extract the original build files to the deployment directory
+    const buildZipPath = path.join(process.cwd(), 'downloads', `${buildId}.zip`);
+    if (!fs.existsSync(buildZipPath)) {
+      throw new Error(`Build ${buildId} not found`);
     }
-
-    // Execute deployment
-    const result = await deploymentService.execute();
-
-    // If successful, prepare for download
-    if (result.success && result.deploymentId) {
-      // Create a zip file for the deployment
-      const deploymentFileName = `dp_${result.deploymentId}.zip`;
-      const zipPath = path.join(tmpDir, 'downloads', deploymentFileName);
-      
-      // Ensure downloads directory exists
-      if (!fs.existsSync(path.join(tmpDir, 'downloads'))) {
-        fs.mkdirSync(path.join(tmpDir, 'downloads'), { recursive: true });
-      }
-
-      // Create a zip file of the deployment
-      const output = fs.createWriteStream(zipPath);
-      const archive = archiver('zip', {
-        zlib: { level: 9 }
-      });
-
-      archive.pipe(output);
-      
-      // Check if the path exists
-      const deploymentPath = path.join(tmpDir, 'deployments', result.deploymentId);
-      if (fs.existsSync(deploymentPath)) {
-        console.log(`Adding directory to archive: ${deploymentPath}`);
-        archive.directory(deploymentPath, false);
-      } else {
-        console.error(`Deployment directory not found: ${deploymentPath}`);
-        // Fall back to using the original build directory
-        console.log(`Falling back to build directory: ${deploymentDir}`);
-        archive.directory(deploymentDir, false);
-      }
-      
-      await archive.finalize();
-
-      // Store the deployment for download
-      deployments.set(result.deploymentId, {
-        path: zipPath,
-        platformId
-      });
-
-      // Add download URL and setup instructions to the result
-      result.deploymentUrl = `/api/download/deployment/${result.deploymentId}`;
-      
-      // Get platform-specific setup instructions
-      const { generateDeploymentInstructions } = await import('./platforms');
-      result.setupInstructions = generateDeploymentInstructions(platformId, buildId, serverName);
-    }
-
-    return res.json(result);
-  } catch (error) {
-    console.error('Deployment error:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Deployment failed',
-      error: error instanceof Error ? error.message : 'Unknown error'
-    });
-  }
-}
-
-/**
- * Download deployment package
- */
-export function downloadDeployment(req: Request, res: Response) {
-  const { deploymentId } = req.params;
-  
-  if (!deploymentId || !deployments.has(deploymentId)) {
-    return res.status(404).json({
-      success: false,
-      message: 'Deployment package not found'
-    });
-  }
-
-  const deployment = deployments.get(deploymentId);
-  if (!deployment) {
-    return res.status(404).json({
-      success: false,
-      message: 'Deployment package not found'
-    });
-  }
-
-  const zipPath = deployment.path;
-  if (!fs.existsSync(zipPath)) {
-    return res.status(404).json({
-      success: false,
-      message: 'Deployment package file not found'
-    });
-  }
-
-  // Get platform for filename
-  const platform = platforms.find(p => p.id === deployment.platformId);
-  const platformName = platform?.name || 'platform';
-
-  // Set headers
-  res.set('Content-Type', 'application/zip');
-  res.set('Content-Disposition', `attachment; filename="mcp-server-${platformName.toLowerCase()}.zip"`);
-
-  // Stream the file
-  const fileStream = fs.createReadStream(zipPath);
-  fileStream.pipe(res);
-}
-
-/**
- * Clean up old deployments (can be run periodically)
- */
-export function cleanupDeployments() {
-  const maxAge = 24 * 60 * 60 * 1000; // 24 hours
-  const now = Date.now();
-
-  // Remove old deployments
-  const tmpDir = path.join(process.cwd(), 'tmp');
-  const downloadsDir = path.join(tmpDir, 'downloads');
-  
-  if (fs.existsSync(downloadsDir)) {
-    fs.readdirSync(downloadsDir).forEach(file => {
-      const filePath = path.join(downloadsDir, file);
-      const stats = fs.statSync(filePath);
-      
-      if (now - stats.mtimeMs > maxAge) {
-        fs.unlinkSync(filePath);
-        
-        // Remove from deployments map
-        deployments.forEach((deployment, id) => {
-          if (deployment.path === filePath) {
-            deployments.delete(id);
+    
+    // Create a background (non-blocking) process for the rest of the operation
+    setTimeout(async () => {
+      try {
+        // Extract the original zip to the deployment directory
+        await new Promise<void>(async (resolve, reject) => {
+          try {
+            const extract = (await import('extract-zip')).default;
+            await extract(buildZipPath, { dir: deploymentDir });
+            resolve();
+          } catch (err) {
+            reject(err);
           }
         });
+        
+        // Generate platform-specific files
+        await generateDeploymentFiles(platformId, buildId, deploymentDir);
+        
+        // Create a zip file with the deployment files
+        const archiver = (await import('archiver')).default;
+        const deploymentZipPath = path.join(baseDir, `${deploymentId}.zip`);
+        const output = fs.createWriteStream(deploymentZipPath);
+        const archive = archiver('zip', { zlib: { level: 9 } });
+        
+        archive.pipe(output);
+        archive.directory(deploymentDir, false);
+        
+        await new Promise<void>((resolve, reject) => {
+          output.on('close', () => resolve());
+          archive.on('error', reject);
+          archive.finalize();
+        });
+        
+        // Update deployment status
+        deployments[deploymentId] = {
+          ...deployments[deploymentId],
+          status: 'complete',
+          downloadPath: deploymentZipPath
+        };
+      } catch (error) {
+        console.error(`Error preparing deployment ${deploymentId}:`, error);
+        // Update deployment status with error
+        deployments[deploymentId] = {
+          ...deployments[deploymentId],
+          status: 'failed',
+          error: error instanceof Error ? error.message : String(error)
+        };
       }
-    });
-  }
-
-  // Also clean up deployments directory
-  const deploymentsDir = path.join(tmpDir, 'deployments');
-  if (fs.existsSync(deploymentsDir)) {
-    fs.readdirSync(deploymentsDir).forEach(dir => {
-      const dirPath = path.join(deploymentsDir, dir);
-      const stats = fs.statSync(dirPath);
-      
-      if (now - stats.mtimeMs > maxAge) {
-        fs.rmSync(dirPath, { recursive: true, force: true });
-      }
-    });
+    }, 0);
+    
+    return {
+      deploymentId,
+      status: 'pending',
+      message: `Deployment to ${platformId} initiated`
+    };
+  } catch (error) {
+    console.error('Error initiating deployment:', error);
+    throw error;
   }
 }
+
+/**
+ * Get deployment status and download URL
+ */
+export function getDeploymentStatus(deploymentId: string) {
+  const deployment = deployments[deploymentId];
+  if (!deployment) {
+    throw new Error(`Deployment ${deploymentId} not found`);
+  }
+  
+  return {
+    ...deployment,
+    downloadUrl: deployment.status === 'complete' ? `/api/deployment/download/${deploymentId}` : undefined
+  };
+}
+
+/**
+ * Download deployment files
+ */
+export function downloadDeployment(deploymentId: string) {
+  const deployment = deployments[deploymentId];
+  if (!deployment) {
+    throw new Error(`Deployment ${deploymentId} not found`);
+  }
+  
+  if (deployment.status !== 'complete' || !deployment.downloadPath) {
+    throw new Error(`Deployment ${deploymentId} is not ready for download`);
+  }
+  
+  return deployment.downloadPath;
+}
+
+/**
+ * Cleanup old deployments (called periodically)
+ */
+export function cleanupDeployments() {
+  const now = Date.now();
+  const maxAge = 24 * 60 * 60 * 1000; // 24 hours
+  
+  // Find old deployments
+  const oldDeploymentIds = Object.entries(deployments)
+    .filter(([_, info]) => now - info.timestamp > maxAge)
+    .map(([id, _]) => id);
+  
+  // Remove old deployments
+  for (const id of oldDeploymentIds) {
+    const deployment = deployments[id];
+    
+    // Remove deployment file if it exists
+    if (deployment.downloadPath && fs.existsSync(deployment.downloadPath)) {
+      fs.unlinkSync(deployment.downloadPath);
+    }
+    
+    // Remove deployment directory
+    const deploymentDir = path.join(process.cwd(), 'deployments', id);
+    if (fs.existsSync(deploymentDir)) {
+      fs.removeSync(deploymentDir);
+    }
+    
+    // Remove from deployments object
+    delete deployments[id];
+  }
+  
+  return oldDeploymentIds.length;
+}
+
+// Set up a periodic cleanup
+setInterval(cleanupDeployments, 60 * 60 * 1000); // Cleanup every hour

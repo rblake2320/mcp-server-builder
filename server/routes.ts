@@ -1046,6 +1046,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Mount the code complexity analysis routes
   app.use('/api', complexityRoutes);
+  
+  // Mount the terminal tools routes
+  app.use('/api/tools/terminal', terminalToolsRouter);
 
   const httpServer = createServer(app);
   return httpServer;

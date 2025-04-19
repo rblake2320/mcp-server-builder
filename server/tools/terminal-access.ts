@@ -1,123 +1,139 @@
+// This file contains the terminal access functions for the MCP Terminal Tool
+
+import { exec, spawn } from 'child_process';
+import * as os from 'os';
+import * as fs from 'fs';
+import * as path from 'path';
+
 /**
- * Terminal Access Tool for MCP Server
+ * Execute a shell command and return the result
  * 
- * Provides a terminal access tool for the Model Context Protocol (MCP)
- * that allows executing shell commands on the host system.
+ * @param command The command to execute
+ * @returns Object containing stdout, stderr, and exit code
  */
-
-import { spawn } from 'child_process';
-import { Request, Response } from 'express';
-
-interface TerminalCommandRequest {
-  command: string;
-  args?: string[];
-  cwd?: string;
-  env?: Record<string, string>;
-  timeout?: number;
-}
-
-interface TerminalCommandResponse {
+export async function executeCommand(command: string): Promise<{
   stdout: string;
   stderr: string;
-  exitCode: number | null;
-  error?: string;
+  exitCode: number;
+}> {
+  return new Promise((resolve) => {
+    exec(command, { encoding: 'utf8' }, (error, stdout, stderr) => {
+      resolve({
+        stdout: stdout || '',
+        stderr: stderr || '',
+        exitCode: error ? error.code || 1 : 0,
+      });
+    });
+  });
 }
 
 /**
- * Execute a shell command and return the results
+ * Spawn a process and stream its output
+ * 
+ * @param command The command to execute
+ * @param args The arguments to pass to the command
+ * @param onOutput Callback for when output is received
+ * @param onError Callback for when error output is received
+ * @param onExit Callback for when the process exits
+ * @returns Object containing the process ID and a function to terminate the process
  */
-export const executeCommand = async (
+export function spawnProcess(
   command: string,
-  args: string[] = [],
-  options: { cwd?: string; env?: Record<string, string>; timeout?: number } = {}
-): Promise<TerminalCommandResponse> => {
-  return new Promise((resolve) => {
-    const { cwd, env, timeout } = options;
-    let timeoutId: NodeJS.Timeout | null = null;
-    
-    // Combine environment variables
-    const combinedEnv = { ...process.env, ...(env || {}) };
-    
-    // Spawn the process
-    const childProcess = spawn(command, args, {
-      cwd: cwd || process.cwd(),
-      env: combinedEnv,
-      shell: true,
-    });
-    
-    let stdout = '';
-    let stderr = '';
-    
-    childProcess.stdout.on('data', (data) => {
-      stdout += data.toString();
-    });
-    
-    childProcess.stderr.on('data', (data) => {
-      stderr += data.toString();
-    });
-    
-    childProcess.on('error', (error) => {
-      resolve({
-        stdout,
-        stderr,
-        exitCode: null,
-        error: error.message,
-      });
-      
-      if (timeoutId) {
-        clearTimeout(timeoutId);
-      }
-    });
-    
-    childProcess.on('close', (code) => {
-      resolve({
-        stdout,
-        stderr,
-        exitCode: code,
-      });
-      
-      if (timeoutId) {
-        clearTimeout(timeoutId);
-      }
-    });
-    
-    // Set timeout if specified
-    if (timeout) {
-      timeoutId = setTimeout(() => {
-        childProcess.kill();
-        resolve({
-          stdout,
-          stderr,
-          exitCode: null,
-          error: 'Command execution timed out',
-        });
-      }, timeout);
-    }
+  args: string[],
+  onOutput: (data: string) => void,
+  onError: (data: string) => void,
+  onExit: (code: number | null) => void
+): { pid: number | undefined; terminate: () => void } {
+  // Use appropriate shell based on platform
+  const isWindows = os.platform() === 'win32';
+  
+  const proc = spawn(command, args, {
+    shell: isWindows ? true : '/bin/bash',
+    env: process.env,
   });
-};
+
+  proc.stdout.on('data', (data) => {
+    onOutput(data.toString());
+  });
+
+  proc.stderr.on('data', (data) => {
+    onError(data.toString());
+  });
+
+  proc.on('exit', (code) => {
+    onExit(code);
+  });
+
+  return {
+    pid: proc.pid,
+    terminate: () => {
+      // Try to terminate gracefully first, then kill if needed
+      try {
+        proc.kill();
+      } catch (error) {
+        console.error('Failed to terminate process:', error);
+      }
+    },
+  };
+}
 
 /**
- * Terminal command execution handler for API endpoint
+ * Get environment variables as a dictionary
+ * 
+ * @returns Object containing environment variables
  */
-export const terminalCommandHandler = async (req: Request, res: Response) => {
-  try {
-    // Check authentication
-    if (!req.isAuthenticated()) {
-      return res.status(401).json({ error: 'Authentication required' });
+export function getEnvVars(): Record<string, string> {
+  const envVars: Record<string, string> = {};
+  
+  // Filter sensitive environment variables
+  const sensitiveKeys = [
+    'SECRET', 'KEY', 'PASSWORD', 'PASS', 'TOKEN', 'AUTH',
+    'ACCESS', 'CREDENTIAL', 'PRIVATE', 'APIKEY', 'API_KEY'
+  ];
+  
+  for (const [key, value] of Object.entries(process.env)) {
+    // Skip undefined values and sensitive data
+    if (value === undefined) continue;
+    
+    if (sensitiveKeys.some(sk => key.toUpperCase().includes(sk))) {
+      envVars[key] = '[REDACTED]';
+    } else {
+      envVars[key] = value;
     }
-    
-    const { command, args = [], cwd, env, timeout } = req.body as TerminalCommandRequest;
-    
-    if (!command) {
-      return res.status(400).json({ error: 'Command is required' });
-    }
-    
-    // Execute the command
-    const result = await executeCommand(command, args, { cwd, env, timeout });
-    
-    return res.status(200).json(result);
-  } catch (error: any) {
-    console.error('Terminal command execution error:', error);
-    return res.status(500).json({ error: error.message || 'Internal server error' });
   }
-};
+  
+  return envVars;
+}
+
+/**
+ * Get system information
+ * 
+ * @returns Object containing system information
+ */
+export async function getSystemInfo(): Promise<{
+  platform: string;
+  release: string;
+  hostname: string;
+  arch: string;
+  cpus: number;
+  totalMemory: number;
+  freeMemory: number;
+  uptime: number;
+  nodeVersion: string;
+  currentDir: string;
+}> {
+  const { stdout: currentDir } = await executeCommand('pwd');
+  
+  return {
+    platform: os.platform(),
+    release: os.release(),
+    hostname: os.hostname(),
+    arch: os.arch(),
+    cpus: os.cpus().length,
+    totalMemory: os.totalmem(),
+    freeMemory: os.freemem(),
+    uptime: os.uptime(),
+    nodeVersion: process.version,
+    currentDir: currentDir.trim(),
+  };
+}

@@ -1,36 +1,67 @@
 #!/usr/bin/env node
 
-/**
- * MCP Terminal CLI
- * 
- * Command-line interface for starting an MCP-compatible terminal server
- * that provides terminal access functionality to Claude and other LLMs.
- */
+// MCP Terminal CLI - Command line interface for the MCP Terminal Server
+import { createTerminalApp } from './mcp-terminal-server';
 
-import { createMcpTerminalServer } from './mcp-terminal-server';
+// Parse command line arguments
+const args = process.argv.slice(2);
+const port = parseInt(args[0]) || 3000;
 
-const PORT = process.env.PORT || 3000;
-const app = createMcpTerminalServer();
+// Create and start the terminal server
+async function main() {
+  console.log(`
+╔═══════════════════════════════════════════════════╗
+║                                                   ║
+║   MCP Terminal Server                             ║
+║   Model Context Protocol - Terminal Access Tool   ║
+║                                                   ║
+╚═══════════════════════════════════════════════════╝
+  `);
+  
+  console.log('Starting MCP Terminal Server...');
+  
+  try {
+    const app = createTerminalApp(port);
+    await app.start();
+    
+    console.log(`
+Server is now running at: http://localhost:${port}
+Add this URL to Claude Desktop in Settings > MCP > Add Server
 
-// Display banner
-console.log(`
-╔═══════════════════════════════════════════╗
-║                                           ║
-║        Anthropic MCP Terminal Server      ║
-║                                           ║
-╚═══════════════════════════════════════════╝
-`);
+Press Ctrl+C to stop the server.
+    `);
+    
+    // Handle graceful shutdown
+    process.on('SIGINT', async () => {
+      console.log('\nReceived SIGINT signal. Shutting down...');
+      
+      try {
+        await app.stop();
+        console.log('Server stopped.');
+        process.exit(0);
+      } catch (error) {
+        console.error('Error stopping server:', error);
+        process.exit(1);
+      }
+    });
+    
+    process.on('SIGTERM', async () => {
+      console.log('\nReceived SIGTERM signal. Shutting down...');
+      
+      try {
+        await app.stop();
+        console.log('Server stopped.');
+        process.exit(0);
+      } catch (error) {
+        console.error('Error stopping server:', error);
+        process.exit(1);
+      }
+    });
+  } catch (error) {
+    console.error('Failed to start MCP Terminal Server:', error);
+    process.exit(1);
+  }
+}
 
-// Start the server
-app.listen(PORT, () => {
-  console.log(`✅ MCP Terminal Server running on port ${PORT}`);
-  console.log(`🔗 Claude Integration URL: http://localhost:${PORT}`);
-  console.log(`📚 OpenAPI schema available at http://localhost:${PORT}/openapi.json`);
-  console.log(`ℹ️  MCP metadata available at http://localhost:${PORT}/.well-known/mcp`);
-  console.log(`\n📋 Usage Instructions:`);
-  console.log(`   1. In Claude Desktop, go to Settings > MCP`);
-  console.log(`   2. Click "Add Server" and enter: http://localhost:${PORT}`);
-  console.log(`   3. Click "Connect" and start using the terminal tool\n`);
-  console.log(`⚠️  Caution: This gives Claude access to your terminal. Only use with trusted content.`);
-  console.log(`\n📌 Press Ctrl+C to stop the server`);
-});
+// Run the server
+main();

@@ -7,7 +7,13 @@ import archiver from 'archiver';
 const router = Router();
 
 // Create a temporary directory for the package
-const tempDir = path.join(__dirname, '../../tmp/terminal-package');
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+
+// Get the directory name in ESM
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+const tempDir = path.join(process.cwd(), 'tmp/terminal-package');
 
 // Ensure the temporary directory exists
 if (!fs.existsSync(tempDir)) {
@@ -30,7 +36,7 @@ router.get('/download', async (req, res) => {
     archive.pipe(res);
 
     // Add files to the archive
-    const toolsDir = path.join(__dirname, '../tools');
+    const toolsDir = path.join(process.cwd(), 'server/tools');
     
     // Add the MCP terminal server files
     archive.file(path.join(toolsDir, 'terminal-access.ts'), { name: 'src/terminal-access.ts' });

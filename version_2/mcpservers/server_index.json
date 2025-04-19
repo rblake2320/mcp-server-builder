@@ -1,4 +1,94 @@
 {
-  "templates": [],
-  "examples": []
+  "templates": [
+    {
+      "id": "basic_js",
+      "name": "Basic JavaScript MCP Server",
+      "description": "A simple MCP server template in JavaScript with Express",
+      "language": "javascript",
+      "path": "templates/basic_mcp_server.js",
+      "author": "MCP Server Builder Team",
+      "tags": ["basic", "beginner", "javascript", "express"],
+      "requirements": ["nodejs", "express"]
+    },
+    {
+      "id": "basic_py",
+      "name": "Basic Python MCP Server",
+      "description": "A simple MCP server template in Python with Flask",
+      "language": "python",
+      "path": "templates/basic_mcp_server.py",
+      "author": "MCP Server Builder Team",
+      "tags": ["basic", "beginner", "python", "flask"],
+      "requirements": ["python", "flask"]
+    },
+    {
+      "id": "llm_integration",
+      "name": "LLM Integration MCP Server",
+      "description": "An advanced MCP server with LLM (Large Language Model) integration",
+      "language": "javascript",
+      "path": "templates/llm_integration_server.js",
+      "author": "MCP Server Builder Team",
+      "tags": ["llm", "ai", "advanced", "javascript", "express"],
+      "requirements": ["nodejs", "express", "dotenv", "node-cache"],
+      "tools": [
+        "summarize_text",
+        "extract_entities",
+        "classify_text",
+        "answer_question"
+      ]
+    }
+  ],
+  "examples": [
+    {
+      "id": "weather_api",
+      "name": "Weather API Server",
+      "description": "An MCP server that provides weather data from external APIs",
+      "language": "javascript",
+      "path": "examples/weather_api_server.js",
+      "author": "MCP Server Builder Team",
+      "tags": ["api", "weather", "javascript", "express"],
+      "requirements": ["nodejs", "express", "node-fetch"],
+      "tools": [
+        "get_current_weather",
+        "get_forecast",
+        "get_historical_weather"
+      ]
+    },
+    {
+      "id": "file_browser",
+      "name": "File Browser Server",
+      "description": "An MCP server that provides file system browsing capabilities",
+      "language": "python",
+      "path": "examples/file_browser_server.py",
+      "author": "MCP Server Builder Team",
+      "tags": ["filesystem", "files", "python", "flask"],
+      "requirements": ["python", "flask"],
+      "tools": [
+        "list_directory",
+        "read_file",
+        "create_file",
+        "delete_file",
+        "rename_file"
+      ]
+    },
+    {
+      "id": "database_server",
+      "name": "Database Operations Server",
+      "description": "An MCP server for interacting with databases (CRUD operations and analytics)",
+      "language": "javascript",
+      "path": "examples/database_server.js",
+      "author": "MCP Server Builder Team",
+      "tags": ["database", "sql", "crud", "javascript", "express", "sqlite"],
+      "requirements": ["nodejs", "express", "sqlite3", "sqlite"],
+      "tools": [
+        "query_data",
+        "get_records",
+        "create_record",
+        "update_record",
+        "delete_record",
+        "get_schema",
+        "get_tables",
+        "get_database_stats"
+      ]
+    }
+  ]
 }

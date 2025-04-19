@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { 
@@ -11,11 +11,12 @@ import {
   DialogTitle,
   DialogTrigger
 } from "@/components/ui/dialog";
-import { Download, FileCode, Github, ExternalLink, Copy, Server, Loader2 } from "lucide-react";
+import { Download, FileCode, Github, ExternalLink, Copy, Server, Loader2, Cloud } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { DialogFooter } from "@/components/ui/dialog";
 import { TwentyfirstServers } from "@/components/TwentyfirstServers";
+import DeploymentSelector from "@/components/DeploymentSelector";
 
 // Define types for our server index
 interface MCPServer {
@@ -182,6 +183,11 @@ const MCPServers = () => {
   const [importUrl, setImportUrl] = useState('');
   const [importLoading, setImportLoading] = useState(false);
   const [importError, setImportError] = useState<string | null>(null);
+  
+  // State for deployment
+  const [buildId, setBuildId] = useState<string | null>(null);
+  const [serverType, setServerType] = useState<string>("javascript");
+  const [showDeployment, setShowDeployment] = useState<boolean>(false);
   
   const handleImportSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

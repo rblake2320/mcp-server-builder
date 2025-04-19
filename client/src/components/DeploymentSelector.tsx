@@ -1,366 +1,300 @@
 import { useState, useEffect } from 'react';
-import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Separator } from '@/components/ui/separator';
-import { Badge } from '@/components/ui/badge';
-import { Loader2, Info, Download, ExternalLink, CloudIcon, Server, CloudCog } from 'lucide-react';
-import axios from 'axios';
+import { Loader2, ExternalLink } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { AlertCircle, CheckCircle2 } from 'lucide-react';
 
-// Define types
-type Platform = {
+interface Platform {
   id: string;
   name: string;
   description: string;
   logoUrl: string;
-  supports: string[];
+  setupUrl: string;
   docsUrl: string;
-};
+  supports: string[];
+  requiresCredentials?: boolean;
+  credentialFields?: Array<{
+    name: string;
+    label: string;
+    type: string;
+    required: boolean;
+  }>;
+}
 
-type DeploymentStatus = {
-  buildId: string;
-  platformId: string;
-  status: 'pending' | 'complete' | 'failed';
-  error?: string;
-  downloadUrl?: string;
-  timestamp: number;
-};
-
-type DeploymentSelectorProps = {
+interface DeploymentSelectorProps {
   buildId: string;
   serverType: string;
   onDeploymentComplete?: (deploymentId: string, platformId: string) => void;
-};
+}
 
-export default function DeploymentSelector({ buildId, serverType, onDeploymentComplete }: DeploymentSelectorProps) {
-  const { toast } = useToast();
+const DeploymentSelector = ({ buildId, serverType, onDeploymentComplete }: DeploymentSelectorProps) => {
   const [platforms, setPlatforms] = useState<Platform[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedPlatform, setSelectedPlatform] = useState<Platform | null>(null);
-  const [deployDialogOpen, setDeployDialogOpen] = useState(false);
-  const [deploying, setDeploying] = useState(false);
-  const [deploymentId, setDeploymentId] = useState<string | null>(null);
-  const [deploymentStatus, setDeploymentStatus] = useState<DeploymentStatus | null>(null);
-  const [statusCheckInterval, setStatusCheckInterval] = useState<number | null>(null);
+  const [selectedPlatform, setSelectedPlatform] = useState<string | null>(null);
+  const [deploymentStatus, setDeploymentStatus] = useState<'idle' | 'pending' | 'success' | 'error'>('idle');
+  const [deploymentMessage, setDeploymentMessage] = useState('');
+  const [credentials, setCredentials] = useState<Record<string, string>>({});
+  const [deploymentUrl, setDeploymentUrl] = useState<string | null>(null);
 
-  // Load platforms
   useEffect(() => {
     const fetchPlatforms = async () => {
       try {
-        const response = await axios.get('/api/deployment/platforms');
-        setPlatforms(response.data);
+        const response = await fetch('/api/deployment/platforms');
+        if (!response.ok) {
+          throw new Error('Failed to fetch deployment platforms');
+        }
+        const data = await response.json();
+        setPlatforms(data.platforms || []);
+        
+        // Set default selected platform if available and compatible
+        if (data.platforms && data.platforms.length > 0) {
+          const compatiblePlatforms = data.platforms.filter((p: Platform) => 
+            p.supports.includes(serverType) || p.supports.includes('all')
+          );
+          if (compatiblePlatforms.length > 0) {
+            setSelectedPlatform(compatiblePlatforms[0].id);
+          }
+        }
       } catch (error) {
-        console.error('Error fetching platforms:', error);
-        toast({
-          title: 'Error',
-          description: 'Failed to load deployment platforms',
-          variant: 'destructive',
-        });
+        console.error('Error fetching deployment platforms:', error);
       } finally {
         setLoading(false);
       }
     };
 
     fetchPlatforms();
-  }, [toast]);
+  }, [serverType]);
 
-  // Filter platforms by server type compatibility
-  const compatiblePlatforms = platforms.filter(platform => 
-    platform.supports.includes(serverType === 'typescript' ? 'javascript' : serverType)
-  );
-
-  // Handle platform selection
-  const handleSelectPlatform = (platform: Platform) => {
-    setSelectedPlatform(platform);
-    setDeployDialogOpen(true);
-  };
-
-  // Handle deployment to selected platform
   const handleDeploy = async () => {
     if (!selectedPlatform) return;
     
-    setDeploying(true);
+    setDeploymentStatus('pending');
+    setDeploymentMessage('Starting deployment process...');
     
     try {
-      const response = await axios.post(`/api/deployment/deploy/${buildId}`, {
-        platformId: selectedPlatform.id
+      const response = await fetch(`/api/deployment/deploy`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          buildId,
+          platformId: selectedPlatform,
+          credentials
+        }),
       });
       
-      // Get deployment ID and start checking status
-      const { deploymentId, status } = response.data;
-      setDeploymentId(deploymentId);
+      const data = await response.json();
       
-      // Start periodic status check
-      const intervalId = window.setInterval(() => {
-        checkDeploymentStatus(deploymentId);
-      }, 2000); // Check every 2 seconds
+      if (!response.ok) {
+        throw new Error(data.message || 'Deployment failed');
+      }
       
-      setStatusCheckInterval(intervalId);
+      setDeploymentStatus('success');
+      setDeploymentMessage(data.message || 'Deployment successful!');
       
-      toast({
-        title: 'Deployment initiated',
-        description: `Preparing ${selectedPlatform.name} deployment...`,
-      });
-    } catch (error) {
-      console.error('Error initiating deployment:', error);
-      toast({
-        title: 'Deployment failed',
-        description: 'Failed to initiate deployment. Please try again.',
-        variant: 'destructive',
-      });
-    } finally {
-      setDeploying(false);
-    }
-  };
-
-  // Check deployment status
-  const checkDeploymentStatus = async (deploymentId: string) => {
-    try {
-      const response = await axios.get(`/api/deployment/status/${deploymentId}`);
-      setDeploymentStatus(response.data);
+      if (data.deploymentUrl) {
+        setDeploymentUrl(data.deploymentUrl);
+      }
       
-      // If deployment is complete or failed, stop checking
-      if (response.data.status === 'complete' || response.data.status === 'failed') {
-        if (statusCheckInterval) {
-          window.clearInterval(statusCheckInterval);
-          setStatusCheckInterval(null);
-        }
-        
-        // Call the completion callback if provided
-        if (response.data.status === 'complete' && onDeploymentComplete) {
-          onDeploymentComplete(deploymentId, response.data.platformId);
-        }
-        
-        // Show success or error toast
-        if (response.data.status === 'complete') {
-          toast({
-            title: 'Deployment ready',
-            description: `Your ${selectedPlatform?.name} deployment is ready to download.`,
-          });
-        } else {
-          toast({
-            title: 'Deployment failed',
-            description: response.data.error || 'An unknown error occurred',
-            variant: 'destructive',
-          });
-        }
+      if (onDeploymentComplete && data.deploymentId) {
+        onDeploymentComplete(data.deploymentId, selectedPlatform);
       }
     } catch (error) {
-      console.error('Error checking deployment status:', error);
-      // Stop the interval if there's an error checking status
-      if (statusCheckInterval) {
-        window.clearInterval(statusCheckInterval);
-        setStatusCheckInterval(null);
-      }
+      console.error('Deployment error:', error);
+      setDeploymentStatus('error');
+      setDeploymentMessage(error instanceof Error ? error.message : 'Unknown deployment error');
     }
   };
 
-  // Clean up interval on unmount
-  useEffect(() => {
-    return () => {
-      if (statusCheckInterval) {
-        window.clearInterval(statusCheckInterval);
-      }
-    };
-  }, [statusCheckInterval]);
-
-  // Close dialog and reset state
-  const handleCloseDialog = () => {
-    // Don't reset everything if we're in the middle of deployment
-    if (!deploying && (!deploymentStatus || deploymentStatus.status !== 'pending')) {
-      setDeployDialogOpen(false);
-      
-      // Only reset these if we're done with deployment
-      if (deploymentStatus?.status === 'complete' || deploymentStatus?.status === 'failed') {
-        setTimeout(() => {
-          setSelectedPlatform(null);
-          setDeploymentId(null);
-          setDeploymentStatus(null);
-        }, 300); // Add a small delay to avoid UI flicker
-      }
-    }
+  const handleCredentialChange = (field: string, value: string) => {
+    setCredentials(prev => ({
+      ...prev,
+      [field]: value
+    }));
   };
 
-  return (
-    <div>
-      <h2 className="text-xl font-semibold mb-4 flex items-center">
-        <CloudCog className="mr-2 h-5 w-5" />
-        Deploy to Hosting Platforms
-      </h2>
-      
-      {loading ? (
-        <div className="flex justify-center py-8">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+  const isCompatible = (platform: Platform) => {
+    return platform.supports.includes(serverType) || platform.supports.includes('all');
+  };
+
+  const isDeployButtonDisabled = () => {
+    if (deploymentStatus === 'pending') return true;
+    if (!selectedPlatform) return true;
+    
+    // If the platform requires credentials, check if all required fields are filled
+    const platform = platforms.find(p => p.id === selectedPlatform);
+    if (platform?.requiresCredentials && platform.credentialFields) {
+      return platform.credentialFields
+        .filter(field => field.required)
+        .some(field => !credentials[field.name]);
+    }
+    
+    return false;
+  };
+
+  const renderDeploymentForm = () => {
+    const platform = platforms.find(p => p.id === selectedPlatform);
+    if (!platform) return null;
+    
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center space-x-3">
+          <img 
+            src={platform.logoUrl || `/logos/${platform.id}.svg`} 
+            alt={platform.name} 
+            className="h-8 w-8 object-contain"
+            onError={(e) => {
+              (e.target as HTMLImageElement).src = '/logos/default.svg';
+            }}
+          />
+          <div>
+            <h3 className="text-lg font-semibold">{platform.name}</h3>
+            <p className="text-sm text-muted-foreground">{platform.description}</p>
+          </div>
         </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {compatiblePlatforms.map((platform) => (
-            <Card key={platform.id} className="transition-shadow hover:shadow-md">
-              <CardHeader className="pb-4">
-                <div className="flex justify-between items-start">
-                  <div className="flex items-center">
-                    <img 
-                      src={platform.logoUrl} 
-                      alt={`${platform.name} logo`} 
-                      className="w-6 h-6 mr-2"
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).src = '/logos/default.svg';
-                      }}
-                    />
-                    <CardTitle className="text-lg">{platform.name}</CardTitle>
-                  </div>
-                </div>
-                <CardDescription className="line-clamp-2">{platform.description}</CardDescription>
-              </CardHeader>
-              <CardFooter className="pt-0">
-                <Button onClick={() => handleSelectPlatform(platform)} className="w-full">
-                  <CloudIcon className="h-4 w-4 mr-2" />
-                  Deploy with {platform.name}
-                </Button>
-              </CardFooter>
-            </Card>
-          ))}
-        </div>
-      )}
-      
-      {/* Deployment Dialog */}
-      <Dialog open={deployDialogOpen} onOpenChange={setDeployDialogOpen}>
-        <DialogContent className="max-w-xl">
-          <DialogHeader>
-            <DialogTitle className="flex items-center">
-              {selectedPlatform && (
-                <img 
-                  src={selectedPlatform.logoUrl} 
-                  alt={`${selectedPlatform.name} logo`} 
-                  className="w-5 h-5 mr-2"
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).src = '/logos/default.svg';
-                  }}
+        
+        {platform.requiresCredentials && platform.credentialFields && (
+          <div className="space-y-4">
+            <h4 className="text-sm font-medium">Platform Credentials</h4>
+            {platform.credentialFields.map((field) => (
+              <div key={field.name} className="space-y-2">
+                <Label htmlFor={field.name}>{field.label}{field.required && ' *'}</Label>
+                <Input
+                  id={field.name}
+                  type={field.type === 'password' ? 'password' : 'text'}
+                  placeholder={`Enter your ${field.label.toLowerCase()}`}
+                  value={credentials[field.name] || ''}
+                  onChange={(e) => handleCredentialChange(field.name, e.target.value)}
+                  required={field.required}
                 />
-              )}
-              Deploy to {selectedPlatform?.name}
-            </DialogTitle>
-            <DialogDescription>
-              Prepare your MCP server for deployment to {selectedPlatform?.name}
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="mt-4">
-            {/* Deployment Status */}
-            {deploymentStatus && (
-              <div className="mb-6">
-                <Alert variant={
-                  deploymentStatus.status === 'complete' ? 'default' :
-                  deploymentStatus.status === 'failed' ? 'destructive' : 
-                  'default'
-                }>
-                  <div className="flex items-center">
-                    {deploymentStatus.status === 'pending' && (
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    )}
-                    <AlertTitle>
-                      {deploymentStatus.status === 'complete' ? 'Deployment Ready' :
-                       deploymentStatus.status === 'failed' ? 'Deployment Failed' :
-                       'Preparing Deployment...'}
-                    </AlertTitle>
-                  </div>
-                  <AlertDescription>
-                    {deploymentStatus.status === 'complete' ? 
-                      'Your deployment files are ready to download.' :
-                      deploymentStatus.status === 'failed' ?
-                      deploymentStatus.error || 'An error occurred during deployment preparation.' :
-                      'Generating configuration files for your MCP server...'}
-                  </AlertDescription>
-                </Alert>
               </div>
-            )}
-            
-            {/* Platform Information */}
-            {selectedPlatform && !deploymentStatus && (
-              <div className="mb-6">
-                <p className="mb-2">{selectedPlatform.description}</p>
-                <div className="flex items-center space-x-2">
-                  <Badge variant="outline">
-                    Supports {selectedPlatform.supports.join(', ')}
-                  </Badge>
-                  <a 
-                    href={selectedPlatform.docsUrl} 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="text-xs text-blue-500 hover:underline flex items-center"
-                  >
-                    Documentation <ExternalLink className="h-3 w-3 ml-1" />
-                  </a>
-                </div>
-              </div>
-            )}
-            
-            {/* Deployment Explanation */}
-            {!deploymentStatus && (
-              <Alert variant="default" className="mb-6">
-                <Info className="h-4 w-4" />
-                <AlertTitle>What happens next?</AlertTitle>
-                <AlertDescription>
-                  This will generate the necessary configuration files for deploying your MCP server
-                  to {selectedPlatform?.name}. You'll receive a ZIP file with everything needed to deploy.
-                </AlertDescription>
-              </Alert>
-            )}
+            ))}
+          </div>
+        )}
+        
+        <div className="flex items-center justify-between">
+          <div className="space-x-2">
+            <Button
+              type="button" 
+              variant="outline" 
+              size="sm" 
+              onClick={() => window.open(platform.docsUrl, '_blank')}
+            >
+              Documentation
+              <ExternalLink className="h-4 w-4 ml-1" />
+            </Button>
+            <Button
+              type="button" 
+              variant="outline" 
+              size="sm" 
+              onClick={() => window.open(platform.setupUrl, '_blank')}
+            >
+              Setup Account
+              <ExternalLink className="h-4 w-4 ml-1" />
+            </Button>
           </div>
           
-          <DialogFooter>
-            {/* Show different buttons based on deployment status */}
-            {deploymentStatus?.status === 'complete' ? (
-              <div className="flex justify-between w-full">
-                <Button variant="outline" onClick={handleCloseDialog}>
-                  Close
-                </Button>
-                <a 
-                  href={deploymentStatus.downloadUrl}
-                  download
-                >
-                  <Button>
-                    <Download className="h-4 w-4 mr-2" />
-                    Download Deployment
-                  </Button>
-                </a>
-              </div>
-            ) : deploymentStatus?.status === 'failed' ? (
-              <Button variant="outline" onClick={handleCloseDialog}>
-                Close
-              </Button>
-            ) : deploymentStatus?.status === 'pending' ? (
-              <Button disabled>
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Preparing Deployment...
-              </Button>
-            ) : (
-              <div className="flex justify-between w-full">
-                <Button variant="outline" onClick={handleCloseDialog}>
-                  Cancel
-                </Button>
-                <Button onClick={handleDeploy} disabled={deploying}>
-                  {deploying ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Initiating Deployment...
-                    </>
-                  ) : (
-                    <>
-                      <Server className="h-4 w-4 mr-2" />
-                      Deploy to {selectedPlatform?.name}
-                    </>
-                  )}
-                </Button>
-              </div>
+          <Button 
+            type="button"
+            onClick={handleDeploy}
+            disabled={isDeployButtonDisabled()}
+          >
+            {deploymentStatus === 'pending' && (
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
             )}
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </div>
+            Deploy to {platform.name}
+          </Button>
+        </div>
+        
+        {deploymentStatus !== 'idle' && (
+          <Alert variant={deploymentStatus === 'error' ? 'destructive' : (deploymentStatus === 'success' ? 'default' : 'default')}>
+            {deploymentStatus === 'error' && <AlertCircle className="h-4 w-4" />}
+            {deploymentStatus === 'success' && <CheckCircle2 className="h-4 w-4" />}
+            <AlertTitle>
+              {deploymentStatus === 'pending' && 'Deployment in progress'}
+              {deploymentStatus === 'success' && 'Deployment successful'}
+              {deploymentStatus === 'error' && 'Deployment failed'}
+            </AlertTitle>
+            <AlertDescription>{deploymentMessage}</AlertDescription>
+            
+            {deploymentUrl && deploymentStatus === 'success' && (
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="mt-2" 
+                onClick={() => window.open(deploymentUrl, '_blank')}
+              >
+                View Deployment
+                <ExternalLink className="h-4 w-4 ml-1" />
+              </Button>
+            )}
+          </Alert>
+        )}
+      </div>
+    );
+  };
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center py-8">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  const compatiblePlatforms = platforms.filter(isCompatible);
+
+  if (compatiblePlatforms.length === 0) {
+    return (
+      <Alert>
+        <AlertCircle className="h-4 w-4" />
+        <AlertTitle>No compatible platforms</AlertTitle>
+        <AlertDescription>
+          No deployment platforms are available for {serverType} servers.
+        </AlertDescription>
+      </Alert>
+    );
+  }
+
+  return (
+    <Tabs 
+      defaultValue={selectedPlatform || compatiblePlatforms[0].id} 
+      value={selectedPlatform || undefined}
+      onValueChange={setSelectedPlatform}
+      className="w-full"
+    >
+      <TabsList className="mb-4 flex flex-wrap">
+        {compatiblePlatforms.map((platform) => (
+          <TabsTrigger 
+            key={platform.id} 
+            value={platform.id}
+            className="flex items-center space-x-2"
+          >
+            <img 
+              src={platform.logoUrl || `/logos/${platform.id}.svg`} 
+              alt={platform.name} 
+              className="h-4 w-4 object-contain"
+              onError={(e) => {
+                (e.target as HTMLImageElement).src = '/logos/default.svg';
+              }}
+            />
+            <span>{platform.name}</span>
+          </TabsTrigger>
+        ))}
+      </TabsList>
+      
+      {compatiblePlatforms.map((platform) => (
+        <TabsContent key={platform.id} value={platform.id} className="border rounded-lg p-4">
+          {renderDeploymentForm()}
+        </TabsContent>
+      ))}
+    </Tabs>
   );
-}
+};
+
+export default DeploymentSelector;

@@ -116,12 +116,33 @@ const MCPServers = () => {
     fetchServerIndex();
   }, []);
 
-  const handleDownload = (server: MCPServer) => {
+  const handleDownload = async (server: MCPServer) => {
     // Log the download request
     console.log("Downloading server:", server.name);
     
-    // Trigger download using our API endpoint
-    window.location.href = `/api/mcp-servers/download/${server.path}`;
+    try {
+      // First get the build ID from the API
+      const response = await fetch(`/api/mcp-servers/build/${server.path}`);
+      
+      if (response.ok) {
+        const data = await response.json();
+        
+        // If we have a build ID, enable deployment options
+        if (data.buildId) {
+          setBuildId(data.buildId);
+          setServerType(server.language);
+          setShowDeployment(true);
+        }
+      }
+      
+      // Trigger download using our API endpoint
+      window.location.href = `/api/mcp-servers/download/${server.path}`;
+    } catch (error) {
+      console.error("Error preparing for deployment:", error);
+      
+      // Still trigger the download even if deployment prep fails
+      window.location.href = `/api/mcp-servers/download/${server.path}`;
+    }
   };
   
   const handleCopyToClipboard = (code: string) => {
@@ -294,6 +315,35 @@ const MCPServers = () => {
           </Button>
         </div>
       </div>
+      
+      {/* Deployment UI */}
+      {showDeployment && buildId && (
+        <Card className="mb-8">
+          <CardHeader>
+            <CardTitle className="text-xl flex items-center">
+              <Cloud className="h-5 w-5 mr-2" />
+              Deploy MCP Server
+            </CardTitle>
+            <CardDescription>
+              Deploy your downloaded MCP server to one of these hosting platforms
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <DeploymentSelector 
+              buildId={buildId}
+              serverType={serverType}
+              onDeploymentComplete={(deploymentId, platformId) => {
+                console.log(`Deployment ${deploymentId} to ${platformId} completed`);
+              }}
+            />
+          </CardContent>
+          <CardFooter>
+            <Button variant="outline" onClick={() => setShowDeployment(false)}>
+              Hide Deployment Options
+            </Button>
+          </CardFooter>
+        </Card>
+      )}
       
       <Tabs defaultValue="examples" value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="mb-8">

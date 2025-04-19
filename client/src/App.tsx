@@ -15,6 +15,7 @@ import Enhancements from "@/pages/Enhancements";
 import ComplexityPage from "@/pages/ComplexityPage";
 import AnthropicPage from "@/pages/AnthropicPage";
 import TerminalTool from "@/pages/TerminalTool";
+import MCPServers from "@/pages/MCPServers";
 import { AuthProvider } from "@/hooks/use-auth";
 import { ProtectedRoute } from "@/lib/protected-route";
 
@@ -30,6 +31,7 @@ function Router() {
       <Route path="/documentation" component={Documentation} />
       <Route path="/about" component={About} />
       <Route path="/terminal-tool" component={TerminalTool} />
+      <Route path="/mcp-servers" component={MCPServers} />
       <Route path="/auth" component={AuthPage} />
       <Route component={NotFound} />
     </Switch>

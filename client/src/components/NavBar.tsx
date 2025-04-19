@@ -48,6 +48,9 @@ const NavBar = () => {
               <Link href="/terminal-tool" className={`px-3 py-2 ${location === '/terminal-tool' ? 'text-primary border-b-2 border-primary font-medium' : 'text-neutral-700 font-medium hover:text-primary'}`}>
                 Terminal Access
               </Link>
+              <Link href="/mcp-servers" className={`px-3 py-2 ${location === '/mcp-servers' ? 'text-primary border-b-2 border-primary font-medium' : 'text-neutral-700 font-medium hover:text-primary'}`}>
+                MCP Servers
+              </Link>
               <Link href="/documentation" className={`px-3 py-2 ${location === '/documentation' ? 'text-primary border-b-2 border-primary font-medium' : 'text-neutral-700 font-medium hover:text-primary'}`}>
                 Documentation
               </Link>

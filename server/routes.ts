@@ -23,6 +23,7 @@ import { platforms, generateDeploymentInstructions } from "./deployment/platform
 import { initiatePlatformDeployment, downloadDeployment, cleanupDeployments } from './deployment/deploymentController';
 import complexityRoutes from './routes/complexityRoutes';
 import terminalToolsRouter from './routes/terminal-tools';
+import mcpServersRouter from './routes/mcp-servers';
 
 // Validation function to ensure server templates are following protocol specifications
 function validateServerConfig(config: any): { valid: boolean; errors: string[] } {
@@ -1049,6 +1050,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Mount the terminal tools routes
   app.use('/api/tools/terminal', terminalToolsRouter);
+  
+  // Mount the MCP servers routes
+  app.use('/api/mcp-servers', mcpServersRouter);
 
   const httpServer = createServer(app);
   return httpServer;

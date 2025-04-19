@@ -68,7 +68,9 @@ const AnthropicAssistant = ({
       return;
     }
 
-    if (!apiKeyIsSet && !process.env.ANTHROPIC_API_KEY) {
+    // Process environment variables are not accessible in the browser
+    // User needs to provide an API key if the server doesn't have one
+    if (!apiKeyIsSet) {
       setShowApiKeyInput(true);
       return;
     }
@@ -86,7 +88,7 @@ const AnthropicAssistant = ({
           prompt,
           language,
           complexity,
-          apiKey: apiKeyIsSet ? apiKey : undefined
+          apiKey: apiKey
         }),
       });
 
@@ -130,7 +132,9 @@ const AnthropicAssistant = ({
       return;
     }
 
-    if (!apiKeyIsSet && !process.env.ANTHROPIC_API_KEY) {
+    // Process environment variables are not accessible in the browser
+    // User needs to provide an API key if the server doesn't have one
+    if (!apiKeyIsSet) {
       setShowApiKeyInput(true);
       return;
     }
@@ -146,7 +150,7 @@ const AnthropicAssistant = ({
         },
         body: JSON.stringify({ 
           code: codeToAnalyze,
-          apiKey: apiKeyIsSet ? apiKey : undefined
+          apiKey: apiKey
         }),
       });
 
@@ -185,7 +189,9 @@ const AnthropicAssistant = ({
       return;
     }
 
-    if (!apiKeyIsSet && !process.env.ANTHROPIC_API_KEY) {
+    // Process environment variables are not accessible in the browser
+    // User needs to provide an API key if the server doesn't have one
+    if (!apiKeyIsSet) {
       setShowApiKeyInput(true);
       return;
     }
@@ -203,7 +209,7 @@ const AnthropicAssistant = ({
           code: codeToDocument,
           format,
           includeExamples,
-          apiKey: apiKeyIsSet ? apiKey : undefined
+          apiKey: apiKey
         }),
       });
 
@@ -489,17 +495,14 @@ const AnthropicAssistant = ({
                   </Select>
                 </div>
                 
-                <div>
-                  <Label htmlFor="includeExamples" className="block mb-1.5">Include Examples</Label>
-                  <div className="flex items-center space-x-2">
+                <div className="flex flex-col justify-end">
+                  <div className="flex items-center space-x-2 mt-6">
                     <Switch
                       id="includeExamples"
                       checked={includeExamples}
                       onCheckedChange={setIncludeExamples}
                     />
-                    <Label htmlFor="includeExamples" className="cursor-pointer">
-                      {includeExamples ? "Yes" : "No"}
-                    </Label>
+                    <Label htmlFor="includeExamples">Include Usage Examples</Label>
                   </div>
                 </div>
               </div>
@@ -527,12 +530,8 @@ const AnthropicAssistant = ({
               {generatedDocs && (
                 <div className="mt-4">
                   <Label>Generated Documentation</Label>
-                  <div className="bg-gray-100 p-4 rounded-md mt-1.5 prose max-w-none overflow-auto max-h-[300px]">
-                    {format === "html" ? (
-                      <div dangerouslySetInnerHTML={{ __html: generatedDocs }} />
-                    ) : (
-                      <pre className="whitespace-pre-wrap">{generatedDocs}</pre>
-                    )}
+                  <div className="p-4 bg-gray-50 rounded-md mt-1.5 overflow-auto max-h-[300px]">
+                    <pre className="whitespace-pre-wrap">{generatedDocs}</pre>
                   </div>
                 </div>
               )}
@@ -540,20 +539,6 @@ const AnthropicAssistant = ({
           </Tabs>
         )}
       </CardContent>
-      
-      {!showApiKeyInput && (
-        <CardFooter className="flex justify-between">
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={() => setShowApiKeyInput(true)}
-            className="text-xs"
-          >
-            <Key className="w-3 h-3 mr-1" />
-            {apiKeyIsSet ? "Change API Key" : "Set API Key"}
-          </Button>
-        </CardFooter>
-      )}
     </Card>
   );
 };

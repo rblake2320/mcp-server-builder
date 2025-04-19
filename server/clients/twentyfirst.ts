@@ -3,7 +3,7 @@ import axios from 'axios';
 // 21st.dev API client
 export class TwentyfirstClient {
   private apiKey: string;
-  private baseUrl = 'https://api.21st.dev';
+  private baseUrl = 'https://api.twentyfirst.dev';
   
   constructor(apiKey: string) {
     this.apiKey = apiKey;

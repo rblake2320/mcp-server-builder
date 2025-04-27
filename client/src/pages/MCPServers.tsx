@@ -329,12 +329,32 @@ const MCPServers = () => {
         </div>
       </div>
       
-      {/* Main title - Exactly matching your image */}
-      <div className="text-center mb-10">
+      {/* Main title with server statistics */}
+      <div className="text-center mb-6">
         <h1 className="text-4xl font-bold mb-2">Awesome MCP Servers</h1>
-        <p className="text-muted-foreground">
+        <p className="text-muted-foreground mb-4">
           A collection of servers for the Model Context Protocol.
         </p>
+        
+        {/* Server statistics display */}
+        {serverStats && (
+          <div className="flex justify-center mt-4 mb-2">
+            <div className="bg-slate-900 text-white py-2 px-6 rounded-md flex items-center gap-8">
+              <div className="flex items-center">
+                <span className="font-bold text-lg">{serverStats.totalCount.toLocaleString()}</span>
+                <span className="ml-2">Total Servers</span>
+              </div>
+              <div className="flex items-center">
+                <div className="w-3 h-3 rounded-full bg-green-500 mr-2"></div>
+                <span className="font-medium">{serverStats.upCount.toLocaleString()} Up</span>
+              </div>
+              <div className="flex items-center">
+                <div className="w-3 h-3 rounded-full bg-red-500 mr-2"></div>
+                <span className="font-medium">{serverStats.downCount.toLocaleString()} Down</span>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
       
       {/* This div is intentionally left empty because filter categories are now handled differently */}

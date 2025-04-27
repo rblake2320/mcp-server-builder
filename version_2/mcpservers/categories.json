@@ -1,0 +1,94 @@
+{
+  "categories": [
+    {
+      "id": "web_search",
+      "name": "Web Search",
+      "description": "MCP servers for web search",
+      "count": 2
+    },
+    {
+      "id": "memory_management",
+      "name": "Memory Management",
+      "description": "MCP servers for memory management",
+      "count": 3
+    },
+    {
+      "id": "desktop_tools",
+      "name": "Desktop Tools",
+      "description": "MCP servers for desktop tools",
+      "count": 5
+    },
+    {
+      "id": "thinking_reasoning",
+      "name": "Thinking Reasoning",
+      "description": "MCP servers for thinking reasoning",
+      "count": 6
+    },
+    {
+      "id": "api_integration",
+      "name": "Api Integration",
+      "description": "MCP servers for api integration",
+      "count": 2
+    },
+    {
+      "id": "data_processing",
+      "name": "Data Processing",
+      "description": "MCP servers for data processing",
+      "count": 3
+    },
+    {
+      "id": "code_assistance",
+      "name": "Code Assistance",
+      "description": "MCP servers for code assistance",
+      "count": 0
+    },
+    {
+      "id": "browser_automation",
+      "name": "Browser Automation",
+      "description": "MCP servers for browser automation",
+      "count": 0
+    },
+    {
+      "id": "file_operations",
+      "name": "File Operations",
+      "description": "MCP servers for file operations",
+      "count": 1
+    },
+    {
+      "id": "communication",
+      "name": "Communication",
+      "description": "MCP servers for communication",
+      "count": 0
+    },
+    {
+      "id": "utilities",
+      "name": "Utilities",
+      "description": "MCP servers for utilities",
+      "count": 1
+    },
+    {
+      "id": "ai_services",
+      "name": "Ai Services",
+      "description": "MCP servers for ai services",
+      "count": 1
+    },
+    {
+      "id": "database",
+      "name": "Database",
+      "description": "MCP servers for database",
+      "count": 0
+    },
+    {
+      "id": "security",
+      "name": "Security",
+      "description": "MCP servers for security",
+      "count": 0
+    },
+    {
+      "id": "document_tools",
+      "name": "Document Tools",
+      "description": "MCP servers for document tools",
+      "count": 0
+    }
+  ]
+}

@@ -12,10 +12,16 @@
  * - Provide code completion and reference tools
  */
 
-const fs = require('fs-extra');
-const path = require('path');
-const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
-require('dotenv').config();
+import fs from 'fs-extra';
+import path from 'path';
+import fetch from 'node-fetch';
+import dotenv from 'dotenv';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+dotenv.config();
 
 // Configuration and paths
 const SERVERS_ROOT = path.join(__dirname, '..');
@@ -911,7 +917,7 @@ async function importInBatches(options = {}) {
 }
 
 // Export functions
-module.exports = {
+export {
   initializeDirectories,
   fetchContext7Libraries,
   importContext7Library,

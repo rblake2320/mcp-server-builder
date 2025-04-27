@@ -11,10 +11,14 @@
  *   node import_all_servers.js --source=context7 --count=3000
  */
 
-const { importBulkServers } = require('./utils/server_importer');
-const { importInBatches } = require('./utils/context7_importer');
-const fs = require('fs-extra');
-const path = require('path');
+import { importBulkServers } from './utils/server_importer.js';
+import { importInBatches } from './utils/context7_importer.js';
+import fs from 'fs-extra';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Parse command line arguments
 const args = process.argv.slice(2);

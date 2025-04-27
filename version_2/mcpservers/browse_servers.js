@@ -12,9 +12,13 @@
  * - Sort by name, category, or language
  */
 
-const fs = require('fs-extra');
-const path = require('path');
-const readline = require('readline');
+import fs from 'fs-extra';
+import path from 'path';
+import readline from 'readline';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Path to server index
 const SERVER_INDEX_PATH = path.join(__dirname, 'server_index.json');

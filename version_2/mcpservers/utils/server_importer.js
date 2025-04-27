@@ -12,11 +12,17 @@
  * - Track server popularity and usage statistics
  */
 
-const fs = require('fs-extra');
-const path = require('path');
-const { Octokit } = require('@octokit/rest');
-const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
-require('dotenv').config();
+import fs from 'fs-extra';
+import path from 'path';
+import { Octokit } from '@octokit/rest';
+import fetch from 'node-fetch';
+import dotenv from 'dotenv';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+dotenv.config();
 
 // Configuration and paths
 const SERVERS_ROOT = path.join(__dirname, '..');
@@ -1049,7 +1055,7 @@ async function generateCustomServers(count) {
 }
 
 // Export the functions
-module.exports = {
+export {
   initializeDirectories,
   loadServerIndex,
   saveServerIndex,

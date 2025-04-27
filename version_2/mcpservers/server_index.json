@@ -8,8 +8,15 @@
       "path": "templates/basic_template.js",
       "author": "MCP Server Builder",
       "category": "utilities",
-      "tools": ["echo", "ping"],
-      "tags": ["starter", "template", "basic"]
+      "tools": [
+        "echo",
+        "ping"
+      ],
+      "tags": [
+        "starter",
+        "template",
+        "basic"
+      ]
     },
     {
       "id": "llm_integration_server",
@@ -19,8 +26,16 @@
       "path": "templates/llm_integration_server.js",
       "author": "MCP Server Builder",
       "category": "ai_services",
-      "tools": ["generate_text", "classify_text", "embed_text"],
-      "tags": ["llm", "ai", "text-generation"]
+      "tools": [
+        "generate_text",
+        "classify_text",
+        "embed_text"
+      ],
+      "tags": [
+        "llm",
+        "ai",
+        "text-generation"
+      ]
     }
   ],
   "examples": [
@@ -32,8 +47,17 @@
       "path": "examples/file_browser_server.js",
       "author": "MCP Server Builder",
       "category": "file_operations",
-      "tools": ["list_files", "read_file", "write_file", "delete_file"],
-      "tags": ["file", "storage", "filesystem"]
+      "tools": [
+        "list_files",
+        "read_file",
+        "write_file",
+        "delete_file"
+      ],
+      "tags": [
+        "file",
+        "storage",
+        "filesystem"
+      ]
     },
     {
       "id": "brave_search_server",
@@ -43,9 +67,789 @@
       "path": "examples/brave_search_server.js",
       "author": "MCP Server Builder",
       "category": "web_search",
-      "tools": ["web_search", "fetch_content", "news_search"],
-      "tags": ["search", "web", "brave"]
+      "tools": [
+        "web_search",
+        "fetch_content",
+        "news_search"
+      ],
+      "tags": [
+        "search",
+        "web",
+        "brave"
+      ]
     }
   ],
-  "imported": []
+  "imported": [
+    {
+      "id": "smithery_api_integration_server_1",
+      "name": "api_integration_server_1",
+      "description": "A api integration MCP server",
+      "language": "javascript",
+      "path": "imported/smithery/api_integration/api_integration_server_1.js",
+      "author": "smithery_user_12",
+      "source": "smithery",
+      "category": "api_integration",
+      "tools": [
+        "api_integration_tool_1_1",
+        "api_integration_tool_1_2"
+      ],
+      "tags": [
+        "api",
+        "integration",
+        "service",
+        "api_integration",
+        "javascript"
+      ]
+    },
+    {
+      "id": "smithery_thinking_reasoning_server_2",
+      "name": "thinking_reasoning_server_2",
+      "description": "A thinking reasoning MCP server",
+      "language": "javascript",
+      "path": "imported/smithery/thinking_reasoning/thinking_reasoning_server_2.js",
+      "author": "smithery_user_80",
+      "source": "smithery",
+      "category": "thinking_reasoning",
+      "tools": [
+        "thinking_reasoning_tool_2_1",
+        "thinking_reasoning_tool_2_2"
+      ],
+      "tags": [
+        "thinking",
+        "reasoning",
+        "logic",
+        "thinking_reasoning",
+        "javascript"
+      ]
+    },
+    {
+      "id": "smithery_desktop_tools_server_3",
+      "name": "desktop_tools_server_3",
+      "description": "A desktop tools MCP server",
+      "language": "javascript",
+      "path": "imported/smithery/desktop_tools/desktop_tools_server_3.js",
+      "author": "smithery_user_89",
+      "source": "smithery",
+      "category": "desktop_tools",
+      "tools": [
+        "desktop_tools_tool_3_1",
+        "desktop_tools_tool_3_2"
+      ],
+      "tags": [
+        "desktop",
+        "system",
+        "command",
+        "desktop_tools",
+        "javascript"
+      ]
+    },
+    {
+      "id": "smithery_memory_management_server_4",
+      "name": "memory_management_server_4",
+      "description": "A memory management MCP server",
+      "language": "python",
+      "path": "imported/smithery/memory_management/memory_management_server_4.py",
+      "author": "smithery_user_29",
+      "source": "smithery",
+      "category": "memory_management",
+      "tools": [
+        "memory_management_tool_4_1",
+        "memory_management_tool_4_2"
+      ],
+      "tags": [
+        "memory",
+        "storage",
+        "persistence",
+        "memory_management",
+        "python"
+      ]
+    },
+    {
+      "id": "smithery_api_integration_server_5",
+      "name": "api_integration_server_5",
+      "description": "A api integration MCP server",
+      "language": "javascript",
+      "path": "imported/smithery/api_integration/api_integration_server_5.js",
+      "author": "smithery_user_65",
+      "source": "smithery",
+      "category": "api_integration",
+      "tools": [
+        "api_integration_tool_5_1",
+        "api_integration_tool_5_2"
+      ],
+      "tags": [
+        "api",
+        "integration",
+        "service",
+        "api_integration",
+        "javascript"
+      ]
+    },
+    {
+      "id": "smithery_desktop_tools_server_6",
+      "name": "desktop_tools_server_6",
+      "description": "A desktop tools MCP server",
+      "language": "javascript",
+      "path": "imported/smithery/desktop_tools/desktop_tools_server_6.js",
+      "author": "smithery_user_4",
+      "source": "smithery",
+      "category": "desktop_tools",
+      "tools": [
+        "desktop_tools_tool_6_1",
+        "desktop_tools_tool_6_2"
+      ],
+      "tags": [
+        "desktop",
+        "system",
+        "command",
+        "desktop_tools",
+        "javascript"
+      ]
+    },
+    {
+      "id": "smithery_thinking_reasoning_server_7",
+      "name": "thinking_reasoning_server_7",
+      "description": "A thinking reasoning MCP server",
+      "language": "javascript",
+      "path": "imported/smithery/thinking_reasoning/thinking_reasoning_server_7.js",
+      "author": "smithery_user_52",
+      "source": "smithery",
+      "category": "thinking_reasoning",
+      "tools": [
+        "thinking_reasoning_tool_7_1",
+        "thinking_reasoning_tool_7_2"
+      ],
+      "tags": [
+        "thinking",
+        "reasoning",
+        "logic",
+        "thinking_reasoning",
+        "javascript"
+      ]
+    },
+    {
+      "id": "smithery_desktop_tools_server_8",
+      "name": "desktop_tools_server_8",
+      "description": "A desktop tools MCP server",
+      "language": "javascript",
+      "path": "imported/smithery/desktop_tools/desktop_tools_server_8.js",
+      "author": "smithery_user_74",
+      "source": "smithery",
+      "category": "desktop_tools",
+      "tools": [
+        "desktop_tools_tool_8_1",
+        "desktop_tools_tool_8_2"
+      ],
+      "tags": [
+        "desktop",
+        "system",
+        "command",
+        "desktop_tools",
+        "javascript"
+      ]
+    },
+    {
+      "id": "smithery_data_processing_server_9",
+      "name": "data_processing_server_9",
+      "description": "A data processing MCP server",
+      "language": "javascript",
+      "path": "imported/smithery/data_processing/data_processing_server_9.js",
+      "author": "smithery_user_75",
+      "source": "smithery",
+      "category": "data_processing",
+      "tools": [
+        "data_processing_tool_9_1",
+        "data_processing_tool_9_2"
+      ],
+      "tags": [
+        "data",
+        "processing",
+        "analysis",
+        "data_processing",
+        "javascript"
+      ]
+    },
+    {
+      "id": "smithery_data_processing_server_10",
+      "name": "data_processing_server_10",
+      "description": "A data processing MCP server",
+      "language": "python",
+      "path": "imported/smithery/data_processing/data_processing_server_10.py",
+      "author": "smithery_user_99",
+      "source": "smithery",
+      "category": "data_processing",
+      "tools": [
+        "data_processing_tool_10_1",
+        "data_processing_tool_10_2"
+      ],
+      "tags": [
+        "data",
+        "processing",
+        "analysis",
+        "data_processing",
+        "python"
+      ]
+    },
+    {
+      "id": "smithery_data_processing_server_11",
+      "name": "data_processing_server_11",
+      "description": "A data processing MCP server",
+      "language": "javascript",
+      "path": "imported/smithery/data_processing/data_processing_server_11.js",
+      "author": "smithery_user_98",
+      "source": "smithery",
+      "category": "data_processing",
+      "tools": [
+        "data_processing_tool_11_1",
+        "data_processing_tool_11_2"
+      ],
+      "tags": [
+        "data",
+        "processing",
+        "analysis",
+        "data_processing",
+        "javascript"
+      ]
+    },
+    {
+      "id": "smithery_desktop_tools_server_12",
+      "name": "desktop_tools_server_12",
+      "description": "A desktop tools MCP server",
+      "language": "javascript",
+      "path": "imported/smithery/desktop_tools/desktop_tools_server_12.js",
+      "author": "smithery_user_43",
+      "source": "smithery",
+      "category": "desktop_tools",
+      "tools": [
+        "desktop_tools_tool_12_1",
+        "desktop_tools_tool_12_2"
+      ],
+      "tags": [
+        "desktop",
+        "system",
+        "command",
+        "desktop_tools",
+        "javascript"
+      ]
+    },
+    {
+      "id": "smithery_web_search_server_13",
+      "name": "web_search_server_13",
+      "description": "A web search MCP server",
+      "language": "javascript",
+      "path": "imported/smithery/web_search/web_search_server_13.js",
+      "author": "smithery_user_89",
+      "source": "smithery",
+      "category": "web_search",
+      "tools": [
+        "web_search_tool_13_1",
+        "web_search_tool_13_2"
+      ],
+      "tags": [
+        "search",
+        "web",
+        "browsing",
+        "web_search",
+        "javascript"
+      ]
+    },
+    {
+      "id": "smithery_thinking_reasoning_server_14",
+      "name": "thinking_reasoning_server_14",
+      "description": "A thinking reasoning MCP server",
+      "language": "javascript",
+      "path": "imported/smithery/thinking_reasoning/thinking_reasoning_server_14.js",
+      "author": "smithery_user_75",
+      "source": "smithery",
+      "category": "thinking_reasoning",
+      "tools": [
+        "thinking_reasoning_tool_14_1",
+        "thinking_reasoning_tool_14_2"
+      ],
+      "tags": [
+        "thinking",
+        "reasoning",
+        "logic",
+        "thinking_reasoning",
+        "javascript"
+      ]
+    },
+    {
+      "id": "smithery_desktop_tools_server_15",
+      "name": "desktop_tools_server_15",
+      "description": "A desktop tools MCP server",
+      "language": "javascript",
+      "path": "imported/smithery/desktop_tools/desktop_tools_server_15.js",
+      "author": "smithery_user_9",
+      "source": "smithery",
+      "category": "desktop_tools",
+      "tools": [
+        "desktop_tools_tool_15_1",
+        "desktop_tools_tool_15_2"
+      ],
+      "tags": [
+        "desktop",
+        "system",
+        "command",
+        "desktop_tools",
+        "javascript"
+      ]
+    },
+    {
+      "id": "smithery_memory_management_server_16",
+      "name": "memory_management_server_16",
+      "description": "A memory management MCP server",
+      "language": "javascript",
+      "path": "imported/smithery/memory_management/memory_management_server_16.js",
+      "author": "smithery_user_92",
+      "source": "smithery",
+      "category": "memory_management",
+      "tools": [
+        "memory_management_tool_16_1",
+        "memory_management_tool_16_2"
+      ],
+      "tags": [
+        "memory",
+        "storage",
+        "persistence",
+        "memory_management",
+        "javascript"
+      ]
+    },
+    {
+      "id": "smithery_thinking_reasoning_server_17",
+      "name": "thinking_reasoning_server_17",
+      "description": "A thinking reasoning MCP server",
+      "language": "javascript",
+      "path": "imported/smithery/thinking_reasoning/thinking_reasoning_server_17.js",
+      "author": "smithery_user_29",
+      "source": "smithery",
+      "category": "thinking_reasoning",
+      "tools": [
+        "thinking_reasoning_tool_17_1",
+        "thinking_reasoning_tool_17_2"
+      ],
+      "tags": [
+        "thinking",
+        "reasoning",
+        "logic",
+        "thinking_reasoning",
+        "javascript"
+      ]
+    },
+    {
+      "id": "smithery_thinking_reasoning_server_18",
+      "name": "thinking_reasoning_server_18",
+      "description": "A thinking reasoning MCP server",
+      "language": "python",
+      "path": "imported/smithery/thinking_reasoning/thinking_reasoning_server_18.py",
+      "author": "smithery_user_83",
+      "source": "smithery",
+      "category": "thinking_reasoning",
+      "tools": [
+        "thinking_reasoning_tool_18_1",
+        "thinking_reasoning_tool_18_2"
+      ],
+      "tags": [
+        "thinking",
+        "reasoning",
+        "logic",
+        "thinking_reasoning",
+        "python"
+      ]
+    },
+    {
+      "id": "smithery_thinking_reasoning_server_19",
+      "name": "thinking_reasoning_server_19",
+      "description": "A thinking reasoning MCP server",
+      "language": "python",
+      "path": "imported/smithery/thinking_reasoning/thinking_reasoning_server_19.py",
+      "author": "smithery_user_72",
+      "source": "smithery",
+      "category": "thinking_reasoning",
+      "tools": [
+        "thinking_reasoning_tool_19_1",
+        "thinking_reasoning_tool_19_2"
+      ],
+      "tags": [
+        "thinking",
+        "reasoning",
+        "logic",
+        "thinking_reasoning",
+        "python"
+      ]
+    },
+    {
+      "id": "smithery_memory_management_server_20",
+      "name": "memory_management_server_20",
+      "description": "A memory management MCP server",
+      "language": "python",
+      "path": "imported/smithery/memory_management/memory_management_server_20.py",
+      "author": "smithery_user_96",
+      "source": "smithery",
+      "category": "memory_management",
+      "tools": [
+        "memory_management_tool_20_1",
+        "memory_management_tool_20_2"
+      ],
+      "tags": [
+        "memory",
+        "storage",
+        "persistence",
+        "memory_management",
+        "python"
+      ]
+    },
+    {
+      "id": "context7_next_js",
+      "name": "Next.js Documentation",
+      "description": "Documentation for Next.js sourced from Context7",
+      "language": "javascript",
+      "path": "imported/context7/frameworks/next_js_docs.js",
+      "author": "Context7",
+      "source": "context7",
+      "sourceRepo": "vercel/next.js",
+      "category": "documentation",
+      "subcategory": "frameworks",
+      "tokens": "485.9K",
+      "snippets": "4K",
+      "tools": [
+        "search_docs",
+        "get_section",
+        "list_sections",
+        "get_code_examples"
+      ],
+      "tags": [
+        "documentation",
+        "frameworks",
+        "next.js",
+        "reference",
+        "code-examples"
+      ]
+    },
+    {
+      "id": "context7_elasticsearch",
+      "name": "Elasticsearch Documentation",
+      "description": "Documentation for Elasticsearch sourced from Context7",
+      "language": "javascript",
+      "path": "imported/context7/libraries/elasticsearch_docs.js",
+      "author": "Context7",
+      "source": "context7",
+      "sourceRepo": "elastic/elasticsearch",
+      "category": "documentation",
+      "subcategory": "libraries",
+      "tokens": "627.7K",
+      "snippets": "5.2K",
+      "tools": [
+        "search_docs",
+        "get_section",
+        "list_sections",
+        "get_code_examples"
+      ],
+      "tags": [
+        "documentation",
+        "libraries",
+        "elasticsearch",
+        "reference",
+        "code-examples"
+      ]
+    },
+    {
+      "id": "context7_laravel",
+      "name": "Laravel Documentation",
+      "description": "Documentation for Laravel sourced from Context7",
+      "language": "javascript",
+      "path": "imported/context7/frameworks/laravel_docs.js",
+      "author": "Context7",
+      "source": "context7",
+      "sourceRepo": "laravel/docs",
+      "category": "documentation",
+      "subcategory": "frameworks",
+      "tokens": "278.1K",
+      "snippets": "3.1K",
+      "tools": [
+        "search_docs",
+        "get_section",
+        "list_sections",
+        "get_code_examples"
+      ],
+      "tags": [
+        "documentation",
+        "frameworks",
+        "laravel",
+        "reference",
+        "code-examples"
+      ]
+    },
+    {
+      "id": "context7_clerk",
+      "name": "Clerk Documentation",
+      "description": "Documentation for Clerk sourced from Context7",
+      "language": "javascript",
+      "path": "imported/context7/libraries/clerk_docs.js",
+      "author": "Context7",
+      "source": "context7",
+      "sourceRepo": "clerk/clerk-docs",
+      "category": "documentation",
+      "subcategory": "libraries",
+      "tokens": "399.7K",
+      "snippets": "2.4K",
+      "tools": [
+        "search_docs",
+        "get_section",
+        "list_sections",
+        "get_code_examples"
+      ],
+      "tags": [
+        "documentation",
+        "libraries",
+        "clerk",
+        "reference",
+        "code-examples"
+      ]
+    },
+    {
+      "id": "context7_mongodb",
+      "name": "MongoDB Documentation",
+      "description": "Documentation for MongoDB sourced from Context7",
+      "language": "javascript",
+      "path": "imported/context7/databases/mongodb_docs.js",
+      "author": "Context7",
+      "source": "context7",
+      "sourceRepo": "mongodb/docs",
+      "category": "documentation",
+      "subcategory": "databases",
+      "tokens": "923.3K",
+      "snippets": "8.5K",
+      "tools": [
+        "search_docs",
+        "get_section",
+        "list_sections",
+        "get_code_examples"
+      ],
+      "tags": [
+        "documentation",
+        "databases",
+        "mongodb",
+        "reference",
+        "code-examples"
+      ]
+    },
+    {
+      "id": "context7_upstash_redis",
+      "name": "Upstash Redis Documentation",
+      "description": "Documentation for Upstash Redis sourced from Context7",
+      "language": "javascript",
+      "path": "imported/context7/databases/upstash_redis_docs.js",
+      "author": "Context7",
+      "source": "context7",
+      "sourceRepo": "upstash/docs",
+      "category": "documentation",
+      "subcategory": "databases",
+      "tokens": "117.8K",
+      "snippets": "849",
+      "tools": [
+        "search_docs",
+        "get_section",
+        "list_sections",
+        "get_code_examples"
+      ],
+      "tags": [
+        "documentation",
+        "databases",
+        "upstash redis",
+        "reference",
+        "code-examples"
+      ]
+    },
+    {
+      "id": "context7_fastapi",
+      "name": "FastAPI Documentation",
+      "description": "Documentation for FastAPI sourced from Context7",
+      "language": "javascript",
+      "path": "imported/context7/apis/fastapi_docs.js",
+      "author": "Context7",
+      "source": "context7",
+      "sourceRepo": "tiangolo/fastapi",
+      "category": "documentation",
+      "subcategory": "apis",
+      "tokens": "190K",
+      "snippets": "1.8K",
+      "tools": [
+        "search_docs",
+        "get_section",
+        "list_sections",
+        "get_code_examples"
+      ],
+      "tags": [
+        "documentation",
+        "apis",
+        "fastapi",
+        "reference",
+        "code-examples"
+      ]
+    },
+    {
+      "id": "context7_pytorch_tutorials",
+      "name": "PyTorch Tutorials Documentation",
+      "description": "Documentation for PyTorch Tutorials sourced from Context7",
+      "language": "javascript",
+      "path": "imported/context7/libraries/pytorch_tutorials_docs.js",
+      "author": "Context7",
+      "source": "context7",
+      "sourceRepo": "pytorch/tutorials",
+      "category": "documentation",
+      "subcategory": "libraries",
+      "tokens": "184.7K",
+      "snippets": "877",
+      "tools": [
+        "search_docs",
+        "get_section",
+        "list_sections",
+        "get_code_examples"
+      ],
+      "tags": [
+        "documentation",
+        "libraries",
+        "pytorch tutorials",
+        "reference",
+        "code-examples"
+      ]
+    },
+    {
+      "id": "context7_vue_3",
+      "name": "Vue 3 Documentation",
+      "description": "Documentation for Vue 3 sourced from Context7",
+      "language": "javascript",
+      "path": "imported/context7/frameworks/vue_3_docs.js",
+      "author": "Context7",
+      "source": "context7",
+      "sourceRepo": "vuejs/docs",
+      "category": "documentation",
+      "subcategory": "frameworks",
+      "tokens": "138.8K",
+      "snippets": "1.3K",
+      "tools": [
+        "search_docs",
+        "get_section",
+        "list_sections",
+        "get_code_examples"
+      ],
+      "tags": [
+        "documentation",
+        "frameworks",
+        "vue 3",
+        "reference",
+        "code-examples"
+      ]
+    },
+    {
+      "id": "context7_supabase",
+      "name": "Supabase Documentation",
+      "description": "Documentation for Supabase sourced from Context7",
+      "language": "javascript",
+      "path": "imported/context7/databases/supabase_docs.js",
+      "author": "Context7",
+      "source": "context7",
+      "sourceRepo": "supabase/supabase",
+      "category": "documentation",
+      "subcategory": "databases",
+      "tokens": "670.4K",
+      "snippets": "4.7K",
+      "tools": [
+        "search_docs",
+        "get_section",
+        "list_sections",
+        "get_code_examples"
+      ],
+      "tags": [
+        "documentation",
+        "databases",
+        "supabase",
+        "reference",
+        "code-examples"
+      ]
+    },
+    {
+      "id": "context7_frameworks_lib_1",
+      "name": "frameworks-lib-1 Documentation",
+      "description": "Documentation for frameworks-lib-1 sourced from Context7",
+      "language": "javascript",
+      "path": "imported/context7/frameworks/frameworks_lib_1_docs.js",
+      "author": "Context7",
+      "source": "context7",
+      "sourceRepo": "example-org/frameworks-lib-1",
+      "category": "documentation",
+      "subcategory": "frameworks",
+      "tokens": "663661",
+      "snippets": "9820",
+      "tools": [
+        "search_docs",
+        "get_section",
+        "list_sections",
+        "get_code_examples"
+      ],
+      "tags": [
+        "documentation",
+        "frameworks",
+        "frameworks-lib-1",
+        "reference",
+        "code-examples"
+      ]
+    },
+    {
+      "id": "context7_apis_lib_4",
+      "name": "apis-lib-4 Documentation",
+      "description": "Documentation for apis-lib-4 sourced from Context7",
+      "language": "javascript",
+      "path": "imported/context7/apis/apis_lib_4_docs.js",
+      "author": "Context7",
+      "source": "context7",
+      "sourceRepo": "example-org/apis-lib-4",
+      "category": "documentation",
+      "subcategory": "apis",
+      "tokens": "610734",
+      "snippets": "3844",
+      "tools": [
+        "search_docs",
+        "get_section",
+        "list_sections",
+        "get_code_examples"
+      ],
+      "tags": [
+        "documentation",
+        "apis",
+        "apis-lib-4",
+        "reference",
+        "code-examples"
+      ]
+    },
+    {
+      "id": "context7_frameworks_lib_6",
+      "name": "frameworks-lib-6 Documentation",
+      "description": "Documentation for frameworks-lib-6 sourced from Context7",
+      "language": "javascript",
+      "path": "imported/context7/frameworks/frameworks_lib_6_docs.js",
+      "author": "Context7",
+      "source": "context7",
+      "sourceRepo": "example-org/frameworks-lib-6",
+      "category": "documentation",
+      "subcategory": "frameworks",
+      "tokens": "585056",
+      "snippets": "4829",
+      "tools": [
+        "search_docs",
+        "get_section",
+        "list_sections",
+        "get_code_examples"
+      ],
+      "tags": [
+        "documentation",
+        "frameworks",
+        "frameworks-lib-6",
+        "reference",
+        "code-examples"
+      ]
+    }
+  ]
 }

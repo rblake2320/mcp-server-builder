@@ -5,7 +5,7 @@
  * displaying the real-time server count and status.
  */
 
-const { startMonitor } = require('./status_monitor');
+import { startMonitor } from './status_monitor.js';
 
 console.log('Welcome to the MCP Servers Collection');
 console.log('Starting real-time status monitor...\n');

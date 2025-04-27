@@ -9,10 +9,14 @@
  * The monitor automatically updates when servers are added, removed, or change status.
  */
 
-const fs = require('fs');
-const path = require('path');
-const chalk = require('chalk');
-const boxen = require('boxen');
+import fs from 'fs';
+import path from 'path';
+import chalk from 'chalk';
+import boxen from 'boxen';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Path to server index
 const SERVER_INDEX_PATH = path.join(__dirname, 'server_index.json');
@@ -97,11 +101,11 @@ function startMonitor() {
 }
 
 // Start monitor when this file is run directly
-if (require.main === module) {
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
   startMonitor();
 }
 
-module.exports = {
+export {
   startMonitor,
   createStatusDisplay
 };

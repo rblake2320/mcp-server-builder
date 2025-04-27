@@ -1,9 +1,14 @@
 import { Request, Response, Router } from 'express';
 import path from 'path';
 import fs from 'fs';
+import os from 'os';
+import archiver from 'archiver';
 
 // Create router
 const router = Router();
+
+// MCP servers directory path
+const mcpServersDir = path.join(process.cwd(), 'version_2', 'mcpservers');
 
 // Helper function to get unique values of a property from an array of objects
 function getUniqueValues(array: any[], property: string): string[] {
@@ -135,13 +140,13 @@ router.get('/stats', getServerStats);
 router.get('/languages', getLanguagesStats);
 router.get('/categories', getCategoriesStats);
 
-// GET /api/mcp-servers/:path - Get server code
-router.get('/:serverPath(*)', (req, res) => {
+// GET /api/mcp-servers/build/:path - Get build ID for deployment
+router.get('/build/:serverPath(*)', (req, res) => {
   try {
     const serverPath = req.params.serverPath;
     const fullPath = path.join(mcpServersDir, serverPath);
     
-    // Security check to make sure we're still in the mcpservers directory
+    // Security check
     const normalizedPath = path.normalize(fullPath);
     if (!normalizedPath.startsWith(mcpServersDir)) {
       return res.status(403).json({ error: 'Access denied' });
@@ -151,31 +156,14 @@ router.get('/:serverPath(*)', (req, res) => {
       return res.status(404).json({ error: 'Server not found' });
     }
     
-    // Read the server code
-    let content = '';
-    if (fs.statSync(fullPath).isDirectory()) {
-      // List files in the directory
-      const files = fs.readdirSync(fullPath);
-      // Try to find a main file
-      const mainFiles = ['index.js', 'server.js', 'app.js', 'main.js', 'index.ts', 'server.ts', 'app.ts', 'main.ts'];
-      const mainFile = mainFiles.find(file => files.includes(file));
-      
-      if (mainFile) {
-        content = fs.readFileSync(path.join(fullPath, mainFile), 'utf8');
-      } else {
-        // Just list the files if no main file is found
-        content = `// Directory listing:\n\n${files.join('\n')}`;
-      }
-    } else {
-      // Read the file content
-      content = fs.readFileSync(fullPath, 'utf8');
-    }
+    // Generate a unique build ID
+    const buildId = `mcp-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
     
-    res.json({ content });
+    res.json({ buildId });
   } catch (error) {
-    console.error('Error reading server code:', error);
+    console.error('Error generating build ID:', error);
     res.status(500).json({ 
-      error: 'Failed to read server code',
+      error: 'Failed to generate build ID',
       message: error instanceof Error ? error.message : String(error)
     });
   }
@@ -263,7 +251,7 @@ router.get('/download/:serverPath(*)', (req, res) => {
       });
     });
     
-    archive.on('error', function(err) {
+    archive.on('error', function(err: Error) {
       res.status(500).json({ error: 'Failed to create archive', message: err.message });
     });
     
@@ -281,13 +269,14 @@ router.get('/download/:serverPath(*)', (req, res) => {
   }
 });
 
-// GET /api/mcp-servers/build/:path - Get build ID for deployment
-router.get('/build/:serverPath(*)', (req, res) => {
+// GET /api/mcp-servers/:path - Get server code
+// This must be the last route to avoid conflicting with more specific routes
+router.get('/:serverPath(*)', (req, res) => {
   try {
     const serverPath = req.params.serverPath;
     const fullPath = path.join(mcpServersDir, serverPath);
     
-    // Security check
+    // Security check to make sure we're still in the mcpservers directory
     const normalizedPath = path.normalize(fullPath);
     if (!normalizedPath.startsWith(mcpServersDir)) {
       return res.status(403).json({ error: 'Access denied' });
@@ -297,14 +286,31 @@ router.get('/build/:serverPath(*)', (req, res) => {
       return res.status(404).json({ error: 'Server not found' });
     }
     
-    // Generate a unique build ID
-    const buildId = `mcp-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
+    // Read the server code
+    let content = '';
+    if (fs.statSync(fullPath).isDirectory()) {
+      // List files in the directory
+      const files = fs.readdirSync(fullPath);
+      // Try to find a main file
+      const mainFiles = ['index.js', 'server.js', 'app.js', 'main.js', 'index.ts', 'server.ts', 'app.ts', 'main.ts'];
+      const mainFile = mainFiles.find(file => files.includes(file));
+      
+      if (mainFile) {
+        content = fs.readFileSync(path.join(fullPath, mainFile), 'utf8');
+      } else {
+        // Just list the files if no main file is found
+        content = `// Directory listing:\n\n${files.join('\n')}`;
+      }
+    } else {
+      // Read the file content
+      content = fs.readFileSync(fullPath, 'utf8');
+    }
     
-    res.json({ buildId });
+    res.json({ content });
   } catch (error) {
-    console.error('Error generating build ID:', error);
+    console.error('Error reading server code:', error);
     res.status(500).json({ 
-      error: 'Failed to generate build ID',
+      error: 'Failed to read server code',
       message: error instanceof Error ? error.message : String(error)
     });
   }

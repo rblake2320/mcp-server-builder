@@ -796,6 +796,38 @@ const MCPServers = () => {
           </PaginationContent>
         </Pagination>
       )}
+      {/* Code viewer dialog */}
+      <Dialog>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle>{selectedServer?.name}</DialogTitle>
+            <DialogDescription>
+              {selectedServer?.description}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="overflow-auto flex-grow my-4">
+            {codeLoading ? (
+              <div className="flex justify-center py-12">
+                <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full"></div>
+              </div>
+            ) : (
+              <pre className="bg-muted p-4 rounded-md text-sm font-mono overflow-x-auto whitespace-pre-wrap">
+                {serverCode}
+              </pre>
+            )}
+          </div>
+          <div className="flex justify-between">
+            <Button variant="outline" onClick={() => handleCopyToClipboard(serverCode)}>
+              <Copy className="h-4 w-4 mr-1" />
+              Copy Code
+            </Button>
+            <Button onClick={() => selectedServer && handleDownload(selectedServer)}>
+              <Download className="h-4 w-4 mr-1" />
+              Download
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

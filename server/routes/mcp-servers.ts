@@ -135,6 +135,181 @@ router.get('/stats', getServerStats);
 router.get('/languages', getLanguagesStats);
 router.get('/categories', getCategoriesStats);
 
+// GET /api/mcp-servers/:path - Get server code
+router.get('/:serverPath(*)', (req, res) => {
+  try {
+    const serverPath = req.params.serverPath;
+    const fullPath = path.join(mcpServersDir, serverPath);
+    
+    // Security check to make sure we're still in the mcpservers directory
+    const normalizedPath = path.normalize(fullPath);
+    if (!normalizedPath.startsWith(mcpServersDir)) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+    
+    if (!fs.existsSync(fullPath)) {
+      return res.status(404).json({ error: 'Server not found' });
+    }
+    
+    // Read the server code
+    let content = '';
+    if (fs.statSync(fullPath).isDirectory()) {
+      // List files in the directory
+      const files = fs.readdirSync(fullPath);
+      // Try to find a main file
+      const mainFiles = ['index.js', 'server.js', 'app.js', 'main.js', 'index.ts', 'server.ts', 'app.ts', 'main.ts'];
+      const mainFile = mainFiles.find(file => files.includes(file));
+      
+      if (mainFile) {
+        content = fs.readFileSync(path.join(fullPath, mainFile), 'utf8');
+      } else {
+        // Just list the files if no main file is found
+        content = `// Directory listing:\n\n${files.join('\n')}`;
+      }
+    } else {
+      // Read the file content
+      content = fs.readFileSync(fullPath, 'utf8');
+    }
+    
+    res.json({ content });
+  } catch (error) {
+    console.error('Error reading server code:', error);
+    res.status(500).json({ 
+      error: 'Failed to read server code',
+      message: error instanceof Error ? error.message : String(error)
+    });
+  }
+});
+
+// GET /api/mcp-servers/download/:path - Download server code as ZIP
+router.get('/download/:serverPath(*)', (req, res) => {
+  try {
+    const serverPath = req.params.serverPath;
+    const fullPath = path.join(mcpServersDir, serverPath);
+    
+    // Security check to make sure we're still in the mcpservers directory
+    const normalizedPath = path.normalize(fullPath);
+    if (!normalizedPath.startsWith(mcpServersDir)) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+    
+    if (!fs.existsSync(fullPath)) {
+      return res.status(404).json({ error: 'Server not found' });
+    }
+    
+    // Create a temporary directory for the server
+    const tempDir = path.join(os.tmpdir(), `mcp-server-${Date.now()}`);
+    fs.mkdirSync(tempDir, { recursive: true });
+    
+    // Copy the server files to the temp directory
+    if (fs.statSync(fullPath).isDirectory()) {
+      // Copy directory contents
+      fs.cpSync(fullPath, tempDir, { recursive: true });
+    } else {
+      // Copy single file
+      fs.copyFileSync(fullPath, path.join(tempDir, path.basename(fullPath)));
+    }
+    
+    // Create a package.json if it doesn't exist
+    if (!fs.existsSync(path.join(tempDir, 'package.json'))) {
+      const packageJson = {
+        name: path.basename(serverPath),
+        version: '1.0.0',
+        description: 'MCP Server',
+        main: 'index.js',
+        scripts: {
+          start: 'node index.js'
+        },
+        dependencies: {
+          express: '^4.18.2',
+          cors: '^2.8.5'
+        }
+      };
+      
+      fs.writeFileSync(
+        path.join(tempDir, 'package.json'),
+        JSON.stringify(packageJson, null, 2)
+      );
+    }
+    
+    // Create a simple README if it doesn't exist
+    if (!fs.existsSync(path.join(tempDir, 'README.md'))) {
+      fs.writeFileSync(
+        path.join(tempDir, 'README.md'),
+        `# ${path.basename(serverPath)}\n\nThis is an MCP server from the MCP Server Builder.\n\n## Running the server\n\n\`\`\`\nnpm install\nnpm start\n\`\`\``
+      );
+    }
+    
+    // Create a zip file
+    const zipFile = path.join(os.tmpdir(), `${path.basename(serverPath)}.zip`);
+    
+    // Create write stream for the zip file
+    const output = fs.createWriteStream(zipFile);
+    const archive = archiver('zip', { zlib: { level: 9 } });
+    
+    // Set up pipe and events
+    archive.pipe(output);
+    
+    output.on('close', function() {
+      // Send the zip file
+      res.download(zipFile, `${path.basename(serverPath)}.zip`, (err) => {
+        if (err) {
+          console.error('Error sending zip file:', err);
+        }
+        
+        // Clean up temp files
+        fs.rmSync(tempDir, { recursive: true, force: true });
+        fs.unlinkSync(zipFile);
+      });
+    });
+    
+    archive.on('error', function(err) {
+      res.status(500).json({ error: 'Failed to create archive', message: err.message });
+    });
+    
+    // Add files from tempDir to the archive
+    archive.directory(tempDir, false);
+    
+    // Finalize the archive
+    archive.finalize();
+  } catch (error) {
+    console.error('Error creating download:', error);
+    res.status(500).json({ 
+      error: 'Failed to create download',
+      message: error instanceof Error ? error.message : String(error)
+    });
+  }
+});
+
+// GET /api/mcp-servers/build/:path - Get build ID for deployment
+router.get('/build/:serverPath(*)', (req, res) => {
+  try {
+    const serverPath = req.params.serverPath;
+    const fullPath = path.join(mcpServersDir, serverPath);
+    
+    // Security check
+    const normalizedPath = path.normalize(fullPath);
+    if (!normalizedPath.startsWith(mcpServersDir)) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+    
+    if (!fs.existsSync(fullPath)) {
+      return res.status(404).json({ error: 'Server not found' });
+    }
+    
+    // Generate a unique build ID
+    const buildId = `mcp-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
+    
+    res.json({ buildId });
+  } catch (error) {
+    console.error('Error generating build ID:', error);
+    res.status(500).json({ 
+      error: 'Failed to generate build ID',
+      message: error instanceof Error ? error.message : String(error)
+    });
+  }
+});
+
 // Export the router
 export default router;
 

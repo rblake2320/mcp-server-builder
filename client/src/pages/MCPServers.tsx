@@ -797,7 +797,7 @@ const MCPServers = () => {
         </Pagination>
       )}
       {/* Code viewer dialog */}
-      <Dialog>
+      <Dialog open={selectedServer !== null} onOpenChange={(open) => !open && setSelectedServer(null)}>
         <DialogContent className="max-w-4xl max-h-[80vh] overflow-hidden flex flex-col">
           <DialogHeader>
             <DialogTitle>{selectedServer?.name}</DialogTitle>

@@ -88,6 +88,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   fs.ensureDirSync(path.join(process.cwd(), 'public/logos'));
   fs.ensureDirSync(path.join(process.cwd(), 'server/ai'));
   
+  // Register feature routers
+  app.use(mcpServersRouter);
+  app.use(complexityRoutes);
+  app.use(terminalToolsRouter);
+  app.use('/api/twentyfirst', twentyfirstRouter);
+  app.use('/api/deployment', deploymentRouter);
+  app.use('/api/code-analyzer', codeAnalyzerRouter);
+  
   // AI tool generation with Google Gemini
   app.post('/api/ai/generate-tool', async (req, res) => {
     try {

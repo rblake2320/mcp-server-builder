@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -12,163 +13,196 @@ import {
   DialogTrigger,
   DialogFooter
 } from "@/components/ui/dialog";
-import { Download, FileCode, Github, Copy, Server, Loader2, Cloud } from "lucide-react";
+import { Download, FileCode, Github, Copy, Server, Loader2, Cloud, Search, Filter } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { TwentyfirstServers } from "@/components/TwentyfirstServers";
 import DeploymentSelector from "@/components/DeploymentSelector";
+import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
+import { toast } from "@/hooks/use-toast";
 
 // Define types for our server index
 interface MCPServer {
+  id: string | number;
   name: string;
   path: string;
   language: string;
   description: string;
-  difficulty: string;
-  dependencies: string[];
-  tools: string[];
+  difficulty?: string;
+  category?: string;
+  dependencies?: string[];
+  tools?: string[];
+  type?: string;
+  status?: string;
+  author?: string;
+  source?: string;
+  tags?: string[];
   requires_api_key?: boolean;
   api_provider?: string;
 }
 
-interface ServerIndex {
-  templates: MCPServer[];
-  examples: MCPServer[];
+interface ServerResponse {
+  servers: MCPServer[];
+  pagination: {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  };
+  filters: {
+    types: string[];
+    languages: string[];
+    categories: string[];
+    difficulties: string[];
+  };
+}
+
+interface ServerStats {
+  totalCount: number;
+  upCount: number;
+  downCount: number;
 }
 
 const MCPServers = () => {
-  const [serverIndex, setServerIndex] = useState<ServerIndex | null>(null);
-  const [activeTab, setActiveTab] = useState("examples");
-  const [isLoading, setIsLoading] = useState(true);
+  // Pagination and filtering state
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(20);
+  const [sortBy, setSortBy] = useState("name");
+  const [sortDirection, setSortDirection] = useState("asc");
+  const [filterType, setFilterType] = useState<string | undefined>(undefined);
+  const [filterLanguage, setFilterLanguage] = useState<string | undefined>(undefined);
+  const [filterCategory, setFilterCategory] = useState<string | undefined>(undefined);
+  const [filterDifficulty, setFilterDifficulty] = useState<string | undefined>(undefined);
+  const [searchQuery, setSearchQuery] = useState<string>("");
+  
+  // React Query for fetching servers with pagination and filtering
+  const { data: serverData, isLoading, error } = useQuery<ServerResponse>({
+    queryKey: [
+      '/api/mcp-servers', 
+      page, 
+      limit, 
+      sortBy, 
+      sortDirection, 
+      filterType, 
+      filterLanguage, 
+      filterCategory, 
+      filterDifficulty, 
+      searchQuery
+    ],
+    queryFn: async () => {
+      const params = new URLSearchParams({
+        page: page.toString(),
+        limit: limit.toString(),
+        sortBy,
+        sortDirection
+      });
+      
+      if (filterType) params.append('type', filterType);
+      if (filterLanguage) params.append('language', filterLanguage);
+      if (filterCategory) params.append('category', filterCategory);
+      if (filterDifficulty) params.append('difficulty', filterDifficulty);
+      if (searchQuery) params.append('search', searchQuery);
+      
+      const response = await fetch(`/api/mcp-servers?${params.toString()}`);
+      if (!response.ok) {
+        throw new Error(`API request failed with status ${response.status}`);
+      }
+      
+      return response.json();
+    }
+  });
+  
+  // React Query for server stats
+  const { data: serverStats } = useQuery<ServerStats>({
+    queryKey: ['/api/mcp-servers/stats'],
+    queryFn: async () => {
+      const response = await fetch('/api/mcp-servers/stats');
+      if (!response.ok) {
+        throw new Error(`API request failed with status ${response.status}`);
+      }
+      return response.json();
+    },
+    refetchInterval: 10000 // Refresh every 10 seconds
+  });
+  
+  // State for server details
   const [selectedServer, setSelectedServer] = useState<MCPServer | null>(null);
   const [serverCode, setServerCode] = useState<string>("");
   const [codeLoading, setCodeLoading] = useState(false);
-  const [serverStats, setServerStats] = useState<{
-    totalCount: number;
-    upCount: number;
-    downCount: number;
-    byType: {
-      templates: number;
-      examples: number;
-      imported: number;
+  
+  // Import server from URL
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
+  const [importUrl, setImportUrl] = useState('');
+  const [importLoading, setImportLoading] = useState(false);
+  const [importError, setImportError] = useState<string | null>(null);
+  
+  // State for deployment
+  const [buildId, setBuildId] = useState<string | null>(null);
+  const [serverType, setServerType] = useState<string>("javascript");
+  const [showDeployment, setShowDeployment] = useState<boolean>(false);
+  
+  // Handle pagination change
+  const handlePageChange = (newPage: number) => {
+    setPage(newPage);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+  
+  // Handle sorting change
+  const handleSortChange = (field: string) => {
+    if (sortBy === field) {
+      // Toggle direction if clicking on the same field
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      // Set to ascending by default for a new field
+      setSortBy(field);
+      setSortDirection('asc');
     }
-  } | null>(null);
-
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setIsLoading(true);
-        
-        // Fetch server index from our API
-        const indexResponse = await fetch('/api/mcp-servers');
-        
-        if (!indexResponse.ok) {
-          throw new Error(`API request failed with status ${indexResponse.status}`);
-        }
-        
-        const indexData = await indexResponse.json();
-        setServerIndex(indexData);
-        
-        // Fetch server stats
-        const statsResponse = await fetch('/api/mcp-servers/stats');
-        if (statsResponse.ok) {
-          const statsData = await statsResponse.json();
-          setServerStats(statsData);
-        }
-        
-        setIsLoading(false);
-      } catch (error) {
-        console.error("Error fetching server data:", error);
-        
-        // Fallback to hardcoded data if API request fails
-        const fallbackData = {
-          templates: [
-            {
-              name: "Basic JavaScript MCP Server",
-              path: "templates/basic_mcp_server.js",
-              language: "javascript",
-              description: "A minimal JavaScript MCP server template using Express",
-              difficulty: "beginner",
-              dependencies: ["express", "cors", "body-parser"],
-              tools: ["hello_world"]
-            },
-            {
-              name: "Basic Python MCP Server",
-              path: "templates/basic_mcp_server.py",
-              language: "python",
-              description: "A minimal Python MCP server template using http.server",
-              difficulty: "beginner",
-              dependencies: [],
-              tools: ["hello_world"]
-            }
-          ],
-          examples: [
-            {
-              name: "File Browser MCP Server",
-              path: "examples/file_browser_server.py",
-              language: "python",
-              description: "Browse files and directories on the host system",
-              difficulty: "intermediate",
-              dependencies: [],
-              tools: ["list_directory", "read_file", "get_file_info"]
-            },
-            {
-              name: "Weather API Server",
-              path: "examples/weather_api_server.js",
-              language: "javascript",
-              description: "Get weather data and forecasts for any location",
-              difficulty: "intermediate",
-              dependencies: ["express", "cors", "axios"],
-              requires_api_key: true,
-              api_provider: "OpenWeatherMap",
-              tools: ["get_current_weather", "get_weather_forecast"]
-            }
-          ]
-        };
-        
-        setServerIndex(fallbackData);
-        
-        // Fallback stats
-        setServerStats({
-          totalCount: 4,
-          upCount: 4,
-          downCount: 0,
-          byType: {
-            templates: 2,
-            examples: 2,
-            imported: 0
-          }
-        });
-        
-        setIsLoading(false);
-      }
-    };
-    
-    // Set up an interval to refresh the stats periodically
-    fetchData();
-    
-    const statsInterval = setInterval(() => {
-      fetch('/api/mcp-servers/stats')
-        .then(response => {
-          if (response.ok) return response.json();
-          throw new Error('Failed to fetch stats');
-        })
-        .then(data => {
-          setServerStats(data);
-        })
-        .catch(error => {
-          console.error('Error refreshing server stats:', error);
-        });
-    }, 10000); // Refresh every 10 seconds
-    
-    // Clean up the interval when the component unmounts
-    return () => clearInterval(statsInterval);
-  }, []);
-
+  };
+  
+  // Handle filter changes
+  const handleFilterChange = (filterType: string, value: string | undefined) => {
+    switch (filterType) {
+      case 'type':
+        setFilterType(value);
+        break;
+      case 'language':
+        setFilterLanguage(value);
+        break;
+      case 'category':
+        setFilterCategory(value);
+        break;
+      case 'difficulty':
+        setFilterDifficulty(value);
+        break;
+      default:
+        break;
+    }
+    // Reset to first page when changing filters
+    setPage(1);
+  };
+  
+  // Handle search
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    // Reset to first page when searching
+    setPage(1);
+  };
+  
+  // Reset all filters
+  const resetFilters = () => {
+    setFilterType(undefined);
+    setFilterLanguage(undefined);
+    setFilterCategory(undefined);
+    setFilterDifficulty(undefined);
+    setSearchQuery('');
+    setSortBy('name');
+    setSortDirection('asc');
+    setPage(1);
+  };
+  
+  // Handle downloading a server
   const handleDownload = async (server: MCPServer) => {
-    // Log the download request
-    console.log("Downloading server:", server.name);
-    
     try {
       // First get the build ID from the API
       const response = await fetch(`/api/mcp-servers/build/${server.path}`);
@@ -179,27 +213,49 @@ const MCPServers = () => {
         // If we have a build ID, enable deployment options
         if (data.buildId) {
           setBuildId(data.buildId);
-          setServerType(server.language);
+          setServerType(server.language || 'javascript');
           setShowDeployment(true);
         }
       }
       
       // Trigger download using our API endpoint
       window.location.href = `/api/mcp-servers/download/${server.path}`;
+      
+      toast({
+        title: "Download started",
+        description: `${server.name} is being downloaded`,
+      });
     } catch (error) {
       console.error("Error preparing for deployment:", error);
       
       // Still trigger the download even if deployment prep fails
       window.location.href = `/api/mcp-servers/download/${server.path}`;
+      
+      toast({
+        title: "Download started",
+        description: "Server is being downloaded, but deployment options may be limited",
+        variant: "destructive"
+      });
     }
   };
   
+  // Copy code to clipboard
   const handleCopyToClipboard = (code: string) => {
     navigator.clipboard.writeText(code).then(() => {
-      alert("Command copied to clipboard!");
+      toast({
+        title: "Copied to clipboard",
+        description: "Code has been copied to your clipboard"
+      });
+    }).catch(() => {
+      toast({
+        title: "Failed to copy",
+        description: "Could not copy code to clipboard",
+        variant: "destructive"
+      });
     });
   };
   
+  // View server code
   const handleViewCode = async (server: MCPServer) => {
     try {
       setSelectedServer(server);
@@ -219,10 +275,17 @@ const MCPServers = () => {
       console.error("Error fetching server code:", error);
       setServerCode("// Error loading code: " + (error instanceof Error ? error.message : String(error)));
       setCodeLoading(false);
+      
+      toast({
+        title: "Failed to load code",
+        description: "There was an error loading the server code",
+        variant: "destructive"
+      });
     }
   };
-
-  const getDifficultyColor = (difficulty: string) => {
+  
+  // Get CSS classes for difficulty levels
+  const getDifficultyColor = (difficulty: string = '') => {
     switch (difficulty.toLowerCase()) {
       case "beginner":
         return "bg-green-500";
@@ -235,7 +298,8 @@ const MCPServers = () => {
     }
   };
   
-  const getLanguageColor = (language: string) => {
+  // Get CSS classes for programming languages
+  const getLanguageColor = (language: string = '') => {
     switch (language.toLowerCase()) {
       case "javascript":
         return "bg-yellow-400 text-black";
@@ -247,18 +311,13 @@ const MCPServers = () => {
         return "bg-gray-500";
     }
   };
-
-  // Import server from URL
-  const [importDialogOpen, setImportDialogOpen] = useState(false);
-  const [importUrl, setImportUrl] = useState('');
-  const [importLoading, setImportLoading] = useState(false);
-  const [importError, setImportError] = useState<string | null>(null);
   
-  // State for deployment
-  const [buildId, setBuildId] = useState<string | null>(null);
-  const [serverType, setServerType] = useState<string>("javascript");
-  const [showDeployment, setShowDeployment] = useState<boolean>(false);
+  // Get status color (up/down)
+  const getStatusColor = (status: string = '') => {
+    return status.toLowerCase() === 'up' ? "bg-green-500" : "bg-red-500";
+  };
   
+  // Import a server from URL
   const handleImportSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!importUrl) return;
@@ -280,22 +339,23 @@ const MCPServers = () => {
         throw new Error(errorData.error || 'Failed to import server');
       }
       
-      // Refresh server list
-      const indexResponse = await fetch('/api/mcp-servers');
-      if (indexResponse.ok) {
-        const data = await indexResponse.json();
-        setServerIndex(data);
-      }
-      
       // Close dialog and reset form
       setImportDialogOpen(false);
       setImportUrl('');
       
-      // Show success toast
-      alert('Server imported successfully!');
+      toast({
+        title: "Server imported successfully",
+        description: "The server has been added to your collection"
+      });
     } catch (error) {
       console.error('Error importing server:', error);
       setImportError(error instanceof Error ? error.message : 'Failed to import server');
+      
+      toast({
+        title: "Import failed",
+        description: error instanceof Error ? error.message : 'Failed to import server',
+        variant: "destructive"
+      });
     } finally {
       setImportLoading(false);
     }
@@ -363,75 +423,379 @@ const MCPServers = () => {
       
       {/* Hidden - not in the image */}
       
-      {/* Filter categories in a single row */}
-      <div className="flex flex-wrap gap-2 mb-4 justify-center">
-        <Button variant="default" className="rounded-md bg-slate-900">All</Button>
-        <Button variant="outline" className="rounded-md flex items-center">
-          Official <span className="text-amber-500 ml-1">✨</span>
-        </Button>
-        <Button variant="outline" className="rounded-md">Search</Button>
-        <Button variant="outline" className="rounded-md">Web Scraping</Button>
-        <Button variant="outline" className="rounded-md">Communication</Button>
-        <Button variant="outline" className="rounded-md">Productivity</Button>
-        <Button variant="outline" className="rounded-md">Development</Button>
-        <Button variant="outline" className="rounded-md">Database</Button>
-        <Button variant="outline" className="rounded-md">Cloud Service</Button>
-        <Button variant="outline" className="rounded-md">File System</Button>
-        <Button variant="outline" className="rounded-md">Cloud Storage</Button>
-        <Button variant="outline" className="rounded-md">Version Control</Button>
-        <Button variant="outline" className="rounded-md">Other</Button>
+      {/* Search and filtering section */}
+      <div className="mb-6">
+        <div className="flex flex-col md:flex-row gap-4 mb-4">
+          {/* Search input */}
+          <div className="w-full md:w-1/3">
+            <form onSubmit={handleSearch} className="relative">
+              <Input
+                placeholder="Search servers..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full"
+              />
+              <Button 
+                type="submit" 
+                variant="ghost" 
+                size="icon" 
+                className="absolute right-0 top-0 h-full"
+              >
+                <Search className="h-4 w-4" />
+              </Button>
+            </form>
+          </div>
+          
+          {/* Filters */}
+          <div className="flex flex-wrap gap-2 w-full md:w-2/3">
+            {/* Type filter */}
+            {serverData?.filters?.types && (
+              <Select 
+                value={filterType || ''} 
+                onValueChange={(value) => handleFilterChange('type', value || undefined)}
+              >
+                <SelectTrigger className="w-[130px]">
+                  <SelectValue placeholder="Type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">All Types</SelectItem>
+                  {serverData.filters.types.map(type => (
+                    <SelectItem key={type} value={type}>{type}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+            
+            {/* Language filter */}
+            {serverData?.filters?.languages && (
+              <Select 
+                value={filterLanguage || ''} 
+                onValueChange={(value) => handleFilterChange('language', value || undefined)}
+              >
+                <SelectTrigger className="w-[130px]">
+                  <SelectValue placeholder="Language" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">All Languages</SelectItem>
+                  {serverData.filters.languages.map(language => (
+                    <SelectItem key={language} value={language}>{language}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+            
+            {/* Category filter */}
+            {serverData?.filters?.categories && (
+              <Select 
+                value={filterCategory || ''} 
+                onValueChange={(value) => handleFilterChange('category', value || undefined)}
+              >
+                <SelectTrigger className="w-[130px]">
+                  <SelectValue placeholder="Category" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">All Categories</SelectItem>
+                  {serverData.filters.categories.map(category => (
+                    <SelectItem key={category} value={category}>{category}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+            
+            {/* Difficulty filter */}
+            {serverData?.filters?.difficulties && (
+              <Select 
+                value={filterDifficulty || ''} 
+                onValueChange={(value) => handleFilterChange('difficulty', value || undefined)}
+              >
+                <SelectTrigger className="w-[130px]">
+                  <SelectValue placeholder="Difficulty" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">All Difficulties</SelectItem>
+                  {serverData.filters.difficulties.map(difficulty => (
+                    <SelectItem key={difficulty} value={difficulty}>{difficulty}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+            
+            {/* Reset filters button */}
+            <Button 
+              variant="outline" 
+              size="icon" 
+              onClick={resetFilters}
+              title="Reset all filters"
+            >
+              <Filter className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+        
+        {/* Active filter pills */}
+        {(filterType || filterLanguage || filterCategory || filterDifficulty || searchQuery) && (
+          <div className="flex flex-wrap gap-2 mt-2">
+            {filterType && (
+              <Badge variant="outline" className="flex items-center gap-1">
+                Type: {filterType}
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="h-4 w-4 p-0 ml-1" 
+                  onClick={() => handleFilterChange('type', undefined)}
+                >
+                  ✕
+                </Button>
+              </Badge>
+            )}
+            
+            {filterLanguage && (
+              <Badge variant="outline" className="flex items-center gap-1">
+                Language: {filterLanguage}
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="h-4 w-4 p-0 ml-1" 
+                  onClick={() => handleFilterChange('language', undefined)}
+                >
+                  ✕
+                </Button>
+              </Badge>
+            )}
+            
+            {filterCategory && (
+              <Badge variant="outline" className="flex items-center gap-1">
+                Category: {filterCategory}
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="h-4 w-4 p-0 ml-1" 
+                  onClick={() => handleFilterChange('category', undefined)}
+                >
+                  ✕
+                </Button>
+              </Badge>
+            )}
+            
+            {filterDifficulty && (
+              <Badge variant="outline" className="flex items-center gap-1">
+                Difficulty: {filterDifficulty}
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="h-4 w-4 p-0 ml-1" 
+                  onClick={() => handleFilterChange('difficulty', undefined)}
+                >
+                  ✕
+                </Button>
+              </Badge>
+            )}
+            
+            {searchQuery && (
+              <Badge variant="outline" className="flex items-center gap-1">
+                Search: {searchQuery}
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="h-4 w-4 p-0 ml-1" 
+                  onClick={() => setSearchQuery('')}
+                >
+                  ✕
+                </Button>
+              </Badge>
+            )}
+          </div>
+        )}
       </div>
       
-      {/* Server cards in grid - exact match to image */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-12">
-        {/* Card 1 - Brave Search */}
-        <Card className="shadow-sm hover:shadow-md transition-shadow duration-200">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-xl">Brave Search</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-muted-foreground">
-              Web and local search using Brave's Search API
-            </p>
-          </CardContent>
-        </Card>
-        
-        {/* Card 2 - Fetch */}
-        <Card className="shadow-sm hover:shadow-md transition-shadow duration-200">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-xl">Fetch</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-muted-foreground">
-              Web content fetching and conversion for efficient LLM usage
-            </p>
-          </CardContent>
-        </Card>
-        
-        {/* Card 3 - Filesystem */}
-        <Card className="shadow-sm hover:shadow-md transition-shadow duration-200">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-xl">Filesystem</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-muted-foreground">
-              Secure file operations with configurable access controls
-            </p>
-          </CardContent>
-        </Card>
-        
-        {/* Card 4 - Git */}
-        <Card className="shadow-sm hover:shadow-md transition-shadow duration-200">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-xl">Git</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-muted-foreground">
-              Tools to read, search, and manipulate Git repositories
-            </p>
-          </CardContent>
-        </Card>
-      </div>
+      {/* Loading state */}
+      {isLoading && (
+        <div className="flex justify-center items-center py-20">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+          <span className="ml-2">Loading servers...</span>
+        </div>
+      )}
+      
+      {/* Error state */}
+      {error && (
+        <div className="text-center py-10">
+          <p className="text-destructive text-lg mb-4">Failed to load servers</p>
+          <Button onClick={() => window.location.reload()}>Retry</Button>
+        </div>
+      )}
+      
+      {/* Results count */}
+      {!isLoading && !error && serverData && (
+        <div className="mb-4 text-sm text-muted-foreground">
+          Showing {serverData.servers.length} of {serverData.pagination.total} servers
+        </div>
+      )}
+      
+      {/* Server cards grid */}
+      {!isLoading && !error && serverData && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-8">
+          {serverData.servers.map((server) => (
+            <Card key={server.id} className="shadow-sm hover:shadow-md transition-shadow duration-200">
+              <CardHeader className="pb-2">
+                <div className="flex justify-between items-start">
+                  <CardTitle className="text-xl">{server.name}</CardTitle>
+                  {server.status && (
+                    <div className={`w-2 h-2 rounded-full ${getStatusColor(server.status)}`} 
+                         title={`Status: ${server.status}`} />
+                  )}
+                </div>
+                <div className="flex flex-wrap gap-1 mt-1">
+                  {server.language && (
+                    <Badge variant="secondary" className={getLanguageColor(server.language)}>
+                      {server.language}
+                    </Badge>
+                  )}
+                  {server.type && (
+                    <Badge variant="outline">
+                      {server.type}
+                    </Badge>
+                  )}
+                  {server.difficulty && (
+                    <Badge className={getDifficultyColor(server.difficulty)}>
+                      {server.difficulty}
+                    </Badge>
+                  )}
+                </div>
+              </CardHeader>
+              
+              <CardContent>
+                <p className="text-muted-foreground text-sm line-clamp-2 h-10">
+                  {server.description}
+                </p>
+                
+                {server.tools && server.tools.length > 0 && (
+                  <div className="mt-2">
+                    <p className="text-xs text-muted-foreground mb-1">Tools:</p>
+                    <div className="flex flex-wrap gap-1">
+                      {Array.isArray(server.tools) 
+                        ? server.tools.slice(0, 3).map((tool, i) => (
+                            <Badge key={i} variant="outline" className="text-xs">
+                              {typeof tool === 'string' ? tool : 'tool'}
+                            </Badge>
+                          ))
+                        : null
+                      }
+                      {Array.isArray(server.tools) && server.tools.length > 3 && (
+                        <Badge variant="outline" className="text-xs">
+                          +{server.tools.length - 3} more
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+              
+              <CardFooter className="flex justify-between pt-2">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => handleViewCode(server)}
+                  className="text-xs"
+                >
+                  <FileCode className="h-3 w-3 mr-1" />
+                  View Code
+                </Button>
+                <Button 
+                  variant="default" 
+                  size="sm" 
+                  onClick={() => handleDownload(server)}
+                  className="text-xs"
+                >
+                  <Download className="h-3 w-3 mr-1" />
+                  Download
+                </Button>
+              </CardFooter>
+            </Card>
+          ))}
+        </div>
+      )}
+      
+      {/* Pagination */}
+      {!isLoading && !error && serverData && serverData.pagination.totalPages > 1 && (
+        <Pagination className="my-8">
+          <PaginationContent>
+            {page > 1 && (
+              <PaginationItem>
+                <PaginationPrevious onClick={() => handlePageChange(page - 1)} />
+              </PaginationItem>
+            )}
+            
+            {[...Array(Math.min(5, serverData.pagination.totalPages))].map((_, i) => {
+              const pageNumber = i + 1;
+              return (
+                <PaginationItem key={i}>
+                  <PaginationLink 
+                    isActive={pageNumber === page}
+                    onClick={() => handlePageChange(pageNumber)}
+                  >
+                    {pageNumber}
+                  </PaginationLink>
+                </PaginationItem>
+              );
+            })}
+            
+            {serverData.pagination.totalPages > 5 && page < 3 && (
+              <>
+                <PaginationItem>
+                  <PaginationLink disabled>...</PaginationLink>
+                </PaginationItem>
+                <PaginationItem>
+                  <PaginationLink 
+                    onClick={() => handlePageChange(serverData.pagination.totalPages)}
+                  >
+                    {serverData.pagination.totalPages}
+                  </PaginationLink>
+                </PaginationItem>
+              </>
+            )}
+            
+            {serverData.pagination.totalPages > 5 && page >= 3 && page <= serverData.pagination.totalPages - 2 && (
+              <>
+                <PaginationItem>
+                  <PaginationLink disabled>...</PaginationLink>
+                </PaginationItem>
+                <PaginationItem>
+                  <PaginationLink 
+                    onClick={() => handlePageChange(page)}
+                    isActive={true}
+                  >
+                    {page}
+                  </PaginationLink>
+                </PaginationItem>
+                <PaginationItem>
+                  <PaginationLink disabled>...</PaginationLink>
+                </PaginationItem>
+                <PaginationItem>
+                  <PaginationLink 
+                    onClick={() => handlePageChange(serverData.pagination.totalPages)}
+                  >
+                    {serverData.pagination.totalPages}
+                  </PaginationLink>
+                </PaginationItem>
+              </>
+            )}
+            
+            {serverData.pagination.totalPages > 5 && page > serverData.pagination.totalPages - 2 && (
+              <>
+                <PaginationItem>
+                  <PaginationLink disabled>...</PaginationLink>
+                </PaginationItem>
+              </>
+            )}
+            
+            {page < serverData.pagination.totalPages && (
+              <PaginationItem>
+                <PaginationNext onClick={() => handlePageChange(page + 1)} />
+              </PaginationItem>
+            )}
+          </PaginationContent>
+        </Pagination>
+      )}
     </div>
   );
 };

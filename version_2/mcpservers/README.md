@@ -13,6 +13,26 @@ This directory contains a comprehensive collection of over 5,500 Model Context P
   - `/imported/github`: Servers imported from GitHub repositories
   - `/imported/custom`: Custom-generated servers
 
+## Real-Time Status Dashboard
+
+When you open the mcpservers directory, a real-time status dashboard automatically starts, showing:
+
+- Total server count (updated instantly whenever servers are added or removed)
+- Number of servers that are up (green)
+- Number of servers that are down (red)
+- Breakdown by server type, category, and language
+
+You can manually start the dashboard:
+
+```bash
+node status_monitor.js
+```
+
+The dashboard automatically updates when:
+- New servers are added
+- Servers are removed
+- Server status changes (up/down)
+
 ## Browsing the Collection
 
 To browse the available MCP servers, you can use the built-in server browser:

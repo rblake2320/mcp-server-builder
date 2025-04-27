@@ -1,0 +1,31 @@
+{
+  "name": "mcp-servers-collection",
+  "version": "1.0.0",
+  "description": "A comprehensive collection of over 5,500 MCP servers",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "browse": "node browse_servers.js",
+    "monitor": "node status_monitor.js",
+    "import": "node import_all_servers.js",
+    "generate": "node generate_bulk_servers.js"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "claude",
+    "anthropic",
+    "servers",
+    "tools"
+  ],
+  "author": "MCP Server Builder",
+  "license": "MIT",
+  "dependencies": {
+    "boxen": "^7.1.1",
+    "chalk": "^5.3.0",
+    "chokidar": "^3.5.3",
+    "fs-extra": "^11.2.0",
+    "node-fetch": "^3.3.2"
+  }
+}

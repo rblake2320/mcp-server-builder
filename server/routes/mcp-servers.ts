@@ -46,9 +46,6 @@ interface ServerIndex {
 // In-memory cache for server data
 let serverCache: ServerIndex | null = null;
 let serverStatsCache: any = null;
-const TOTAL_SERVERS = 5533;
-const UP_SERVERS = 5256;
-const DOWN_SERVERS = 277;
 
 // Initialize the server cache if it doesn't exist
 function initServerCache(): ServerIndex {
@@ -112,16 +109,8 @@ function initServerCache(): ServerIndex {
         imported: []
       };
       
-      // Generate additional servers to match the statistics count
-      // This is temporary until we have the full import
-      const missingCount = TOTAL_SERVERS - processedIndex.templates.length - processedIndex.examples.length;
-      
-      if (missingCount > 0) {
-        console.log(`Need to add ${missingCount} more servers to match statistics`);
-        serverCache = processedIndex;
-      } else {
-        serverCache = processedIndex;
-      }
+      // Just use the actual servers we have
+      serverCache = processedIndex;
       
       return serverCache;
     }
@@ -137,11 +126,14 @@ function initServerCache(): ServerIndex {
   }
 }
 
+// Reset stats cache when server starts to ensure we're using actual data
+serverStatsCache = null;
+
 // Register the routes
-router.get('/api/mcp-servers', getServers);
-router.get('/api/mcp-servers/stats', getServerStats);
-router.get('/api/mcp-servers/languages', getLanguagesStats);
-router.get('/api/mcp-servers/categories', getCategoriesStats);
+router.get('/', getServers);
+router.get('/stats', getServerStats);
+router.get('/languages', getLanguagesStats);
+router.get('/categories', getCategoriesStats);
 
 // Export the router
 export default router;
@@ -244,13 +236,31 @@ function getServerStats(req: Request, res: Response) {
   }
   
   // Initialize the server cache if needed
-  initServerCache();
+  const servers = initServerCache();
+  
+  // Combine all server types
+  const allServers = [
+    ...servers.templates,
+    ...servers.examples,
+    ...servers.imported
+  ];
   
   // Count servers by status
+  let upCount = 0;
+  let downCount = 0;
+  
+  allServers.forEach(server => {
+    if (server.status === 'up') {
+      upCount++;
+    } else if (server.status === 'down') {
+      downCount++;
+    }
+  });
+  
   const stats = {
-    totalCount: TOTAL_SERVERS,
-    upCount: UP_SERVERS,
-    downCount: DOWN_SERVERS
+    totalCount: allServers.length,
+    upCount,
+    downCount
   };
   
   // Cache the stats

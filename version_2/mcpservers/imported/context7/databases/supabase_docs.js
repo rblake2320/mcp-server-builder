@@ -40,8 +40,8 @@ const DOC_DATA = {
   ],
   "metadata": {
     "language": "javascript",
-    "version": "4.2.5",
-    "lastUpdate": "2025-04-27T01:39:27.376Z"
+    "version": "1.4.7",
+    "lastUpdate": "2025-04-27T01:40:36.384Z"
   }
 };
 

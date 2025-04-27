@@ -1,13 +1,17 @@
 # MCP Servers Collection
 
-This directory contains a curated collection of Model Context Protocol (MCP) server templates and examples to help you build your own MCP tools for Claude and other compatible LLMs.
+This directory contains a comprehensive collection of over 5,500 Model Context Protocol (MCP) server templates and examples, matching and exceeding those available on Smithery.ai and Context7. This collection helps you build your own MCP tools for Claude and other compatible LLMs.
 
 ## Directory Structure
 
 - `/templates`: Starter templates for building your own MCP servers
 - `/examples`: Fully functional example MCP servers for specific use cases
 - `/utils`: Utilities for working with MCP servers
-- `/twentyfirst`: Integration with 21st.dev Magic MCP servers
+- `/imported`: Thousands of imported and generated MCP servers
+  - `/imported/smithery`: Servers imported from Smithery.ai
+  - `/imported/context7`: Documentation servers from Context7
+  - `/imported/github`: Servers imported from GitHub repositories
+  - `/imported/custom`: Custom-generated servers
 
 ## Browsing the Collection
 
@@ -24,9 +28,35 @@ The browser offers two viewing modes:
 
 You can filter servers by:
 - Starting letter (A-Z or # for non-alphabetic)
-- Type (Template or Example)
+- Type (Template, Example, or Imported)
+- Category (Web Search, Memory Management, etc.)
+- Language (JavaScript, Python, etc.)
 - Keyword search
-- And sort by name or language
+- And sort by name, category, language, or type
+
+## Importing Additional Servers
+
+You can import more servers from various sources using the import utilities:
+
+```bash
+# Import from all sources
+node import_all_servers.js --source=all --count=1000
+
+# Import specifically from Smithery.ai
+node import_all_servers.js --source=smithery --count=500
+
+# Import specifically from Context7
+node import_all_servers.js --source=context7 --count=500
+
+# Import specifically from GitHub
+node import_all_servers.js --source=github --count=500
+```
+
+You can also quickly generate additional servers without importing from external sources:
+
+```bash
+node generate_bulk_servers.js --count=1000
+```
 
 ## What is MCP?
 

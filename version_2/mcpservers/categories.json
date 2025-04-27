@@ -4,37 +4,37 @@
       "id": "web_search",
       "name": "Web Search",
       "description": "MCP servers for web search",
-      "count": 2
+      "count": 434
     },
     {
       "id": "memory_management",
       "name": "Memory Management",
       "description": "MCP servers for memory management",
-      "count": 3
+      "count": 415
     },
     {
       "id": "desktop_tools",
       "name": "Desktop Tools",
       "description": "MCP servers for desktop tools",
-      "count": 5
+      "count": 404
     },
     {
       "id": "thinking_reasoning",
       "name": "Thinking Reasoning",
       "description": "MCP servers for thinking reasoning",
-      "count": 6
+      "count": 433
     },
     {
       "id": "api_integration",
       "name": "Api Integration",
       "description": "MCP servers for api integration",
-      "count": 2
+      "count": 420
     },
     {
       "id": "data_processing",
       "name": "Data Processing",
       "description": "MCP servers for data processing",
-      "count": 3
+      "count": 411
     },
     {
       "id": "code_assistance",

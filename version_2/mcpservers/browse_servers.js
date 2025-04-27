@@ -1,22 +1,31 @@
-#!/usr/bin/env node
-
 /**
- * MCP Server Browser CLI
+ * MCP Server Browser
  * 
- * A command-line interface for browsing MCP servers with list view and A-Z filtering.
- * Run with node browse_servers.js
+ * This utility provides an interactive command-line interface for browsing
+ * through the collection of MCP servers.
+ * 
+ * Features:
+ * - List view of all servers
+ * - A-Z filtering options
+ * - Search by keyword
+ * - Filter by type (template, example, imported)
+ * - Sort by name, category, or language
  */
 
-const serverBrowser = require('./utils/server_browser');
+const fs = require('fs-extra');
+const path = require('path');
 const readline = require('readline');
 
-// Create a readline interface for user input
+// Path to server index
+const SERVER_INDEX_PATH = path.join(__dirname, 'server_index.json');
+
+// Initialize readline interface
 const rl = readline.createInterface({
   input: process.stdin,
   output: process.stdout
 });
 
-// ANSI color codes for terminal output
+// ANSI color codes for formatting
 const colors = {
   reset: '\x1b[0m',
   bright: '\x1b[1m',
@@ -35,7 +44,7 @@ const colors = {
     magenta: '\x1b[35m',
     cyan: '\x1b[36m',
     white: '\x1b[37m',
-    gray: '\x1b[90m',
+    crimson: '\x1b[38m'
   },
   
   bg: {
@@ -47,515 +56,719 @@ const colors = {
     magenta: '\x1b[45m',
     cyan: '\x1b[46m',
     white: '\x1b[47m',
-    gray: '\x1b[100m',
+    crimson: '\x1b[48m'
   }
 };
 
-// Current filter state
-const filterState = {
-  letter: '',
-  type: '',
-  keyword: '',
-  sortField: 'name',
-  sortDirection: 'asc',
-  viewMode: 'list' // 'list' or 'az'
-};
-
-/**
- * Display the main menu
- */
-function showMainMenu() {
-  console.clear();
-  console.log(`${colors.bright}${colors.fg.cyan}=== MCP Server Browser ===${colors.reset}\n`);
-  console.log(`Current view mode: ${colors.fg.green}${filterState.viewMode === 'list' ? 'List View' : 'A-Z View'}${colors.reset}`);
-  console.log(`Current filters: ${getFilterSummary()}\n`);
+// Load server index
+function loadServerIndex() {
+  try {
+    if (fs.existsSync(SERVER_INDEX_PATH)) {
+      return fs.readJsonSync(SERVER_INDEX_PATH);
+    }
+  } catch (error) {
+    console.error('Error loading server index:', error.message);
+  }
   
-  console.log(`${colors.bright}Menu Options:${colors.reset}`);
-  console.log(`1. ${colors.fg.yellow}Toggle View Mode${colors.reset} (List / A-Z)`);
-  console.log(`2. ${colors.fg.yellow}Filter by Letter${colors.reset}`);
-  console.log(`3. ${colors.fg.yellow}Filter by Type${colors.reset} (Template / Example)`);
-  console.log(`4. ${colors.fg.yellow}Search by Keyword${colors.reset}`);
-  console.log(`5. ${colors.fg.yellow}Change Sort Order${colors.reset} (Name / Language)`);
-  console.log(`6. ${colors.fg.yellow}Reset Filters${colors.reset}`);
-  console.log(`7. ${colors.fg.yellow}Show Servers${colors.reset} (with current filters)`);
-  console.log(`8. ${colors.fg.yellow}View Server Details${colors.reset}`);
-  console.log(`9. ${colors.fg.yellow}Exit${colors.reset}`);
-  
-  rl.question('\nEnter your choice (1-9): ', handleMenuChoice);
+  // Return default structure if file doesn't exist or there's an error
+  return {
+    templates: [],
+    examples: [],
+    imported: []
+  };
 }
 
-/**
- * Get a text summary of current filters
- */
-function getFilterSummary() {
-  const filters = [];
+// Get all servers from the index
+function getAllServers() {
+  const index = loadServerIndex();
   
-  if (filterState.letter) {
-    filters.push(`Letter: ${filterState.letter}`);
-  }
-  
-  if (filterState.type) {
-    filters.push(`Type: ${filterState.type}`);
-  }
-  
-  if (filterState.keyword) {
-    filters.push(`Keyword: "${filterState.keyword}"`);
-  }
-  
-  filters.push(`Sort: ${filterState.sortField} (${filterState.sortDirection})`);
-  
-  return filters.length > 1
-    ? filters.join(', ')
-    : 'None';
+  return [
+    ...index.templates.map(server => ({ ...server, type: 'template' })),
+    ...index.examples.map(server => ({ ...server, type: 'example' })),
+    ...(index.imported || []).map(server => ({ ...server, type: 'imported' }))
+  ];
 }
 
-/**
- * Handle main menu choice
- */
-function handleMenuChoice(choice) {
-  switch (choice) {
-    case '1':
-      // Toggle view mode
-      filterState.viewMode = filterState.viewMode === 'list' ? 'az' : 'list';
-      showMainMenu();
-      break;
-      
-    case '2':
-      // Filter by letter
-      showLetterFilterMenu();
-      break;
-      
-    case '3':
-      // Filter by type
-      showTypeFilterMenu();
-      break;
-      
-    case '4':
-      // Search by keyword
-      promptForKeyword();
-      break;
-      
-    case '5':
-      // Change sort order
-      showSortMenu();
-      break;
-      
-    case '6':
-      // Reset filters
-      resetFilters();
-      showMainMenu();
-      break;
-      
-    case '7':
-      // Show servers with current filters
-      showServers();
-      break;
-      
-    case '8':
-      // View server details
-      promptForServerDetails();
-      break;
-      
-    case '9':
-      // Exit
-      console.log('\nExiting MCP Server Browser. Goodbye!');
-      rl.close();
-      break;
-      
-    default:
-      console.log(`\n${colors.fg.red}Invalid choice. Please try again.${colors.reset}`);
-      setTimeout(showMainMenu, 1500);
-  }
-}
-
-/**
- * Show A-Z letter filter menu
- */
-function showLetterFilterMenu() {
-  console.clear();
-  console.log(`${colors.bright}${colors.fg.cyan}=== Filter by Starting Letter ===${colors.reset}\n`);
+// Get all available categories
+function getAllCategories() {
+  const servers = getAllServers();
+  const categories = new Set();
   
-  const navigation = serverBrowser.generateAlphabeticalNavigation();
-  
-  // Display A-Z navigation
-  console.log(`${colors.bright}Available Letters:${colors.reset}`);
-  
-  let output = '';
-  navigation.forEach(item => {
-    const letterDisplay = item.letter === '#' ? '#' : item.letter;
-    const style = item.available
-      ? item.count > 0 ? colors.fg.green : colors.fg.yellow
-      : colors.fg.gray;
-    
-    output += `${style}${letterDisplay}${colors.reset}(${item.count}) `;
-  });
-  
-  console.log(output + '\n');
-  
-  console.log(`${colors.fg.yellow}Enter a letter to filter by, or:${colors.reset}`);
-  console.log(`- Enter '0' to clear letter filter`);
-  console.log(`- Enter 'b' to go back to the main menu`);
-  
-  rl.question('\nYour choice: ', answer => {
-    answer = answer.trim().toUpperCase();
-    
-    if (answer === 'B') {
-      showMainMenu();
-    } else if (answer === '0') {
-      filterState.letter = '';
-      showMainMenu();
-    } else if (answer === '#' || (answer.length === 1 && answer >= 'A' && answer <= 'Z')) {
-      filterState.letter = answer;
-      showMainMenu();
-    } else {
-      console.log(`\n${colors.fg.red}Invalid choice. Please enter a letter A-Z, #, 0, or B.${colors.reset}`);
-      setTimeout(showLetterFilterMenu, 1500);
+  servers.forEach(server => {
+    if (server.category) {
+      categories.add(server.category);
     }
   });
+  
+  return Array.from(categories).sort();
 }
 
-/**
- * Show type filter menu
- */
-function showTypeFilterMenu() {
-  console.clear();
-  console.log(`${colors.bright}${colors.fg.cyan}=== Filter by Server Type ===${colors.reset}\n`);
+// Get all available languages
+function getAllLanguages() {
+  const servers = getAllServers();
+  const languages = new Set();
   
-  console.log(`${colors.bright}Available Types:${colors.reset}`);
-  console.log(`1. ${colors.fg.green}Templates${colors.reset} (starter MCP server templates)`);
-  console.log(`2. ${colors.fg.green}Examples${colors.reset} (fully implemented example servers)`);
-  console.log(`3. ${colors.fg.yellow}Clear type filter${colors.reset}`);
-  console.log(`4. ${colors.fg.yellow}Back to main menu${colors.reset}`);
-  
-  rl.question('\nYour choice (1-4): ', answer => {
-    switch (answer) {
-      case '1':
-        filterState.type = 'template';
-        showMainMenu();
-        break;
-        
-      case '2':
-        filterState.type = 'example';
-        showMainMenu();
-        break;
-        
-      case '3':
-        filterState.type = '';
-        showMainMenu();
-        break;
-        
-      case '4':
-        showMainMenu();
-        break;
-        
-      default:
-        console.log(`\n${colors.fg.red}Invalid choice. Please enter 1-4.${colors.reset}`);
-        setTimeout(showTypeFilterMenu, 1500);
+  servers.forEach(server => {
+    if (server.language) {
+      languages.add(server.language);
     }
   });
+  
+  return Array.from(languages).sort();
 }
 
-/**
- * Prompt for keyword search
- */
-function promptForKeyword() {
-  console.clear();
-  console.log(`${colors.bright}${colors.fg.cyan}=== Search by Keyword ===${colors.reset}\n`);
-  
-  console.log(`Enter a keyword to search for in server names, descriptions, and tags.`);
-  console.log(`Leave empty and press Enter to clear the keyword filter.\n`);
-  
-  rl.question('Keyword: ', answer => {
-    filterState.keyword = answer.trim();
-    showMainMenu();
-  });
-}
-
-/**
- * Show sort options menu
- */
-function showSortMenu() {
-  console.clear();
-  console.log(`${colors.bright}${colors.fg.cyan}=== Change Sort Order ===${colors.reset}\n`);
-  
-  console.log(`${colors.bright}Sort Field:${colors.reset}`);
-  console.log(`1. ${colors.fg.green}Name${colors.reset}`);
-  console.log(`2. ${colors.fg.green}Language${colors.reset}`);
-  
-  console.log(`\n${colors.bright}Sort Direction:${colors.reset}`);
-  console.log(`3. ${colors.fg.green}Ascending (A-Z)${colors.reset}`);
-  console.log(`4. ${colors.fg.green}Descending (Z-A)${colors.reset}`);
-  
-  console.log(`\n5. ${colors.fg.yellow}Back to main menu${colors.reset}`);
-  
-  rl.question('\nYour choice (1-5): ', answer => {
-    switch (answer) {
-      case '1':
-        filterState.sortField = 'name';
-        showMainMenu();
-        break;
-        
-      case '2':
-        filterState.sortField = 'language';
-        showMainMenu();
-        break;
-        
-      case '3':
-        filterState.sortDirection = 'asc';
-        showMainMenu();
-        break;
-        
-      case '4':
-        filterState.sortDirection = 'desc';
-        showMainMenu();
-        break;
-        
-      case '5':
-        showMainMenu();
-        break;
-        
-      default:
-        console.log(`\n${colors.fg.red}Invalid choice. Please enter 1-5.${colors.reset}`);
-        setTimeout(showSortMenu, 1500);
+// Filter servers by various criteria
+function filterServers(servers, filters = {}) {
+  return servers.filter(server => {
+    // Filter by type
+    if (filters.type && server.type !== filters.type) {
+      return false;
     }
-  });
-}
-
-/**
- * Reset all filters to default values
- */
-function resetFilters() {
-  filterState.letter = '';
-  filterState.type = '';
-  filterState.keyword = '';
-  filterState.sortField = 'name';
-  filterState.sortDirection = 'asc';
-}
-
-/**
- * Show servers based on current filters and view mode
- */
-function showServers() {
-  console.clear();
-  
-  if (filterState.viewMode === 'list') {
-    showListView();
-  } else {
-    showAZView();
-  }
-}
-
-/**
- * Show servers in list view
- */
-function showListView() {
-  console.log(`${colors.bright}${colors.fg.cyan}=== MCP Servers (List View) ===${colors.reset}\n`);
-  
-  // Get filtered servers
-  const servers = serverBrowser.getServerListView({
-    letter: filterState.letter,
-    type: filterState.type,
-    keyword: filterState.keyword,
-    sortField: filterState.sortField,
-    sortDirection: filterState.sortDirection
-  });
-  
-  if (servers.length === 0) {
-    console.log(`${colors.fg.yellow}No servers match the current filters.${colors.reset}\n`);
-  } else {
-    console.log(`Found ${colors.fg.green}${servers.length}${colors.reset} servers:\n`);
     
-    // Display servers in a table format
-    console.log(`${colors.underscore}${colors.bright}ID               Name                                    Language    Type${colors.reset}`);
-    
-    servers.forEach((server, index) => {
-      const serverType = server.type === 'template' 
-        ? `${colors.fg.blue}Template${colors.reset}` 
-        : `${colors.fg.magenta}Example${colors.reset}`;
-      
-      // Truncate name if too long
-      const name = server.name.length > 40
-        ? server.name.substring(0, 37) + '...'
-        : server.name;
-      
-      console.log(
-        `${colors.fg.green}${(index + 1).toString().padEnd(3)}${colors.reset}` +
-        `${colors.fg.yellow}${server.id.padEnd(16)}${colors.reset}` +
-        `${name.padEnd(40)}` +
-        `${server.language.padEnd(11)}` +
-        `${serverType}`
-      );
-    });
-  }
-  
-  console.log('\nPress Enter to return to the main menu...');
-  rl.question('', () => showMainMenu());
-}
-
-/**
- * Show servers in A-Z view
- */
-function showAZView() {
-  console.log(`${colors.bright}${colors.fg.cyan}=== MCP Servers (A-Z View) ===${colors.reset}\n`);
-  
-  // Get A-Z view data
-  const azView = serverBrowser.getServerAZView({
-    type: filterState.type,
-    keyword: filterState.keyword
-  });
-  
-  const { navigation, groupedServers } = azView;
-  
-  // Show A-Z navigation
-  console.log(`${colors.bright}Letters:${colors.reset} `);
-  
-  let navDisplay = '';
-  navigation.forEach(item => {
-    const letterDisplay = item.letter === '#' ? '#' : item.letter;
-    const style = item.available 
-      ? (item.count > 0 ? colors.fg.green : colors.fg.yellow) 
-      : colors.fg.gray;
-    
-    navDisplay += `${style}${letterDisplay}${colors.reset}(${item.count}) `;
-  });
-  
-  console.log(navDisplay + '\n');
-  
-  // Show servers grouped by letter
-  let totalServers = 0;
-  
-  const visibleLetters = Object.keys(groupedServers).sort((a, b) => {
-    if (a === '#') return -1;
-    if (b === '#') return 1;
-    return a.localeCompare(b);
-  });
-  
-  visibleLetters.forEach(letter => {
-    const serversInLetter = groupedServers[letter];
-    
-    if (serversInLetter && serversInLetter.length > 0) {
-      console.log(`${colors.bright}${colors.fg.cyan}${letter === '#' ? 'Other' : letter}${colors.reset} (${serversInLetter.length} servers)`);
-      console.log(`${colors.dim}${'─'.repeat(50)}${colors.reset}`);
-      
-      serversInLetter.forEach((server, index) => {
-        const serverType = server.type === 'template' 
-          ? `${colors.fg.blue}[Template]${colors.reset}` 
-          : `${colors.fg.magenta}[Example]${colors.reset}`;
-        
-        console.log(`${colors.fg.green}${(index + 1).toString().padEnd(3)}${colors.reset}` +
-          `${colors.fg.yellow}${server.name}${colors.reset} ` +
-          `${colors.dim}(${server.language})${colors.reset} ${serverType}`);
-        
-        if (server.description) {
-          console.log(`${colors.dim}   ${server.description.substring(0, 80)}${server.description.length > 80 ? '...' : ''}${colors.reset}`);
+    // Filter by starting letter
+    if (filters.startLetter) {
+      if (filters.startLetter === '#') {
+        // Non-alphabetic servers
+        const firstChar = server.name.charAt(0).toLowerCase();
+        if (firstChar >= 'a' && firstChar <= 'z') {
+          return false;
         }
-      });
+      } else {
+        // Specific letter
+        const firstChar = server.name.charAt(0).toLowerCase();
+        if (firstChar !== filters.startLetter.toLowerCase()) {
+          return false;
+        }
+      }
+    }
+    
+    // Filter by category
+    if (filters.category && server.category !== filters.category) {
+      return false;
+    }
+    
+    // Filter by language
+    if (filters.language && server.language !== filters.language) {
+      return false;
+    }
+    
+    // Filter by search term
+    if (filters.search) {
+      const searchTerm = filters.search.toLowerCase();
+      const matchesName = server.name.toLowerCase().includes(searchTerm);
+      const matchesDescription = (server.description || '').toLowerCase().includes(searchTerm);
+      const matchesCategory = (server.category || '').toLowerCase().includes(searchTerm);
+      const matchesTags = (server.tags || []).some(tag => 
+        tag.toLowerCase().includes(searchTerm)
+      );
       
-      console.log('');
-      totalServers += serversInLetter.length;
-    }
-  });
-  
-  if (totalServers === 0) {
-    console.log(`${colors.fg.yellow}No servers match the current filters.${colors.reset}\n`);
-  } else {
-    console.log(`${colors.bright}Total: ${colors.fg.green}${totalServers}${colors.reset} servers\n`);
-  }
-  
-  console.log('Press Enter to return to the main menu...');
-  rl.question('', () => showMainMenu());
-}
-
-/**
- * Prompt for server details
- */
-function promptForServerDetails() {
-  console.clear();
-  console.log(`${colors.bright}${colors.fg.cyan}=== View Server Details ===${colors.reset}\n`);
-  
-  // Get all servers
-  const servers = serverBrowser.getAllServers();
-  
-  if (servers.length === 0) {
-    console.log(`${colors.fg.yellow}No servers available.${colors.reset}\n`);
-    console.log('Press Enter to return to the main menu...');
-    rl.question('', () => showMainMenu());
-    return;
-  }
-  
-  console.log(`Enter the ID of the server you want to view:\n`);
-  
-  // Show a simplified list of servers
-  servers.forEach((server, index) => {
-    console.log(`${colors.fg.green}${server.id}${colors.reset}: ${server.name}`);
-  });
-  
-  console.log(`\n${colors.fg.yellow}Enter 'b' to go back to the main menu${colors.reset}`);
-  
-  rl.question('\nServer ID: ', answer => {
-    answer = answer.trim();
-    
-    if (answer.toLowerCase() === 'b') {
-      showMainMenu();
-      return;
+      if (!(matchesName || matchesDescription || matchesCategory || matchesTags)) {
+        return false;
+      }
     }
     
-    const server = servers.find(s => s.id === answer);
-    
-    if (!server) {
-      console.log(`\n${colors.fg.red}Server with ID "${answer}" not found.${colors.reset}`);
-      setTimeout(() => promptForServerDetails(), 1500);
-      return;
-    }
-    
-    showServerDetails(server);
+    // All filters passed
+    return true;
   });
 }
 
-/**
- * Show detailed information about a server
- */
-function showServerDetails(server) {
+// Sort servers by different criteria
+function sortServers(servers, sortBy = 'name') {
+  return [...servers].sort((a, b) => {
+    switch (sortBy) {
+      case 'name':
+        return a.name.localeCompare(b.name);
+      
+      case 'category':
+        return (a.category || '').localeCompare(b.category || '');
+      
+      case 'language':
+        return (a.language || '').localeCompare(b.language || '');
+      
+      case 'type':
+        return a.type.localeCompare(b.type);
+      
+      default:
+        return a.name.localeCompare(b.name);
+    }
+  });
+}
+
+// Display servers in a list view
+function displayListView(servers, page = 1, pageSize = 10) {
+  const totalServers = servers.length;
+  const totalPages = Math.ceil(totalServers / pageSize);
+  
+  // Ensure page is within valid range
+  page = Math.max(1, Math.min(page, totalPages));
+  
+  // Calculate slice for current page
+  const startIndex = (page - 1) * pageSize;
+  const endIndex = Math.min(startIndex + pageSize, totalServers);
+  const pageServers = servers.slice(startIndex, endIndex);
+  
+  // Clear screen
   console.clear();
-  console.log(`${colors.bright}${colors.fg.cyan}=== Server Details: ${server.name} ===${colors.reset}\n`);
   
-  console.log(`${colors.bright}ID:${colors.reset} ${colors.fg.yellow}${server.id}${colors.reset}`);
-  console.log(`${colors.bright}Name:${colors.reset} ${server.name}`);
-  console.log(`${colors.bright}Type:${colors.reset} ${server.type === 'template' ? colors.fg.blue + 'Template' : colors.fg.magenta + 'Example'}${colors.reset}`);
-  console.log(`${colors.bright}Language:${colors.reset} ${server.language}`);
-  console.log(`${colors.bright}Path:${colors.reset} ${server.path}`);
-  console.log(`${colors.bright}Author:${colors.reset} ${server.author || 'Unknown'}`);
+  // Print header
+  console.log('');
+  console.log(`${colors.bright}${colors.fg.cyan}MCP Servers Collection${colors.reset}`);
+  console.log(`${colors.dim}Showing ${startIndex + 1}-${endIndex} of ${totalServers} servers${colors.reset}`);
+  console.log('');
   
-  if (server.description) {
-    console.log(`\n${colors.bright}Description:${colors.reset}\n${server.description}`);
-  }
+  // Print servers
+  pageServers.forEach((server, index) => {
+    const number = startIndex + index + 1;
+    const typeColor = server.type === 'template' 
+      ? colors.fg.green 
+      : server.type === 'example' 
+        ? colors.fg.yellow 
+        : colors.fg.blue;
+    
+    console.log(`${colors.bright}${number}. ${server.name}${colors.reset}`);
+    console.log(`   ${colors.dim}${server.description || 'No description'}${colors.reset}`);
+    console.log(`   ${typeColor}${server.type}${colors.reset} | ${colors.fg.magenta}${server.category || 'uncategorized'}${colors.reset} | ${colors.fg.cyan}${server.language || 'unknown'}${colors.reset}`);
+    
+    // Print tags if available
+    if (server.tags && server.tags.length > 0) {
+      console.log(`   ${colors.dim}Tags: ${server.tags.join(', ')}${colors.reset}`);
+    }
+    
+    console.log('');
+  });
   
-  if (server.tags && server.tags.length > 0) {
-    console.log(`\n${colors.bright}Tags:${colors.reset}`);
-    console.log(server.tags.map(tag => `${colors.fg.green}${tag}${colors.reset}`).join(', '));
-  }
+  // Print pagination info
+  console.log(`${colors.dim}Page ${page}/${totalPages}${colors.reset}`);
+  console.log('');
   
-  if (server.requirements && server.requirements.length > 0) {
-    console.log(`\n${colors.bright}Requirements:${colors.reset}`);
-    console.log(server.requirements.join(', '));
-  }
+  // Print commands
+  console.log(`${colors.bright}Commands:${colors.reset}`);
+  console.log(`  ${colors.fg.green}n${colors.reset} - Next page`);
+  console.log(`  ${colors.fg.green}p${colors.reset} - Previous page`);
+  console.log(`  ${colors.fg.green}f${colors.reset} - Filter options`);
+  console.log(`  ${colors.fg.green}s${colors.reset} - Sort options`);
+  console.log(`  ${colors.fg.green}v${colors.reset} - View modes`);
+  console.log(`  ${colors.fg.green}q${colors.reset} - Quit`);
+  console.log('');
   
-  if (server.tools && server.tools.length > 0) {
-    console.log(`\n${colors.bright}Tools:${colors.reset}`);
-    server.tools.forEach(tool => {
-      console.log(`- ${colors.fg.yellow}${tool}${colors.reset}`);
+  return { page, totalPages };
+}
+
+// Display servers in A-Z view
+function displayAZView(servers) {
+  // Group servers by first letter
+  const groups = {};
+  const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+  
+  // Initialize all letter groups
+  alphabet.forEach(letter => {
+    groups[letter] = [];
+  });
+  
+  // Add a group for non-alphabetic servers
+  groups['#'] = [];
+  
+  // Categorize servers by first letter
+  servers.forEach(server => {
+    const firstChar = server.name.charAt(0).toUpperCase();
+    if (alphabet.includes(firstChar)) {
+      groups[firstChar].push(server);
+    } else {
+      groups['#'].push(server);
+    }
+  });
+  
+  // Clear screen
+  console.clear();
+  
+  // Print header
+  console.log('');
+  console.log(`${colors.bright}${colors.fg.cyan}MCP Servers Collection - A-Z View${colors.reset}`);
+  console.log(`${colors.dim}Total: ${servers.length} servers${colors.reset}`);
+  console.log('');
+  
+  // Print letter index
+  console.log(`${colors.bright}Index:${colors.reset}`);
+  
+  // Create two rows of alphabet
+  const firstRow = alphabet.slice(0, 13);
+  const secondRow = alphabet.slice(13);
+  
+  const firstRowStr = firstRow.map(letter => {
+    const count = groups[letter].length;
+    return count > 0
+      ? `${colors.fg.green}${letter}${colors.reset}:${count}`
+      : `${colors.dim}${letter}${colors.reset}:0`;
+  }).join(' ');
+  
+  const secondRowStr = secondRow.map(letter => {
+    const count = groups[letter].length;
+    return count > 0
+      ? `${colors.fg.green}${letter}${colors.reset}:${count}`
+      : `${colors.dim}${letter}${colors.reset}:0`;
+  }).join(' ');
+  
+  const numCount = groups['#'].length;
+  const numStr = numCount > 0
+    ? `${colors.fg.green}#${colors.reset}:${numCount}`
+    : `${colors.dim}#${colors.reset}:0`;
+  
+  console.log(`  ${firstRowStr}`);
+  console.log(`  ${secondRowStr}`);
+  console.log(`  ${numStr} (non-alphabetic)`);
+  console.log('');
+  
+  // Print commands
+  console.log(`${colors.bright}Commands:${colors.reset}`);
+  console.log(`  ${colors.fg.green}[A-Z]${colors.reset} - Show servers starting with letter`);
+  console.log(`  ${colors.fg.green}#${colors.reset} - Show non-alphabetic servers`);
+  console.log(`  ${colors.fg.green}f${colors.reset} - Filter options`);
+  console.log(`  ${colors.fg.green}s${colors.reset} - Sort options`);
+  console.log(`  ${colors.fg.green}v${colors.reset} - View modes`);
+  console.log(`  ${colors.fg.green}q${colors.reset} - Quit`);
+  console.log('');
+  
+  return { groups };
+}
+
+// Show filter options
+function showFilterOptions() {
+  // Clear screen
+  console.clear();
+  
+  // Print header
+  console.log('');
+  console.log(`${colors.bright}${colors.fg.cyan}Filter Options${colors.reset}`);
+  console.log('');
+  
+  // Get categories and languages
+  const categories = getAllCategories();
+  const languages = getAllLanguages();
+  
+  // Print filter options
+  console.log(`${colors.bright}Filter by Type:${colors.reset}`);
+  console.log(`  ${colors.fg.green}t${colors.reset} - Templates only`);
+  console.log(`  ${colors.fg.green}e${colors.reset} - Examples only`);
+  console.log(`  ${colors.fg.green}i${colors.reset} - Imported only`);
+  console.log(`  ${colors.fg.green}a${colors.reset} - All types (clear filter)`);
+  console.log('');
+  
+  console.log(`${colors.bright}Filter by Category:${colors.reset}`);
+  categories.forEach((category, index) => {
+    console.log(`  ${colors.fg.green}c${index + 1}${colors.reset} - ${category}`);
+  });
+  console.log(`  ${colors.fg.green}c0${colors.reset} - Clear category filter`);
+  console.log('');
+  
+  console.log(`${colors.bright}Filter by Language:${colors.reset}`);
+  languages.forEach((language, index) => {
+    console.log(`  ${colors.fg.green}l${index + 1}${colors.reset} - ${language}`);
+  });
+  console.log(`  ${colors.fg.green}l0${colors.reset} - Clear language filter`);
+  console.log('');
+  
+  console.log(`${colors.bright}Search:${colors.reset}`);
+  console.log(`  ${colors.fg.green}s${colors.reset} - Search by keyword`);
+  console.log(`  ${colors.fg.green}sc${colors.reset} - Clear search filter`);
+  console.log('');
+  
+  console.log(`${colors.fg.green}b${colors.reset} - Back to server list`);
+  console.log('');
+  
+  return { categories, languages };
+}
+
+// Show sort options
+function showSortOptions() {
+  // Clear screen
+  console.clear();
+  
+  // Print header
+  console.log('');
+  console.log(`${colors.bright}${colors.fg.cyan}Sort Options${colors.reset}`);
+  console.log('');
+  
+  // Print sort options
+  console.log(`${colors.fg.green}n${colors.reset} - Sort by name`);
+  console.log(`${colors.fg.green}c${colors.reset} - Sort by category`);
+  console.log(`${colors.fg.green}l${colors.reset} - Sort by language`);
+  console.log(`${colors.fg.green}t${colors.reset} - Sort by type`);
+  console.log('');
+  
+  console.log(`${colors.fg.green}b${colors.reset} - Back to server list`);
+  console.log('');
+}
+
+// Show view mode options
+function showViewModeOptions() {
+  // Clear screen
+  console.clear();
+  
+  // Print header
+  console.log('');
+  console.log(`${colors.bright}${colors.fg.cyan}View Mode Options${colors.reset}`);
+  console.log('');
+  
+  // Print view mode options
+  console.log(`${colors.fg.green}l${colors.reset} - List view`);
+  console.log(`${colors.fg.green}a${colors.reset} - A-Z view`);
+  console.log('');
+  
+  console.log(`${colors.fg.green}b${colors.reset} - Back to current view`);
+  console.log('');
+}
+
+// Main browser function
+async function browseMCPServers() {
+  let currentView = 'list'; // 'list' or 'az'
+  let currentPage = 1;
+  let pageSize = 10;
+  
+  let filters = {};
+  let sortBy = 'name';
+  
+  let currentLetter = null;
+  
+  const allServers = getAllServers();
+  let filteredServers = [...allServers];
+  
+  let running = true;
+  
+  // Initial display
+  let displayState = currentView === 'list'
+    ? displayListView(filteredServers, currentPage, pageSize)
+    : displayAZView(filteredServers);
+  
+  while (running) {
+    // Get command from user
+    const command = await new Promise(resolve => {
+      rl.question('Enter command: ', answer => {
+        resolve(answer.trim().toLowerCase());
+      });
     });
+    
+    // Process command
+    if (command === 'q') {
+      // Quit
+      running = false;
+    } else if (currentView === 'list') {
+      // List view commands
+      if (command === 'n') {
+        // Next page
+        currentPage = Math.min(currentPage + 1, displayState.totalPages);
+        displayState = displayListView(filteredServers, currentPage, pageSize);
+      } else if (command === 'p') {
+        // Previous page
+        currentPage = Math.max(currentPage - 1, 1);
+        displayState = displayListView(filteredServers, currentPage, pageSize);
+      } else if (command === 'f') {
+        // Filter options
+        const filterOptions = showFilterOptions();
+        
+        const filterCommand = await new Promise(resolve => {
+          rl.question('Enter filter command: ', answer => {
+            resolve(answer.trim().toLowerCase());
+          });
+        });
+        
+        if (filterCommand === 'b') {
+          // Back to list
+          displayState = displayListView(filteredServers, currentPage, pageSize);
+        } else if (filterCommand === 't') {
+          // Templates only
+          filters.type = 'template';
+          filteredServers = filterServers(allServers, filters);
+          currentPage = 1;
+          displayState = displayListView(filteredServers, currentPage, pageSize);
+        } else if (filterCommand === 'e') {
+          // Examples only
+          filters.type = 'example';
+          filteredServers = filterServers(allServers, filters);
+          currentPage = 1;
+          displayState = displayListView(filteredServers, currentPage, pageSize);
+        } else if (filterCommand === 'i') {
+          // Imported only
+          filters.type = 'imported';
+          filteredServers = filterServers(allServers, filters);
+          currentPage = 1;
+          displayState = displayListView(filteredServers, currentPage, pageSize);
+        } else if (filterCommand === 'a') {
+          // All types
+          delete filters.type;
+          filteredServers = filterServers(allServers, filters);
+          currentPage = 1;
+          displayState = displayListView(filteredServers, currentPage, pageSize);
+        } else if (filterCommand.startsWith('c')) {
+          // Category filter
+          const categoryIndex = parseInt(filterCommand.substring(1), 10);
+          
+          if (categoryIndex === 0) {
+            // Clear category filter
+            delete filters.category;
+          } else if (categoryIndex > 0 && categoryIndex <= filterOptions.categories.length) {
+            // Set category filter
+            filters.category = filterOptions.categories[categoryIndex - 1];
+          }
+          
+          filteredServers = filterServers(allServers, filters);
+          currentPage = 1;
+          displayState = displayListView(filteredServers, currentPage, pageSize);
+        } else if (filterCommand.startsWith('l')) {
+          // Language filter
+          const languageIndex = parseInt(filterCommand.substring(1), 10);
+          
+          if (languageIndex === 0) {
+            // Clear language filter
+            delete filters.language;
+          } else if (languageIndex > 0 && languageIndex <= filterOptions.languages.length) {
+            // Set language filter
+            filters.language = filterOptions.languages[languageIndex - 1];
+          }
+          
+          filteredServers = filterServers(allServers, filters);
+          currentPage = 1;
+          displayState = displayListView(filteredServers, currentPage, pageSize);
+        } else if (filterCommand === 's') {
+          // Search by keyword
+          const searchTerm = await new Promise(resolve => {
+            rl.question('Enter search term: ', answer => {
+              resolve(answer.trim());
+            });
+          });
+          
+          if (searchTerm) {
+            filters.search = searchTerm;
+            filteredServers = filterServers(allServers, filters);
+            currentPage = 1;
+            displayState = displayListView(filteredServers, currentPage, pageSize);
+          }
+        } else if (filterCommand === 'sc') {
+          // Clear search filter
+          delete filters.search;
+          filteredServers = filterServers(allServers, filters);
+          currentPage = 1;
+          displayState = displayListView(filteredServers, currentPage, pageSize);
+        }
+      } else if (command === 's') {
+        // Sort options
+        showSortOptions();
+        
+        const sortCommand = await new Promise(resolve => {
+          rl.question('Enter sort command: ', answer => {
+            resolve(answer.trim().toLowerCase());
+          });
+        });
+        
+        if (sortCommand === 'b') {
+          // Back to list
+          displayState = displayListView(filteredServers, currentPage, pageSize);
+        } else if (sortCommand === 'n') {
+          // Sort by name
+          sortBy = 'name';
+          filteredServers = sortServers(filteredServers, sortBy);
+          displayState = displayListView(filteredServers, currentPage, pageSize);
+        } else if (sortCommand === 'c') {
+          // Sort by category
+          sortBy = 'category';
+          filteredServers = sortServers(filteredServers, sortBy);
+          displayState = displayListView(filteredServers, currentPage, pageSize);
+        } else if (sortCommand === 'l') {
+          // Sort by language
+          sortBy = 'language';
+          filteredServers = sortServers(filteredServers, sortBy);
+          displayState = displayListView(filteredServers, currentPage, pageSize);
+        } else if (sortCommand === 't') {
+          // Sort by type
+          sortBy = 'type';
+          filteredServers = sortServers(filteredServers, sortBy);
+          displayState = displayListView(filteredServers, currentPage, pageSize);
+        }
+      } else if (command === 'v') {
+        // View modes
+        showViewModeOptions();
+        
+        const viewCommand = await new Promise(resolve => {
+          rl.question('Enter view command: ', answer => {
+            resolve(answer.trim().toLowerCase());
+          });
+        });
+        
+        if (viewCommand === 'b') {
+          // Back to current view
+          displayState = displayListView(filteredServers, currentPage, pageSize);
+        } else if (viewCommand === 'l') {
+          // List view
+          currentView = 'list';
+          displayState = displayListView(filteredServers, currentPage, pageSize);
+        } else if (viewCommand === 'a') {
+          // A-Z view
+          currentView = 'az';
+          displayState = displayAZView(filteredServers);
+        }
+      }
+    } else if (currentView === 'az') {
+      // A-Z view commands
+      if (command === 'f') {
+        // Filter options
+        const filterOptions = showFilterOptions();
+        
+        const filterCommand = await new Promise(resolve => {
+          rl.question('Enter filter command: ', answer => {
+            resolve(answer.trim().toLowerCase());
+          });
+        });
+        
+        if (filterCommand === 'b') {
+          // Back to A-Z view
+          displayState = displayAZView(filteredServers);
+        } else if (filterCommand === 't') {
+          // Templates only
+          filters.type = 'template';
+          filteredServers = filterServers(allServers, filters);
+          displayState = displayAZView(filteredServers);
+        } else if (filterCommand === 'e') {
+          // Examples only
+          filters.type = 'example';
+          filteredServers = filterServers(allServers, filters);
+          displayState = displayAZView(filteredServers);
+        } else if (filterCommand === 'i') {
+          // Imported only
+          filters.type = 'imported';
+          filteredServers = filterServers(allServers, filters);
+          displayState = displayAZView(filteredServers);
+        } else if (filterCommand === 'a') {
+          // All types
+          delete filters.type;
+          filteredServers = filterServers(allServers, filters);
+          displayState = displayAZView(filteredServers);
+        } else if (filterCommand.startsWith('c')) {
+          // Category filter
+          const categoryIndex = parseInt(filterCommand.substring(1), 10);
+          
+          if (categoryIndex === 0) {
+            // Clear category filter
+            delete filters.category;
+          } else if (categoryIndex > 0 && categoryIndex <= filterOptions.categories.length) {
+            // Set category filter
+            filters.category = filterOptions.categories[categoryIndex - 1];
+          }
+          
+          filteredServers = filterServers(allServers, filters);
+          displayState = displayAZView(filteredServers);
+        } else if (filterCommand.startsWith('l')) {
+          // Language filter
+          const languageIndex = parseInt(filterCommand.substring(1), 10);
+          
+          if (languageIndex === 0) {
+            // Clear language filter
+            delete filters.language;
+          } else if (languageIndex > 0 && languageIndex <= filterOptions.languages.length) {
+            // Set language filter
+            filters.language = filterOptions.languages[languageIndex - 1];
+          }
+          
+          filteredServers = filterServers(allServers, filters);
+          displayState = displayAZView(filteredServers);
+        } else if (filterCommand === 's') {
+          // Search by keyword
+          const searchTerm = await new Promise(resolve => {
+            rl.question('Enter search term: ', answer => {
+              resolve(answer.trim());
+            });
+          });
+          
+          if (searchTerm) {
+            filters.search = searchTerm;
+            filteredServers = filterServers(allServers, filters);
+            displayState = displayAZView(filteredServers);
+          }
+        } else if (filterCommand === 'sc') {
+          // Clear search filter
+          delete filters.search;
+          filteredServers = filterServers(allServers, filters);
+          displayState = displayAZView(filteredServers);
+        }
+      } else if (command === 's') {
+        // Sort options
+        showSortOptions();
+        
+        const sortCommand = await new Promise(resolve => {
+          rl.question('Enter sort command: ', answer => {
+            resolve(answer.trim().toLowerCase());
+          });
+        });
+        
+        if (sortCommand === 'b') {
+          // Back to A-Z view
+          displayState = displayAZView(filteredServers);
+        } else if (sortCommand === 'n') {
+          // Sort by name
+          sortBy = 'name';
+          filteredServers = sortServers(filteredServers, sortBy);
+          displayState = displayAZView(filteredServers);
+        } else if (sortCommand === 'c') {
+          // Sort by category
+          sortBy = 'category';
+          filteredServers = sortServers(filteredServers, sortBy);
+          displayState = displayAZView(filteredServers);
+        } else if (sortCommand === 'l') {
+          // Sort by language
+          sortBy = 'language';
+          filteredServers = sortServers(filteredServers, sortBy);
+          displayState = displayAZView(filteredServers);
+        } else if (sortCommand === 't') {
+          // Sort by type
+          sortBy = 'type';
+          filteredServers = sortServers(filteredServers, sortBy);
+          displayState = displayAZView(filteredServers);
+        }
+      } else if (command === 'v') {
+        // View modes
+        showViewModeOptions();
+        
+        const viewCommand = await new Promise(resolve => {
+          rl.question('Enter view command: ', answer => {
+            resolve(answer.trim().toLowerCase());
+          });
+        });
+        
+        if (viewCommand === 'b') {
+          // Back to current view
+          displayState = displayAZView(filteredServers);
+        } else if (viewCommand === 'l') {
+          // List view
+          currentView = 'list';
+          displayState = displayListView(filteredServers, currentPage, pageSize);
+        } else if (viewCommand === 'a') {
+          // A-Z view
+          currentView = 'az';
+          displayState = displayAZView(filteredServers);
+        }
+      } else if (command === '#') {
+        // Show non-alphabetic servers
+        filters.startLetter = '#';
+        filteredServers = filterServers(allServers, filters);
+        currentView = 'list';
+        currentPage = 1;
+        displayState = displayListView(filteredServers, currentPage, pageSize);
+      } else if (command.length === 1 && command >= 'a' && command <= 'z') {
+        // Show servers starting with letter
+        filters.startLetter = command;
+        filteredServers = filterServers(allServers, filters);
+        currentView = 'list';
+        currentPage = 1;
+        displayState = displayListView(filteredServers, currentPage, pageSize);
+      }
+    }
   }
   
-  console.log('\nPress Enter to return to the main menu...');
-  rl.question('', () => showMainMenu());
+  console.log('');
+  console.log('Thank you for using the MCP Server Browser!');
+  rl.close();
 }
 
 // Start the browser
-console.clear();
-console.log(`${colors.bright}${colors.fg.cyan}Welcome to the MCP Server Browser!${colors.reset}\n`);
-console.log('Loading server data...');
-
-setTimeout(() => {
-  showMainMenu();
-}, 500);
+browseMCPServers().catch(error => {
+  console.error('Error:', error);
+  rl.close();
+});

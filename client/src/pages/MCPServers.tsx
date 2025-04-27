@@ -451,14 +451,14 @@ const MCPServers = () => {
             {/* Type filter */}
             {serverData?.filters?.types && (
               <Select 
-                value={filterType || ''} 
-                onValueChange={(value) => handleFilterChange('type', value || undefined)}
+                value={filterType || 'all'} 
+                onValueChange={(value) => handleFilterChange('type', value === 'all' ? undefined : value)}
               >
                 <SelectTrigger className="w-[130px]">
                   <SelectValue placeholder="Type" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Types</SelectItem>
+                  <SelectItem value="all">All Types</SelectItem>
                   {serverData.filters.types.map(type => (
                     <SelectItem key={type} value={type}>{type}</SelectItem>
                   ))}
@@ -469,14 +469,14 @@ const MCPServers = () => {
             {/* Language filter */}
             {serverData?.filters?.languages && (
               <Select 
-                value={filterLanguage || ''} 
-                onValueChange={(value) => handleFilterChange('language', value || undefined)}
+                value={filterLanguage || 'all'} 
+                onValueChange={(value) => handleFilterChange('language', value === 'all' ? undefined : value)}
               >
                 <SelectTrigger className="w-[130px]">
                   <SelectValue placeholder="Language" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Languages</SelectItem>
+                  <SelectItem value="all">All Languages</SelectItem>
                   {serverData.filters.languages.map(language => (
                     <SelectItem key={language} value={language}>{language}</SelectItem>
                   ))}
@@ -487,14 +487,14 @@ const MCPServers = () => {
             {/* Category filter */}
             {serverData?.filters?.categories && (
               <Select 
-                value={filterCategory || ''} 
-                onValueChange={(value) => handleFilterChange('category', value || undefined)}
+                value={filterCategory || 'all'} 
+                onValueChange={(value) => handleFilterChange('category', value === 'all' ? undefined : value)}
               >
                 <SelectTrigger className="w-[130px]">
                   <SelectValue placeholder="Category" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Categories</SelectItem>
+                  <SelectItem value="all">All Categories</SelectItem>
                   {serverData.filters.categories.map(category => (
                     <SelectItem key={category} value={category}>{category}</SelectItem>
                   ))}
@@ -505,14 +505,14 @@ const MCPServers = () => {
             {/* Difficulty filter */}
             {serverData?.filters?.difficulties && (
               <Select 
-                value={filterDifficulty || ''} 
-                onValueChange={(value) => handleFilterChange('difficulty', value || undefined)}
+                value={filterDifficulty || 'all'} 
+                onValueChange={(value) => handleFilterChange('difficulty', value === 'all' ? undefined : value)}
               >
                 <SelectTrigger className="w-[130px]">
                   <SelectValue placeholder="Difficulty" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Difficulties</SelectItem>
+                  <SelectItem value="all">All Difficulties</SelectItem>
                   {serverData.filters.difficulties.map(difficulty => (
                     <SelectItem key={difficulty} value={difficulty}>{difficulty}</SelectItem>
                   ))}
@@ -742,7 +742,7 @@ const MCPServers = () => {
             {serverData.pagination.totalPages > 5 && page < 3 && (
               <>
                 <PaginationItem>
-                  <PaginationLink disabled>...</PaginationLink>
+                  <div className="px-4 py-2 text-sm text-muted-foreground">...</div>
                 </PaginationItem>
                 <PaginationItem>
                   <PaginationLink 
@@ -757,7 +757,7 @@ const MCPServers = () => {
             {serverData.pagination.totalPages > 5 && page >= 3 && page <= serverData.pagination.totalPages - 2 && (
               <>
                 <PaginationItem>
-                  <PaginationLink disabled>...</PaginationLink>
+                  <div className="px-4 py-2 text-sm text-muted-foreground">...</div>
                 </PaginationItem>
                 <PaginationItem>
                   <PaginationLink 
@@ -768,7 +768,7 @@ const MCPServers = () => {
                   </PaginationLink>
                 </PaginationItem>
                 <PaginationItem>
-                  <PaginationLink disabled>...</PaginationLink>
+                  <div className="px-4 py-2 text-sm text-muted-foreground">...</div>
                 </PaginationItem>
                 <PaginationItem>
                   <PaginationLink 
@@ -783,7 +783,7 @@ const MCPServers = () => {
             {serverData.pagination.totalPages > 5 && page > serverData.pagination.totalPages - 2 && (
               <>
                 <PaginationItem>
-                  <PaginationLink disabled>...</PaginationLink>
+                  <div className="px-4 py-2 text-sm text-muted-foreground">...</div>
                 </PaginationItem>
               </>
             )}

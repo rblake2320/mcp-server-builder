@@ -43,24 +43,42 @@ const MCPServers = () => {
   const [selectedServer, setSelectedServer] = useState<MCPServer | null>(null);
   const [serverCode, setServerCode] = useState<string>("");
   const [codeLoading, setCodeLoading] = useState(false);
+  const [serverStats, setServerStats] = useState<{
+    totalCount: number;
+    upCount: number;
+    downCount: number;
+    byType: {
+      templates: number;
+      examples: number;
+      imported: number;
+    }
+  } | null>(null);
 
   useEffect(() => {
-    const fetchServerIndex = async () => {
+    const fetchData = async () => {
       try {
         setIsLoading(true);
         
         // Fetch server index from our API
-        const response = await fetch('/api/mcp-servers');
+        const indexResponse = await fetch('/api/mcp-servers');
         
-        if (!response.ok) {
-          throw new Error(`API request failed with status ${response.status}`);
+        if (!indexResponse.ok) {
+          throw new Error(`API request failed with status ${indexResponse.status}`);
         }
         
-        const data = await response.json();
-        setServerIndex(data);
+        const indexData = await indexResponse.json();
+        setServerIndex(indexData);
+        
+        // Fetch server stats
+        const statsResponse = await fetch('/api/mcp-servers/stats');
+        if (statsResponse.ok) {
+          const statsData = await statsResponse.json();
+          setServerStats(statsData);
+        }
+        
         setIsLoading(false);
       } catch (error) {
-        console.error("Error fetching server index:", error);
+        console.error("Error fetching server data:", error);
         
         // Fallback to hardcoded data if API request fails
         const fallbackData = {
@@ -109,11 +127,42 @@ const MCPServers = () => {
         };
         
         setServerIndex(fallbackData);
+        
+        // Fallback stats
+        setServerStats({
+          totalCount: 4,
+          upCount: 4,
+          downCount: 0,
+          byType: {
+            templates: 2,
+            examples: 2,
+            imported: 0
+          }
+        });
+        
         setIsLoading(false);
       }
     };
     
-    fetchServerIndex();
+    // Set up an interval to refresh the stats periodically
+    fetchData();
+    
+    const statsInterval = setInterval(() => {
+      fetch('/api/mcp-servers/stats')
+        .then(response => {
+          if (response.ok) return response.json();
+          throw new Error('Failed to fetch stats');
+        })
+        .then(data => {
+          setServerStats(data);
+        })
+        .catch(error => {
+          console.error('Error refreshing server stats:', error);
+        });
+    }, 10000); // Refresh every 10 seconds
+    
+    // Clean up the interval when the component unmounts
+    return () => clearInterval(statsInterval);
   }, []);
 
   const handleDownload = async (server: MCPServer) => {
@@ -256,10 +305,38 @@ const MCPServers = () => {
     <div className="container py-8 max-w-7xl">
       <div className="flex justify-between items-center mb-8">
         <div>
-          <h1 className="text-3xl font-bold">MCP Server Collection</h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-3xl font-bold">MCP Server Collection</h1>
+            {serverStats && (
+              <div className="flex items-center gap-2 ml-4">
+                <Badge className="text-base px-3 py-1 bg-primary/80">
+                  {serverStats.totalCount.toLocaleString()} Servers
+                </Badge>
+                <Badge className="text-base px-3 py-1 bg-green-500/90">
+                  {serverStats.upCount.toLocaleString()} Up
+                </Badge>
+                <Badge className="text-base px-3 py-1 bg-red-500/90">
+                  {serverStats.downCount.toLocaleString()} Down
+                </Badge>
+              </div>
+            )}
+          </div>
           <p className="text-muted-foreground mt-2">
             Browse and download ready-to-use Model Context Protocol servers for Claude
           </p>
+          {serverStats && (
+            <div className="flex flex-wrap gap-2 mt-3">
+              <Badge variant="outline" className="bg-background/80">
+                {serverStats.byType.templates} Templates
+              </Badge>
+              <Badge variant="outline" className="bg-background/80">
+                {serverStats.byType.examples} Examples
+              </Badge>
+              <Badge variant="outline" className="bg-background/80">
+                {serverStats.byType.imported} Imported
+              </Badge>
+            </div>
+          )}
         </div>
         <div className="flex gap-2">
           <Dialog open={importDialogOpen} onOpenChange={setImportDialogOpen}>

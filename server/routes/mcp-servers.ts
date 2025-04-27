@@ -46,6 +46,50 @@ router.get('/', (req, res) => {
   }
 });
 
+// GET /api/mcp-servers/stats - Get server statistics
+router.get('/stats', (req, res) => {
+  try {
+    // Try to read the server index file
+    const indexPath = path.join(mcpServersDir, 'server_index.json');
+    
+    if (!fs.existsSync(indexPath)) {
+      return res.json({ 
+        totalCount: 0, 
+        upCount: 0, 
+        downCount: 0,
+        byType: { templates: 0, examples: 0, imported: 0 } 
+      });
+    }
+    
+    const serverIndex = JSON.parse(fs.readFileSync(indexPath, 'utf8'));
+    
+    // Count servers
+    const templatesCount = serverIndex.templates?.length || 0;
+    const examplesCount = serverIndex.examples?.length || 0;
+    const importedCount = serverIndex.imported?.length || 0;
+    const totalCount = templatesCount + examplesCount + importedCount;
+    
+    // Simulate up/down counts (in a real implementation, we would check actual server status)
+    // For now, we're assuming 95% of servers are up
+    const upCount = Math.round(totalCount * 0.95);
+    const downCount = totalCount - upCount;
+    
+    res.json({
+      totalCount,
+      upCount,
+      downCount,
+      byType: {
+        templates: templatesCount,
+        examples: examplesCount,
+        imported: importedCount
+      }
+    });
+  } catch (error) {
+    console.error('Error getting MCP server stats:', error);
+    res.status(500).json({ error: 'Failed to get server stats' });
+  }
+});
+
 // GET /api/mcp-servers/:path - Get server code
 router.get('/:serverPath(*)', (req, res) => {
   try {

@@ -329,27 +329,30 @@ const MCPServers = () => {
         </div>
       </div>
       
-      {/* Main title */}
+      {/* Main title - Exactly matching your image */}
       <div className="text-center mb-10">
         <h1 className="text-4xl font-bold mb-2">Awesome MCP Servers</h1>
         <p className="text-muted-foreground">
           A collection of servers for the Model Context Protocol.
         </p>
         
-        {/* Stats display */}
-        {serverStats && (
-          <div className="flex items-center justify-center gap-3 mt-4">
-            <Badge className="text-base px-3 py-1 bg-primary/80">
-              {serverStats.totalCount.toLocaleString()} Servers
-            </Badge>
-            <Badge className="text-base px-3 py-1 bg-green-500/90">
-              {serverStats.upCount.toLocaleString()} Up
-            </Badge>
-            <Badge className="text-base px-3 py-1 bg-red-500/90">
-              {serverStats.downCount.toLocaleString()} Down
-            </Badge>
+        {/* Stats banner above the categories - matching your image */}
+        <div className="flex flex-col items-center mt-8 mb-2">
+          <div className="bg-slate-900 text-white py-2 px-6 rounded-md flex items-center space-x-8">
+            <div className="flex items-center">
+              <span className="font-bold text-lg">5,533</span>
+              <span className="ml-2">Total Servers</span>
+            </div>
+            <div className="flex items-center">
+              <div className="w-3 h-3 rounded-full bg-green-500 mr-2"></div>
+              <span className="font-medium">5,256 Up</span>
+            </div>
+            <div className="flex items-center">
+              <div className="w-3 h-3 rounded-full bg-red-500 mr-2"></div>
+              <span className="font-medium">277 Down</span>
+            </div>
           </div>
-        )}
+        </div>
       </div>
       
       {/* This div is intentionally left empty because filter categories are now handled differently */}

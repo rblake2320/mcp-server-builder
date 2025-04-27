@@ -65,30 +65,43 @@ function initServerCache(): ServerIndex {
     if (fs.existsSync(v2IndexPath)) {
       console.log('Loading server data from version_2/mcpservers/server_index.json');
       const data = fs.readFileSync(v2IndexPath, 'utf-8');
-      const fullServerIndex = JSON.parse(data) as ServerIndex;
+      console.log('Server index file size:', data.length);
       
-      // Add status field to all servers (95% up, 5% down for realistic display)
-      const processedIndex: ServerIndex = {
-        templates: fullServerIndex.templates.map(server => ({
-          ...server,
-          type: 'template',
-          status: Math.random() < 0.95 ? 'up' : 'down'
-        })),
-        examples: fullServerIndex.examples.map(server => ({
-          ...server,
-          type: 'example',
-          status: Math.random() < 0.95 ? 'up' : 'down'
-        })),
-        imported: fullServerIndex.imported ? fullServerIndex.imported.map(server => ({
-          ...server,
-          type: 'imported',
-          status: Math.random() < 0.95 ? 'up' : 'down'
-        })) : []
-      };
-      
-      serverCache = processedIndex;
-      console.log(`Loaded ${processedIndex.templates.length + processedIndex.examples.length + (processedIndex.imported?.length || 0)} servers from version_2`);
-      return serverCache;
+      try {
+        const fullServerIndex = JSON.parse(data) as ServerIndex;
+        console.log('JSON parsed successfully');
+        console.log('Templates:', fullServerIndex.templates?.length || 0);
+        console.log('Examples:', fullServerIndex.examples?.length || 0);
+        console.log('Imported:', fullServerIndex.imported?.length || 0);
+        
+        // Add status field to all servers (95% up, 5% down for realistic display)
+        const processedIndex: ServerIndex = {
+          templates: (fullServerIndex.templates || []).map(server => ({
+            ...server,
+            type: 'template',
+            status: Math.random() < 0.95 ? 'up' : 'down'
+          })),
+          examples: (fullServerIndex.examples || []).map(server => ({
+            ...server,
+            type: 'example',
+            status: Math.random() < 0.95 ? 'up' : 'down'
+          })),
+          imported: (fullServerIndex.imported || []).map(server => ({
+            ...server,
+            type: 'imported',
+            status: Math.random() < 0.95 ? 'up' : 'down'
+          }))
+        };
+        
+        serverCache = processedIndex;
+        console.log(`Loaded ${processedIndex.templates.length + processedIndex.examples.length + processedIndex.imported.length} servers from version_2`);
+        return serverCache;
+      } catch (parseError) {
+        console.error('Error parsing server index JSON:', parseError);
+        // Create a fallback empty server index
+        serverCache = { templates: [], examples: [], imported: [] };
+        return serverCache;
+      }
     }
     
     // Fall back to the current mcpservers directory if version_2 doesn't exist
@@ -133,6 +146,11 @@ function initServerCache(): ServerIndex {
 
 // Reset stats cache when server starts to ensure we're using actual data
 serverStatsCache = null;
+
+// Debug route to test if the router is working
+router.get('/debug', (req, res) => {
+  res.json({ message: 'MCP Server router is working!' });
+});
 
 // Register the routes
 router.get('/', getServers);
@@ -277,9 +295,9 @@ router.get('/download/:serverPath(*)', (req, res) => {
   }
 });
 
-// GET /api/mcp-servers/:path - Get server code
-// This must be the last route to avoid conflicting with more specific routes
-router.get('/:serverPath(*)', (req, res) => {
+// GET /api/mcp-servers/server/:path - Get server code
+// Changed from /:serverPath(*) to /server/:serverPath(*) to avoid conflict with other routes
+router.get('/server/:serverPath(*)', (req, res) => {
   try {
     const serverPath = req.params.serverPath;
     const fullPath = path.join(mcpServersDir, serverPath);

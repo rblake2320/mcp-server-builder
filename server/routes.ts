@@ -89,7 +89,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   fs.ensureDirSync(path.join(process.cwd(), 'server/ai'));
   
   // Register feature routers
-  app.use(mcpServersRouter);
   app.use(complexityRoutes);
   app.use(terminalToolsRouter);
   app.use('/api/twentyfirst', twentyfirstRouter);

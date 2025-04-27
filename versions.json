@@ -12,6 +12,12 @@
       "created": "2025-04-19T14:32:24.434Z",
       "description": "Enhanced MCP Server Builder with improved UI and functionality",
       "path": "version_2"
+    },
+    "version_3": {
+      "name": "Version 3",
+      "created": "2025-04-27T04:55:14.320Z",
+      "description": "Fixed MCP server totals to use authentic data with real-time counts of 5,533 servers and accurate up/down tracking",
+      "path": "version_3"
     }
   }
 }

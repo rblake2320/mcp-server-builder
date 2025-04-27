@@ -1,4 +1,41 @@
 {
   "templates": [],
-  "examples": []
+  "examples": [
+    {
+      "name": "Brave Search",
+      "path": "examples/brave_search.js",
+      "language": "javascript",
+      "description": "Web and local search using Brave's Search API",
+      "difficulty": "intermediate",
+      "dependencies": ["https"],
+      "tools": ["brave_search"]
+    },
+    {
+      "name": "Fetch",
+      "path": "examples/fetch.js",
+      "language": "javascript",
+      "description": "Web content fetching and conversion for efficient LLM usage",
+      "difficulty": "intermediate",
+      "dependencies": ["https", "url"],
+      "tools": ["fetch_url"]
+    },
+    {
+      "name": "Filesystem",
+      "path": "examples/filesystem.js",
+      "language": "javascript",
+      "description": "Secure file operations with configurable access controls",
+      "difficulty": "intermediate",
+      "dependencies": ["fs", "path"],
+      "tools": ["list_files", "read_file"]
+    },
+    {
+      "name": "Git",
+      "path": "examples/git.js",
+      "language": "javascript",
+      "description": "Tools to read, search, and manipulate Git repositories",
+      "difficulty": "intermediate",
+      "dependencies": ["child_process", "fs", "path"],
+      "tools": ["git_clone", "git_search"]
+    }
+  ]
 }

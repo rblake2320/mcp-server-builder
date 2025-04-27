@@ -136,6 +136,14 @@ serverStatsCache = null;
 
 // Register the routes
 router.get('/', getServers);
+router.get('/count', (req, res) => {
+  const servers = initServerCache();
+  
+  // Count all servers
+  const total = servers.templates.length + servers.examples.length + servers.imported.length;
+  
+  res.json({ total });
+});
 router.get('/stats', getServerStats);
 router.get('/languages', getLanguagesStats);
 router.get('/categories', getCategoriesStats);

@@ -54,6 +54,32 @@ You can filter servers by:
 - Keyword search
 - And sort by name, category, language, or type
 
+## Real-Time Server Management
+
+You can add or remove servers in real-time to test the status monitor's ability to track changes:
+
+```bash
+# Add 100 new servers
+node add_remove_servers.js --add=100
+
+# Remove 50 servers
+node add_remove_servers.js --remove=50
+
+# Add 100 and remove 50 in one command
+node add_remove_servers.js --add=100 --remove=50
+```
+
+Using npm scripts:
+```bash
+# Add 1000 servers
+npm run add 1000
+
+# Remove 500 servers
+npm run remove 500
+```
+
+The status monitor will automatically detect these changes and update the dashboard in real-time.
+
 ## Importing Additional Servers
 
 You can import more servers from various sources using the import utilities:

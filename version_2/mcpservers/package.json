@@ -9,7 +9,10 @@
     "browse": "node browse_servers.js",
     "monitor": "node status_monitor.js",
     "import": "node import_all_servers.js",
-    "generate": "node generate_bulk_servers.js"
+    "generate": "node generate_bulk_servers.js",
+    "add": "node add_remove_servers.js --add=",
+    "remove": "node add_remove_servers.js --remove=",
+    "add-remove": "node add_remove_servers.js"
   },
   "keywords": [
     "mcp",

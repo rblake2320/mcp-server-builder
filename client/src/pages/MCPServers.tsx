@@ -335,113 +335,13 @@ const MCPServers = () => {
         <p className="text-muted-foreground">
           A collection of servers for the Model Context Protocol.
         </p>
-        
-        {/* Stats banner above the categories - matching your image */}
-        <div className="flex flex-col items-center mt-8 mb-2">
-          <div className="bg-slate-900 text-white py-2 px-6 rounded-md flex items-center space-x-8">
-            <div className="flex items-center">
-              <span className="font-bold text-lg">5,533</span>
-              <span className="ml-2">Total Servers</span>
-            </div>
-            <div className="flex items-center">
-              <div className="w-3 h-3 rounded-full bg-green-500 mr-2"></div>
-              <span className="font-medium">5,256 Up</span>
-            </div>
-            <div className="flex items-center">
-              <div className="w-3 h-3 rounded-full bg-red-500 mr-2"></div>
-              <span className="font-medium">277 Down</span>
-            </div>
-          </div>
-        </div>
       </div>
       
       {/* This div is intentionally left empty because filter categories are now handled differently */}
       
-      {/* Import & GitHub buttons */}
-      <div className="flex justify-end mb-6">
-        <div className="flex gap-2">
-          <Dialog open={importDialogOpen} onOpenChange={setImportDialogOpen}>
-            <DialogTrigger asChild>
-              <Button>
-                <Download className="h-4 w-4 mr-2" />
-                Import URL
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Import MCP Server</DialogTitle>
-                <DialogDescription>
-                  Import an MCP server from a GitHub repository, Gist, or direct file URL.
-                </DialogDescription>
-              </DialogHeader>
-              <form onSubmit={handleImportSubmit}>
-                <div className="space-y-4 py-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="url">Server URL</Label>
-                    <Input 
-                      id="url" 
-                      placeholder="https://github.com/username/repo/blob/main/server.js" 
-                      value={importUrl}
-                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => setImportUrl(e.target.value)}
-                    />
-                    <p className="text-sm text-muted-foreground">
-                      Supported: GitHub files, Gists, or raw file URLs
-                    </p>
-                  </div>
-                  
-                  {importError && (
-                    <div className="text-sm font-medium text-destructive">
-                      {importError}
-                    </div>
-                  )}
-                </div>
-                <DialogFooter>
-                  <Button type="button" variant="outline" onClick={() => setImportDialogOpen(false)}>
-                    Cancel
-                  </Button>
-                  <Button type="submit" disabled={importLoading || !importUrl}>
-                    {importLoading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                    Import Server
-                  </Button>
-                </DialogFooter>
-              </form>
-            </DialogContent>
-          </Dialog>
-          <Button variant="outline" onClick={() => window.open("https://github.com/anthropics/anthropic-cookbook/tree/main/mcp", "_blank")}>
-            <Github className="h-4 w-4 mr-2" />
-            MCP Resources
-          </Button>
-        </div>
-      </div>
+      {/* Hidden - not in the image */}
       
-      {/* Deployment UI */}
-      {showDeployment && buildId && (
-        <Card className="mb-8">
-          <CardHeader>
-            <CardTitle className="text-xl flex items-center">
-              <Cloud className="h-5 w-5 mr-2" />
-              Deploy MCP Server
-            </CardTitle>
-            <CardDescription>
-              Deploy your downloaded MCP server to one of these hosting platforms
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <DeploymentSelector 
-              buildId={buildId}
-              serverType={serverType}
-              onDeploymentComplete={(deploymentId: string, platformId: string) => {
-                console.log(`Deployment ${deploymentId} to ${platformId} completed`);
-              }}
-            />
-          </CardContent>
-          <CardFooter>
-            <Button variant="outline" onClick={() => setShowDeployment(false)}>
-              Hide Deployment Options
-            </Button>
-          </CardFooter>
-        </Card>
-      )}
+      {/* Hidden - not in the image */}
       
       {/* Filter categories in a single row */}
       <div className="flex flex-wrap gap-2 mb-4 justify-center">

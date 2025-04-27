@@ -9,12 +9,12 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger
+  DialogTrigger,
+  DialogFooter
 } from "@/components/ui/dialog";
-import { Download, FileCode, Github, ExternalLink, Copy, Server, Loader2, Cloud } from "lucide-react";
+import { Download, FileCode, Github, Copy, Server, Loader2, Cloud } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { DialogFooter } from "@/components/ui/dialog";
 import { TwentyfirstServers } from "@/components/TwentyfirstServers";
 import DeploymentSelector from "@/components/DeploymentSelector";
 
@@ -303,41 +303,79 @@ const MCPServers = () => {
 
   return (
     <div className="container py-8 max-w-7xl">
-      <div className="flex justify-between items-center mb-8">
-        <div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-3xl font-bold">MCP Server Collection</h1>
-            {serverStats && (
-              <div className="flex items-center gap-2 ml-4">
-                <Badge className="text-base px-3 py-1 bg-primary/80">
-                  {serverStats.totalCount.toLocaleString()} Servers
-                </Badge>
-                <Badge className="text-base px-3 py-1 bg-green-500/90">
-                  {serverStats.upCount.toLocaleString()} Up
-                </Badge>
-                <Badge className="text-base px-3 py-1 bg-red-500/90">
-                  {serverStats.downCount.toLocaleString()} Down
-                </Badge>
-              </div>
-            )}
+      {/* Header with logo & nav */}
+      <div className="flex justify-between items-center border-b pb-4 mb-6">
+        <div className="flex items-center gap-4">
+          <div className="font-bold text-xl flex items-center">
+            <Server className="h-6 w-6 mr-2" />
+            MCP Servers
           </div>
-          <p className="text-muted-foreground mt-2">
-            Browse and download ready-to-use Model Context Protocol servers for Claude
-          </p>
-          {serverStats && (
-            <div className="flex flex-wrap gap-2 mt-3">
-              <Badge variant="outline" className="bg-background/80">
-                {serverStats.byType.templates} Templates
-              </Badge>
-              <Badge variant="outline" className="bg-background/80">
-                {serverStats.byType.examples} Examples
-              </Badge>
-              <Badge variant="outline" className="bg-background/80">
-                {serverStats.byType.imported} Imported
-              </Badge>
-            </div>
-          )}
+          <div className="flex space-x-4">
+            <Button variant="link" className="text-foreground">Home</Button>
+            <Button variant="link" className="text-foreground">Remote Servers</Button>
+            <Button variant="link" className="text-foreground">Resources</Button>
+          </div>
         </div>
+        <div>
+          <Button>Submit</Button>
+        </div>
+      </div>
+      
+      {/* New tag */}
+      <div className="flex justify-center mb-6">
+        <div className="bg-muted/50 text-sm px-4 py-2 rounded-full flex items-center">
+          <span className="text-amber-500 mr-2">✨</span> 
+          New: Remote MCP Servers
+        </div>
+      </div>
+      
+      {/* Main title */}
+      <div className="text-center mb-10">
+        <h1 className="text-4xl font-bold mb-2">Awesome MCP Servers</h1>
+        <p className="text-muted-foreground">
+          A collection of servers for the Model Context Protocol.
+        </p>
+        
+        {/* Stats display */}
+        {serverStats && (
+          <div className="flex items-center justify-center gap-3 mt-4">
+            <Badge className="text-base px-3 py-1 bg-primary/80">
+              {serverStats.totalCount.toLocaleString()} Servers
+            </Badge>
+            <Badge className="text-base px-3 py-1 bg-green-500/90">
+              {serverStats.upCount.toLocaleString()} Up
+            </Badge>
+            <Badge className="text-base px-3 py-1 bg-red-500/90">
+              {serverStats.downCount.toLocaleString()} Down
+            </Badge>
+          </div>
+        )}
+      </div>
+      
+      {/* Filter categories */}
+      <div className="flex flex-wrap gap-2 mb-8 justify-center">
+        <Button variant="default" className="rounded-full bg-slate-900">All</Button>
+        <Button variant="outline" className="rounded-full flex items-center">
+          Official <span className="text-amber-500 ml-1">✨</span>
+        </Button>
+        <Button variant="outline" className="rounded-full">Search</Button>
+        <Button variant="outline" className="rounded-full">Web Scraping</Button>
+        <Button variant="outline" className="rounded-full">Communication</Button>
+        <Button variant="outline" className="rounded-full">Productivity</Button>
+      </div>
+      
+      <div className="flex flex-wrap gap-2 mb-8 justify-center">
+        <Button variant="outline" className="rounded-full">Development</Button>
+        <Button variant="outline" className="rounded-full">Database</Button>
+        <Button variant="outline" className="rounded-full">Cloud Service</Button>
+        <Button variant="outline" className="rounded-full">File System</Button>
+        <Button variant="outline" className="rounded-full">Cloud Storage</Button>
+        <Button variant="outline" className="rounded-full">Version Control</Button>
+        <Button variant="outline" className="rounded-full">Other</Button>
+      </div>
+      
+      {/* Import & GitHub buttons */}
+      <div className="flex justify-end mb-6">
         <div className="flex gap-2">
           <Dialog open={importDialogOpen} onOpenChange={setImportDialogOpen}>
             <DialogTrigger asChild>
@@ -409,7 +447,7 @@ const MCPServers = () => {
             <DeploymentSelector 
               buildId={buildId}
               serverType={serverType}
-              onDeploymentComplete={(deploymentId, platformId) => {
+              onDeploymentComplete={(deploymentId: string, platformId: string) => {
                 console.log(`Deployment ${deploymentId} to ${platformId} completed`);
               }}
             />
@@ -422,287 +460,95 @@ const MCPServers = () => {
         </Card>
       )}
       
-      <Tabs defaultValue="examples" value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="mb-8">
-          <TabsTrigger value="examples">Example Servers</TabsTrigger>
-          <TabsTrigger value="templates">Starter Templates</TabsTrigger>
-        </TabsList>
+      {/* Server cards in grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
+        {/* Sample server card 1 - Brave Search */}
+        <Card className="shadow-sm hover:shadow-md transition-shadow duration-200">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-xl">Brave Search</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-muted-foreground">
+              Web and local search using Brave's Search API
+            </p>
+          </CardContent>
+          <CardFooter className="flex justify-end pt-2">
+            <Button variant="outline" size="sm" className="mr-2">
+              <FileCode className="h-4 w-4 mr-1" />
+              View
+            </Button>
+            <Button size="sm">
+              <Download className="h-4 w-4 mr-1" />
+              Download
+            </Button>
+          </CardFooter>
+        </Card>
         
-        <TabsContent value="examples">
-          {/* 21st.dev Magic MCP Servers Integration */}
-          <TwentyfirstServers />
-          
-          {isLoading ? (
-            <div className="flex justify-center py-12">
-              <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full"></div>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {serverIndex?.examples.map((server, index) => (
-                <Card key={index}>
-                  <CardHeader className="pb-3">
-                    <div className="flex justify-between items-start">
-                      <CardTitle className="text-xl">{server.name}</CardTitle>
-                      <div className="flex gap-2">
-                        <Badge variant="secondary" className={getLanguageColor(server.language)}>
-                          {server.language}
-                        </Badge>
-                        <Badge variant="secondary" className={getDifficultyColor(server.difficulty)}>
-                          {server.difficulty}
-                        </Badge>
-                      </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-muted-foreground mb-4">{server.description}</p>
-                    
-                    <div className="mb-4">
-                      <h4 className="text-sm font-medium mb-2">Includes tools:</h4>
-                      <div className="flex flex-wrap gap-2">
-                        {server.tools.map((tool, toolIndex) => (
-                          <Badge key={toolIndex} variant="outline">
-                            {tool}
-                          </Badge>
-                        ))}
-                      </div>
-                    </div>
-                    
-                    {server.requires_api_key && (
-                      <div className="bg-amber-50 border-l-4 border-amber-500 p-3 mb-4">
-                        <p className="text-amber-800 text-sm">
-                          Requires API key from {server.api_provider}
-                        </p>
-                      </div>
-                    )}
-                    
-                    <div>
-                      <h4 className="text-sm font-medium mb-2">Run with:</h4>
-                      <div className="bg-muted p-2 rounded text-sm font-mono flex items-center justify-between">
-                        <code>{server.language === "javascript" ? "node server.js" : "python server.py"}</code>
-                        <Button variant="ghost" size="sm" onClick={() => handleCopyToClipboard(server.language === "javascript" ? "node server.js" : "python server.py")}>
-                          <Copy className="h-3 w-3" />
-                        </Button>
-                      </div>
-                    </div>
-                  </CardContent>
-                  <CardFooter className="flex gap-2">
-                    <Button onClick={() => handleDownload(server)}>
-                      <Download className="h-4 w-4 mr-2" />
-                      Download
-                    </Button>
-                    <Dialog>
-                      <DialogTrigger asChild>
-                        <Button variant="outline" onClick={() => handleViewCode(server)}>
-                          <FileCode className="h-4 w-4 mr-2" />
-                          View Code
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent className="max-w-4xl max-h-[80vh] overflow-hidden flex flex-col">
-                        <DialogHeader>
-                          <DialogTitle>{selectedServer?.name}</DialogTitle>
-                          <DialogDescription>
-                            {selectedServer?.description}
-                          </DialogDescription>
-                        </DialogHeader>
-                        <div className="overflow-auto flex-grow my-4">
-                          {codeLoading ? (
-                            <div className="flex justify-center py-12">
-                              <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full"></div>
-                            </div>
-                          ) : (
-                            <pre className="bg-muted p-4 rounded-md text-sm font-mono overflow-x-auto whitespace-pre-wrap">
-                              {serverCode}
-                            </pre>
-                          )}
-                        </div>
-                        <div className="flex justify-between">
-                          <Button variant="outline" onClick={() => handleCopyToClipboard(serverCode)}>
-                            <Copy className="h-4 w-4 mr-2" />
-                            Copy Code
-                          </Button>
-                          <Button onClick={() => selectedServer && handleDownload(selectedServer)}>
-                            <Download className="h-4 w-4 mr-2" />
-                            Download
-                          </Button>
-                        </div>
-                      </DialogContent>
-                    </Dialog>
-                  </CardFooter>
-                </Card>
-              ))}
-              
-              {serverIndex?.examples.length === 0 && (
-                <div className="col-span-2 text-center py-12">
-                  <Server className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                  <h3 className="text-xl font-bold mb-2">No example servers found</h3>
-                  <p className="text-muted-foreground">Try checking the templates tab to create your own server</p>
-                </div>
-              )}
-            </div>
-          )}
-        </TabsContent>
+        {/* Sample server card 2 - Fetch */}
+        <Card className="shadow-sm hover:shadow-md transition-shadow duration-200">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-xl">Fetch</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-muted-foreground">
+              Web content fetching and conversion for efficient LLM usage
+            </p>
+          </CardContent>
+          <CardFooter className="flex justify-end pt-2">
+            <Button variant="outline" size="sm" className="mr-2">
+              <FileCode className="h-4 w-4 mr-1" />
+              View
+            </Button>
+            <Button size="sm">
+              <Download className="h-4 w-4 mr-1" />
+              Download
+            </Button>
+          </CardFooter>
+        </Card>
         
-        <TabsContent value="templates">
-          {isLoading ? (
-            <div className="flex justify-center py-12">
-              <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full"></div>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {serverIndex?.templates.map((template, index) => (
-                <Card key={index}>
-                  <CardHeader className="pb-3">
-                    <div className="flex justify-between items-start">
-                      <CardTitle className="text-xl">{template.name}</CardTitle>
-                      <div className="flex gap-2">
-                        <Badge variant="secondary" className={getLanguageColor(template.language)}>
-                          {template.language}
-                        </Badge>
-                        <Badge variant="secondary" className={getDifficultyColor(template.difficulty)}>
-                          {template.difficulty}
-                        </Badge>
-                      </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-muted-foreground mb-4">{template.description}</p>
-                    
-                    <div className="mb-4">
-                      <h4 className="text-sm font-medium mb-2">Dependencies:</h4>
-                      <div className="flex flex-wrap gap-2">
-                        {template.dependencies.length > 0 ? (
-                          template.dependencies.map((dep, depIndex) => (
-                            <Badge key={depIndex} variant="outline">
-                              {dep}
-                            </Badge>
-                          ))
-                        ) : (
-                          <span className="text-sm text-muted-foreground">No external dependencies</span>
-                        )}
-                      </div>
-                    </div>
-                    
-                    <div>
-                      <h4 className="text-sm font-medium mb-2">Starting point:</h4>
-                      <div className="bg-muted p-2 rounded text-sm font-mono">
-                        <code>
-                          {template.language === "javascript" 
-                            ? "const app = express();\n\napp.get('/', (req, res) => { /* ... */ });" 
-                            : "class MCPServer(BaseHTTPRequestHandler):\n    def do_GET(self):\n        # ..."}
-                        </code>
-                      </div>
-                    </div>
-                  </CardContent>
-                  <CardFooter className="flex gap-2">
-                    <Button onClick={() => handleDownload(template)}>
-                      <Download className="h-4 w-4 mr-2" />
-                      Download
-                    </Button>
-                    <Dialog>
-                      <DialogTrigger asChild>
-                        <Button variant="outline" onClick={() => handleViewCode(template)}>
-                          <FileCode className="h-4 w-4 mr-2" />
-                          View Code
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent className="max-w-4xl max-h-[80vh] overflow-hidden flex flex-col">
-                        <DialogHeader>
-                          <DialogTitle>{selectedServer?.name}</DialogTitle>
-                          <DialogDescription>
-                            {selectedServer?.description}
-                          </DialogDescription>
-                        </DialogHeader>
-                        <div className="overflow-auto flex-grow my-4">
-                          {codeLoading ? (
-                            <div className="flex justify-center py-12">
-                              <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full"></div>
-                            </div>
-                          ) : (
-                            <pre className="bg-muted p-4 rounded-md text-sm font-mono overflow-x-auto whitespace-pre-wrap">
-                              {serverCode}
-                            </pre>
-                          )}
-                        </div>
-                        <div className="flex justify-between">
-                          <Button variant="outline" onClick={() => handleCopyToClipboard(serverCode)}>
-                            <Copy className="h-4 w-4 mr-2" />
-                            Copy Code
-                          </Button>
-                          <Button onClick={() => selectedServer && handleDownload(selectedServer)}>
-                            <Download className="h-4 w-4 mr-2" />
-                            Download
-                          </Button>
-                        </div>
-                      </DialogContent>
-                    </Dialog>
-                  </CardFooter>
-                </Card>
-              ))}
-              
-              {serverIndex?.templates.length === 0 && (
-                <div className="col-span-2 text-center py-12">
-                  <FileCode className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                  <h3 className="text-xl font-bold mb-2">No templates found</h3>
-                  <p className="text-muted-foreground">Check back later for starter templates</p>
-                </div>
-              )}
-            </div>
-          )}
-        </TabsContent>
-      </Tabs>
-      
-      <div className="mt-12 py-8 border-t">
-        <h2 className="text-2xl font-bold mb-4">Using MCP Servers with Claude</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          <div>
-            <h3 className="text-xl font-semibold mb-3">How to Connect</h3>
-            <ol className="list-decimal ml-6 space-y-2">
-              <li>Download and run your selected MCP server</li>
-              <li>Open Claude Desktop and go to <strong>Settings</strong></li>
-              <li>Click on the <strong>MCP</strong> tab</li>
-              <li>Click <strong>Add Server</strong> and enter the server URL (typically http://localhost:3000)</li>
-              <li>Click <strong>Connect</strong> and start using the tools in your conversations</li>
-            </ol>
-          </div>
-          <div>
-            <h3 className="text-xl font-semibold mb-3">Resources</h3>
-            <ul className="space-y-2">
-              <li>
-                <a 
-                  href="https://docs.anthropic.com/claude/docs/model-context-protocol" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="flex items-center text-primary hover:underline"
-                >
-                  <ExternalLink className="h-4 w-4 mr-2" />
-                  MCP Protocol Documentation
-                </a>
-              </li>
-              <li>
-                <a 
-                  href="https://github.com/anthropics/anthropic-cookbook/tree/main/mcp" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="flex items-center text-primary hover:underline"
-                >
-                  <Github className="h-4 w-4 mr-2" />
-                  Anthropic MCP Cookbook
-                </a>
-              </li>
-              <li>
-                <a 
-                  href="https://docs.anthropic.com/claude/docs/model-context-protocol" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="flex items-center text-primary hover:underline"
-                >
-                  <ExternalLink className="h-4 w-4 mr-2" />
-                  MCP Examples and Use Cases
-                </a>
-              </li>
-            </ul>
-          </div>
-        </div>
+        {/* Sample server card 3 - GitHub Integration */}
+        <Card className="shadow-sm hover:shadow-md transition-shadow duration-200">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-xl">GitHub Integration</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-muted-foreground">
+              Access repositories, create PRs, and manage issues programmatically
+            </p>
+          </CardContent>
+          <CardFooter className="flex justify-end pt-2">
+            <Button variant="outline" size="sm" className="mr-2">
+              <FileCode className="h-4 w-4 mr-1" />
+              View
+            </Button>
+            <Button size="sm">
+              <Download className="h-4 w-4 mr-1" />
+              Download
+            </Button>
+          </CardFooter>
+        </Card>
+        
+        {/* Sample server card 4 - Database Query Assistant */}
+        <Card className="shadow-sm hover:shadow-md transition-shadow duration-200">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-xl">Database Query Assistant</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-muted-foreground">
+              Generate and execute SQL queries across various database systems
+            </p>
+          </CardContent>
+          <CardFooter className="flex justify-end pt-2">
+            <Button variant="outline" size="sm" className="mr-2">
+              <FileCode className="h-4 w-4 mr-1" />
+              View
+            </Button>
+            <Button size="sm">
+              <Download className="h-4 w-4 mr-1" />
+              Download
+            </Button>
+          </CardFooter>
+        </Card>
       </div>
     </div>
   );

@@ -352,27 +352,7 @@ const MCPServers = () => {
         )}
       </div>
       
-      {/* Filter categories */}
-      <div className="flex flex-wrap gap-2 mb-8 justify-center">
-        <Button variant="default" className="rounded-full bg-slate-900">All</Button>
-        <Button variant="outline" className="rounded-full flex items-center">
-          Official <span className="text-amber-500 ml-1">✨</span>
-        </Button>
-        <Button variant="outline" className="rounded-full">Search</Button>
-        <Button variant="outline" className="rounded-full">Web Scraping</Button>
-        <Button variant="outline" className="rounded-full">Communication</Button>
-        <Button variant="outline" className="rounded-full">Productivity</Button>
-      </div>
-      
-      <div className="flex flex-wrap gap-2 mb-8 justify-center">
-        <Button variant="outline" className="rounded-full">Development</Button>
-        <Button variant="outline" className="rounded-full">Database</Button>
-        <Button variant="outline" className="rounded-full">Cloud Service</Button>
-        <Button variant="outline" className="rounded-full">File System</Button>
-        <Button variant="outline" className="rounded-full">Cloud Storage</Button>
-        <Button variant="outline" className="rounded-full">Version Control</Button>
-        <Button variant="outline" className="rounded-full">Other</Button>
-      </div>
+      {/* This div is intentionally left empty because filter categories are now handled differently */}
       
       {/* Import & GitHub buttons */}
       <div className="flex justify-end mb-6">
@@ -460,9 +440,28 @@ const MCPServers = () => {
         </Card>
       )}
       
-      {/* Server cards in grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
-        {/* Sample server card 1 - Brave Search */}
+      {/* Filter categories in a single row */}
+      <div className="flex flex-wrap gap-2 mb-4 justify-center">
+        <Button variant="default" className="rounded-md bg-slate-900">All</Button>
+        <Button variant="outline" className="rounded-md flex items-center">
+          Official <span className="text-amber-500 ml-1">✨</span>
+        </Button>
+        <Button variant="outline" className="rounded-md">Search</Button>
+        <Button variant="outline" className="rounded-md">Web Scraping</Button>
+        <Button variant="outline" className="rounded-md">Communication</Button>
+        <Button variant="outline" className="rounded-md">Productivity</Button>
+        <Button variant="outline" className="rounded-md">Development</Button>
+        <Button variant="outline" className="rounded-md">Database</Button>
+        <Button variant="outline" className="rounded-md">Cloud Service</Button>
+        <Button variant="outline" className="rounded-md">File System</Button>
+        <Button variant="outline" className="rounded-md">Cloud Storage</Button>
+        <Button variant="outline" className="rounded-md">Version Control</Button>
+        <Button variant="outline" className="rounded-md">Other</Button>
+      </div>
+      
+      {/* Server cards in grid - exact match to image */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-12">
+        {/* Card 1 - Brave Search */}
         <Card className="shadow-sm hover:shadow-md transition-shadow duration-200">
           <CardHeader className="pb-2">
             <CardTitle className="text-xl">Brave Search</CardTitle>
@@ -472,19 +471,9 @@ const MCPServers = () => {
               Web and local search using Brave's Search API
             </p>
           </CardContent>
-          <CardFooter className="flex justify-end pt-2">
-            <Button variant="outline" size="sm" className="mr-2">
-              <FileCode className="h-4 w-4 mr-1" />
-              View
-            </Button>
-            <Button size="sm">
-              <Download className="h-4 w-4 mr-1" />
-              Download
-            </Button>
-          </CardFooter>
         </Card>
         
-        {/* Sample server card 2 - Fetch */}
+        {/* Card 2 - Fetch */}
         <Card className="shadow-sm hover:shadow-md transition-shadow duration-200">
           <CardHeader className="pb-2">
             <CardTitle className="text-xl">Fetch</CardTitle>
@@ -494,60 +483,30 @@ const MCPServers = () => {
               Web content fetching and conversion for efficient LLM usage
             </p>
           </CardContent>
-          <CardFooter className="flex justify-end pt-2">
-            <Button variant="outline" size="sm" className="mr-2">
-              <FileCode className="h-4 w-4 mr-1" />
-              View
-            </Button>
-            <Button size="sm">
-              <Download className="h-4 w-4 mr-1" />
-              Download
-            </Button>
-          </CardFooter>
         </Card>
         
-        {/* Sample server card 3 - GitHub Integration */}
+        {/* Card 3 - Filesystem */}
         <Card className="shadow-sm hover:shadow-md transition-shadow duration-200">
           <CardHeader className="pb-2">
-            <CardTitle className="text-xl">GitHub Integration</CardTitle>
+            <CardTitle className="text-xl">Filesystem</CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-muted-foreground">
-              Access repositories, create PRs, and manage issues programmatically
+              Secure file operations with configurable access controls
             </p>
           </CardContent>
-          <CardFooter className="flex justify-end pt-2">
-            <Button variant="outline" size="sm" className="mr-2">
-              <FileCode className="h-4 w-4 mr-1" />
-              View
-            </Button>
-            <Button size="sm">
-              <Download className="h-4 w-4 mr-1" />
-              Download
-            </Button>
-          </CardFooter>
         </Card>
         
-        {/* Sample server card 4 - Database Query Assistant */}
+        {/* Card 4 - Git */}
         <Card className="shadow-sm hover:shadow-md transition-shadow duration-200">
           <CardHeader className="pb-2">
-            <CardTitle className="text-xl">Database Query Assistant</CardTitle>
+            <CardTitle className="text-xl">Git</CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-muted-foreground">
-              Generate and execute SQL queries across various database systems
+              Tools to read, search, and manipulate Git repositories
             </p>
           </CardContent>
-          <CardFooter className="flex justify-end pt-2">
-            <Button variant="outline" size="sm" className="mr-2">
-              <FileCode className="h-4 w-4 mr-1" />
-              View
-            </Button>
-            <Button size="sm">
-              <Download className="h-4 w-4 mr-1" />
-              Download
-            </Button>
-          </CardFooter>
         </Card>
       </div>
     </div>

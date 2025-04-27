@@ -262,7 +262,7 @@ const MCPServers = () => {
       setCodeLoading(true);
       
       // Fetch the server code from the API
-      const response = await fetch(`/api/mcp-servers/${server.path}`);
+      const response = await fetch(`/api/mcp-servers/server/${server.path}`);
       
       if (!response.ok) {
         throw new Error(`API request failed with status ${response.status}`);

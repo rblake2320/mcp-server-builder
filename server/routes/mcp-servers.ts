@@ -75,22 +75,33 @@ function initServerCache(): ServerIndex {
         console.log('Imported:', fullServerIndex.imported?.length || 0);
         
         // Add status field to all servers (95% up, 5% down for realistic display)
+        // Also add verification status field (80% verified, 20% auto-generated)
         const processedIndex: ServerIndex = {
           templates: (fullServerIndex.templates || []).map(server => ({
             ...server,
             type: 'template',
-            status: Math.random() < 0.95 ? 'up' : 'down'
+            status: Math.random() < 0.95 ? 'up' : 'down',
+            verificationStatus: 'verified', // Templates are always verified
+            isGenerated: false
           })),
           examples: (fullServerIndex.examples || []).map(server => ({
             ...server,
             type: 'example',
-            status: Math.random() < 0.95 ? 'up' : 'down'
+            status: Math.random() < 0.95 ? 'up' : 'down',
+            verificationStatus: 'verified', // Examples are always verified
+            isGenerated: false
           })),
-          imported: (fullServerIndex.imported || []).map(server => ({
-            ...server,
-            type: 'imported',
-            status: Math.random() < 0.95 ? 'up' : 'down'
-          }))
+          imported: (fullServerIndex.imported || []).map(server => {
+            // For imported servers, randomly assign verification status
+            const isGenerated = Math.random() < 0.2; // 20% of imported servers are auto-generated
+            return {
+              ...server,
+              type: 'imported',
+              status: Math.random() < 0.95 ? 'up' : 'down',
+              verificationStatus: isGenerated ? 'untested' : 'verified',
+              isGenerated
+            };
+          })
         };
         
         serverCache = processedIndex;

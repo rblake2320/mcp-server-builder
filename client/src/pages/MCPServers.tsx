@@ -40,6 +40,9 @@ interface MCPServer {
   tags?: string[];
   requires_api_key?: boolean;
   api_provider?: string;
+  // Verification status fields
+  verificationStatus?: string;
+  isGenerated?: boolean;
 }
 
 interface ServerResponse {
@@ -327,6 +330,25 @@ const MCPServers = () => {
   // Get status color (up/down)
   const getStatusColor = (status: string = '') => {
     return status.toLowerCase() === 'up' ? "bg-green-500" : "bg-red-500";
+  };
+  
+  // Get verification status color and text
+  const getVerificationStatus = (server: MCPServer) => {
+    if (server.isGenerated || server.verificationStatus === 'untested') {
+      return {
+        color: "bg-amber-500",
+        textColor: "text-amber-800",
+        icon: "⚠️",
+        text: "Auto-Generated"
+      };
+    } else {
+      return {
+        color: "bg-green-600",
+        textColor: "text-green-800",
+        icon: "✓",
+        text: "Verified"
+      };
+    }
   };
   
   // Import a server from URL
@@ -651,10 +673,22 @@ const MCPServers = () => {
               <CardHeader className="pb-2">
                 <div className="flex justify-between items-start">
                   <CardTitle className="text-xl">{server.name}</CardTitle>
-                  {server.status && (
-                    <div className={`w-2 h-2 rounded-full ${getStatusColor(server.status)}`} 
-                         title={`Status: ${server.status}`} />
-                  )}
+                  <div className="flex items-center gap-2">
+                    {/* Verification status badge */}
+                    <Badge 
+                      variant="outline" 
+                      className={`text-xs ${getVerificationStatus(server).color} text-white`}
+                      title={server.isGenerated ? "This server has auto-generated code that hasn't been tested" : "This server has verified code"}
+                    >
+                      <span className="mr-1">{getVerificationStatus(server).icon}</span>
+                      {getVerificationStatus(server).text}
+                    </Badge>
+                    {/* Server status indicator */}
+                    {server.status && (
+                      <div className={`w-2 h-2 rounded-full ${getStatusColor(server.status)}`} 
+                           title={`Status: ${server.status}`} />
+                    )}
+                  </div>
                 </div>
                 <div className="flex flex-wrap gap-1 mt-1">
                   {server.language && (

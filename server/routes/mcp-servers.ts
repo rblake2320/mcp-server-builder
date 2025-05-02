@@ -308,28 +308,53 @@ router.get('/server/:serverPath(*)', (req, res) => {
       return res.status(403).json({ error: 'Access denied' });
     }
     
-    if (!fs.existsSync(fullPath)) {
-      return res.status(404).json({ error: 'Server not found' });
-    }
-    
-    // Read the server code
     let content = '';
-    if (fs.statSync(fullPath).isDirectory()) {
-      // List files in the directory
-      const files = fs.readdirSync(fullPath);
-      // Try to find a main file
-      const mainFiles = ['index.js', 'server.js', 'app.js', 'main.js', 'index.ts', 'server.ts', 'app.ts', 'main.ts'];
-      const mainFile = mainFiles.find(file => files.includes(file));
+    
+    // If the file doesn't exist, try to find the server in our index to generate a stub
+    if (!fs.existsSync(fullPath)) {
+      console.log(`Server file not found on disk: ${fullPath}`);
       
-      if (mainFile) {
-        content = fs.readFileSync(path.join(fullPath, mainFile), 'utf8');
-      } else {
-        // Just list the files if no main file is found
-        content = `// Directory listing:\n\n${files.join('\n')}`;
+      // Load the server index to find server details
+      const servers = initServerCache();
+      const allServers = [...servers.templates, ...servers.examples, ...servers.imported];
+      
+      // Find the server in the index by matching the path
+      const serverInfo = allServers.find(server => server.path === serverPath);
+      
+      if (!serverInfo) {
+        return res.status(404).json({ error: 'Server not found in index' });
       }
+      
+      // Generate a stub file based on server metadata
+      content = generateServerStub(serverInfo);
+      
+      // Create the directory if needed
+      const dirPath = path.dirname(fullPath);
+      fs.mkdirSync(dirPath, { recursive: true });
+      
+      // Save the stub file for future use
+      fs.writeFileSync(fullPath, content);
+      
+      console.log(`Created stub file for server: ${serverInfo.name}`);
     } else {
-      // Read the file content
-      content = fs.readFileSync(fullPath, 'utf8');
+      // Read the server code from disk
+      if (fs.statSync(fullPath).isDirectory()) {
+        // List files in the directory
+        const files = fs.readdirSync(fullPath);
+        // Try to find a main file
+        const mainFiles = ['index.js', 'server.js', 'app.js', 'main.js', 'index.ts', 'server.ts', 'app.ts', 'main.ts'];
+        const mainFile = mainFiles.find(file => files.includes(file));
+        
+        if (mainFile) {
+          content = fs.readFileSync(path.join(fullPath, mainFile), 'utf8');
+        } else {
+          // Just list the files if no main file is found
+          content = `// Directory listing:\n\n${files.join('\n')}`;
+        }
+      } else {
+        // Read the file content
+        content = fs.readFileSync(fullPath, 'utf8');
+      }
     }
     
     res.json({ content });
@@ -341,6 +366,162 @@ router.get('/server/:serverPath(*)', (req, res) => {
     });
   }
 });
+
+// Generate a stub MCP server based on metadata
+function generateServerStub(serverInfo: MCPServer): string {
+  const language = serverInfo.language?.toLowerCase() || 'javascript';
+  const tools = serverInfo.tools || [];
+  
+  // Generate code based on language
+  if (language === 'typescript' || language === 'javascript') {
+    return `/**
+ * ${serverInfo.name}
+ * ${serverInfo.description || 'MCP Server Implementation'}
+ * 
+ * Language: ${language}
+ * Author: ${serverInfo.author || 'Unknown'}
+ * Category: ${serverInfo.category || 'general'}
+ * Source: ${serverInfo.source || 'custom'}
+ */
+
+const express = require('express');
+const cors = require('cors');
+
+const app = express();
+app.use(cors());
+app.use(express.json());
+
+const PORT = process.env.PORT || 3000;
+
+// MCP Protocol version
+const MCP_VERSION = '0.1';
+
+// Server metadata
+const serverInfo = {
+  name: '${serverInfo.name}',
+  description: '${serverInfo.description?.replace(/'/g, "\\'")}',
+  version: '1.0.0',
+  tools: ${JSON.stringify(tools, null, 2)}
+};
+
+// Define routes for each tool
+${tools.map(tool => `
+// ${tool} implementation
+app.post('/mcp/${tool}', async (req, res) => {
+  try {
+    const { input } = req.body;
+    // Example implementation
+    const result = \`Processed \${input} with ${tool}\`;
+    
+    res.json({
+      result,
+      status: 'success'
+    });
+  } catch (error) {
+    console.error(\`Error in ${tool}:\`, error);
+    res.status(500).json({
+      error: \`Failed to process request: \${error.message}\`,
+      status: 'error'
+    });
+  }
+});`).join('\n')}
+
+// MCP info endpoint
+app.get('/mcp/info', (req, res) => {
+  res.json({
+    name: serverInfo.name,
+    description: serverInfo.description,
+    version: serverInfo.version,
+    mcp_version: MCP_VERSION,
+    tools: serverInfo.tools
+  });
+});
+
+// Start the server
+app.listen(PORT, () => {
+  console.log(\`${serverInfo.name} MCP server running on port \${PORT}\`);
+});
+`;
+  } else if (language === 'python') {
+    return `"""
+${serverInfo.name}
+${serverInfo.description || 'MCP Server Implementation'}
+
+Language: ${language}
+Author: ${serverInfo.author || 'Unknown'}
+Category: ${serverInfo.category || 'general'}
+Source: ${serverInfo.source || 'custom'}
+"""
+
+from flask import Flask, request, jsonify
+import json
+
+app = Flask(__name__)
+
+# MCP Protocol version
+MCP_VERSION = "0.1"
+
+# Server metadata
+server_info = {
+    "name": "${serverInfo.name}",
+    "description": "${serverInfo.description?.replace(/"/g, '\\"')}",
+    "version": "1.0.0",
+    "tools": ${JSON.stringify(tools, null, 2).replace(/"/g, '"')}
+}
+
+${tools.map(tool => `
+@app.route("/mcp/${tool}", methods=["POST"])
+def ${tool.replace(/[^a-zA-Z0-9_]/g, '_')}_handler():
+    """${tool} implementation"""
+    try:
+        data = request.json
+        input_data = data.get("input", "")
+        # Example implementation
+        result = f"Processed {input_data} with ${tool}"
+        
+        return jsonify({
+            "result": result,
+            "status": "success"
+        })
+    except Exception as e:
+        print(f"Error in ${tool}: {str(e)}")
+        return jsonify({
+            "error": f"Failed to process request: {str(e)}",
+            "status": "error"
+        }), 500`).join('\n')}
+
+@app.route("/mcp/info", methods=["GET"])
+def get_info():
+    """MCP info endpoint"""
+    return jsonify({
+        "name": server_info["name"],
+        "description": server_info["description"],
+        "version": server_info["version"],
+        "mcp_version": MCP_VERSION,
+        "tools": server_info["tools"]
+    })
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=3000)
+`;
+  } else {
+    // Default generic implementation
+    return `// ${serverInfo.name}
+// ${serverInfo.description || 'MCP Server Implementation'}
+// 
+// Language: ${language}
+// Author: ${serverInfo.author || 'Unknown'}
+// Category: ${serverInfo.category || 'general'}
+// Source: ${serverInfo.source || 'custom'}
+//
+// This is a placeholder implementation for a ${language} MCP server.
+// The server supports the following tools: ${tools.join(', ')}.
+//
+// Follow the MCP specification to implement the required functionality
+// for these tools.
+`;
+  }
+}
 
 // Export the router
 export default router;

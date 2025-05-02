@@ -335,6 +335,9 @@ router.get('/server/:serverPath(*)', (req, res) => {
       // Save the stub file for future use
       fs.writeFileSync(fullPath, content);
       
+      // Mark this server as auto-generated in our response
+      res.setHeader('X-MCP-Generated', 'true');
+      
       console.log(`Created stub file for server: ${serverInfo.name}`);
     } else {
       // Read the server code from disk
@@ -357,7 +360,13 @@ router.get('/server/:serverPath(*)', (req, res) => {
       }
     }
     
-    res.json({ content });
+    const isGenerated = res.getHeader('X-MCP-Generated') === 'true';
+    
+    res.json({
+      content,
+      isGenerated, // Flag for auto-generated code
+      verificationStatus: isGenerated ? 'untested' : 'verified'
+    });
   } catch (error) {
     console.error('Error reading server code:', error);
     res.status(500).json({ 
@@ -382,6 +391,9 @@ function generateServerStub(serverInfo: MCPServer): string {
  * Author: ${serverInfo.author || 'Unknown'}
  * Category: ${serverInfo.category || 'general'}
  * Source: ${serverInfo.source || 'custom'}
+ * 
+ * ⚠️ IMPORTANT: This is an auto-generated implementation and has not been tested. ⚠️
+ * Use this code as a starting point for your own implementation.
  */
 
 const express = require('express');
@@ -451,6 +463,9 @@ Language: ${language}
 Author: ${serverInfo.author || 'Unknown'}
 Category: ${serverInfo.category || 'general'}
 Source: ${serverInfo.source || 'custom'}
+
+⚠️ IMPORTANT: This is an auto-generated implementation and has not been tested. ⚠️
+Use this code as a starting point for your own implementation.
 """
 
 from flask import Flask, request, jsonify
@@ -513,6 +528,9 @@ if __name__ == "__main__":
 // Author: ${serverInfo.author || 'Unknown'}
 // Category: ${serverInfo.category || 'general'}
 // Source: ${serverInfo.source || 'custom'}
+//
+// ⚠️ IMPORTANT: This is an auto-generated implementation and has not been tested. ⚠️
+// Use this code as a starting point for your own implementation.
 //
 // This is a placeholder implementation for a ${language} MCP server.
 // The server supports the following tools: ${tools.join(', ')}.

@@ -130,6 +130,8 @@ const MCPServers = () => {
   const [selectedServer, setSelectedServer] = useState<MCPServer | null>(null);
   const [serverCode, setServerCode] = useState<string>("");
   const [codeLoading, setCodeLoading] = useState(false);
+  const [isGeneratedCode, setIsGeneratedCode] = useState<boolean>(false);
+  const [verificationStatus, setVerificationStatus] = useState<string>("verified");
   
   // Import server from URL
   const [importDialogOpen, setImportDialogOpen] = useState(false);
@@ -260,6 +262,8 @@ const MCPServers = () => {
     try {
       setSelectedServer(server);
       setCodeLoading(true);
+      setIsGeneratedCode(false); // Reset status
+      setVerificationStatus("verified"); // Default to verified
       
       // Fetch the server code from the API
       const response = await fetch(`/api/mcp-servers/server/${server.path}`);
@@ -270,11 +274,19 @@ const MCPServers = () => {
       
       const data = await response.json();
       setServerCode(data.content || "// Code not available");
+      
+      // Check if code is auto-generated
+      if (data.isGenerated) {
+        setIsGeneratedCode(true);
+        setVerificationStatus(data.verificationStatus || "untested");
+      }
+      
       setCodeLoading(false);
     } catch (error) {
       console.error("Error fetching server code:", error);
       setServerCode("// Error loading code: " + (error instanceof Error ? error.message : String(error)));
       setCodeLoading(false);
+      setIsGeneratedCode(false);
       
       toast({
         title: "Failed to load code",
@@ -800,18 +812,48 @@ const MCPServers = () => {
       <Dialog open={selectedServer !== null} onOpenChange={(open) => !open && setSelectedServer(null)}>
         <DialogContent className="max-w-4xl max-h-[80vh] overflow-hidden flex flex-col">
           <DialogHeader>
-            <DialogTitle>{selectedServer?.name}</DialogTitle>
+            <div className="flex justify-between items-center mb-2">
+              <DialogTitle>{selectedServer?.name}</DialogTitle>
+              {isGeneratedCode && (
+                <Badge className="ml-2 bg-amber-500">
+                  <span className="mr-1">⚠️</span> Auto-Generated
+                </Badge>
+              )}
+              {!isGeneratedCode && (
+                <Badge className="ml-2 bg-green-600">
+                  <span className="mr-1">✓</span> Verified
+                </Badge>
+              )}
+            </div>
             <DialogDescription>
               {selectedServer?.description}
             </DialogDescription>
           </DialogHeader>
+          
+          {/* Verification Alert */}
+          {isGeneratedCode && (
+            <div className="bg-amber-50 border border-amber-200 text-amber-800 px-4 py-3 rounded-md mb-4 mt-2">
+              <div className="flex items-start">
+                <div className="flex-shrink-0">
+                  <span className="text-amber-500 text-lg">⚠️</span>
+                </div>
+                <div className="ml-3">
+                  <h3 className="text-sm font-medium">Untested Implementation</h3>
+                  <div className="mt-1 text-sm">
+                    <p>This is an auto-generated implementation and hasn't been tested. Use this code as a starting point but test thoroughly before using in production.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+          
           <div className="overflow-auto flex-grow my-4">
             {codeLoading ? (
               <div className="flex justify-center py-12">
                 <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full"></div>
               </div>
             ) : (
-              <pre className="bg-muted p-4 rounded-md text-sm font-mono overflow-x-auto whitespace-pre-wrap">
+              <pre className={`p-4 rounded-md text-sm font-mono overflow-x-auto whitespace-pre-wrap ${isGeneratedCode ? 'bg-amber-50 border border-amber-200' : 'bg-muted'}`}>
                 {serverCode}
               </pre>
             )}

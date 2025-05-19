@@ -1,1 +1,174 @@
-document.addEventListener('DOMContentLoaded', function() {\n  const form = document.getElementById('mcp-builder-form');\n  const toolsContainer = document.getElementById('tools-container');\n  const addToolBtn = document.getElementById('add-tool-btn');\n  const submitBtn = document.getElementById('submit-btn');\n  const resultContainer = document.getElementById('result-container');\n  \n  // Add tool handler\n  addToolBtn.addEventListener('click', function() {\n    const toolId = `tool-${Date.now()}`;\n    const toolHtml = `\n      <div class=\"tool-container\" id=\"${toolId}\">\n        <div class=\"tool-header\">\n          <h3>Tool</h3>\n          <button type=\"button\" class=\"btn btn-danger remove-tool\" data-tool-id=\"${toolId}\">Remove Tool</button>\n        </div>\n        <div class=\"form-group\">\n          <label for=\"${toolId}-name\">Tool Name</label>\n          <input type=\"text\" id=\"${toolId}-name\" name=\"tools[][name]\" class=\"form-control\" required>\n        </div>\n        <div class=\"form-group\">\n          <label for=\"${toolId}-description\">Description</label>\n          <textarea id=\"${toolId}-description\" name=\"tools[][description]\" class=\"form-control\" rows=\"2\" required></textarea>\n        </div>\n        <div class=\"parameters-section\">\n          <h4>Parameters</h4>\n          <div class=\"parameters-container\" id=\"${toolId}-parameters\">\n            <!-- Parameters will be added here -->\n          </div>\n          <button type=\"button\" class=\"btn btn-add add-parameter\" data-tool-id=\"${toolId}\">Add Parameter</button>\n        </div>\n      </div>\n    `;\n    \n    toolsContainer.insertAdjacentHTML('beforeend', toolHtml);\n    \n    // Add parameter event for this new tool\n    document.querySelector(`#${toolId} .add-parameter`).addEventListener('click', function() {\n      addParameter(toolId);\n    });\n    \n    // Add remove tool event\n    document.querySelector(`#${toolId} .remove-tool`).addEventListener('click', function() {\n      document.getElementById(toolId).remove();\n    });\n    \n    // Add the first parameter by default\n    addParameter(toolId);\n  });\n  \n  // Function to add a parameter to a tool\n  function addParameter(toolId) {\n    const parameterId = `param-${Date.now()}`;\n    const parameterHtml = `\n      <div class=\"parameter-container\" id=\"${parameterId}\">\n        <div class=\"parameter-header\">\n          <h5>Parameter</h5>\n          <button type=\"button\" class=\"btn btn-danger remove-parameter\" data-param-id=\"${parameterId}\">Remove</button>\n        </div>\n        <div class=\"form-group\">\n          <label for=\"${parameterId}-name\">Parameter Name</label>\n          <input type=\"text\" id=\"${parameterId}-name\" name=\"tools[][parameters][][name]\" class=\"form-control\" required>\n        </div>\n        <div class=\"form-group\">\n          <label for=\"${parameterId}-type\">Type</label>\n          <select id=\"${parameterId}-type\" name=\"tools[][parameters][][type]\" class=\"form-control\">\n            <option value=\"string\">String</option>\n            <option value=\"number\">Number</option>\n            <option value=\"boolean\">Boolean</option>\n            <option value=\"object\">Object</option>\n            <option value=\"array\">Array</option>\n          </select>\n        </div>\n        <div class=\"form-group\">\n          <label for=\"${parameterId}-description\">Description</label>\n          <input type=\"text\" id=\"${parameterId}-description\" name=\"tools[][parameters][][description]\" class=\"form-control\" required>\n        </div>\n      </div>\n    `;\n    \n    document.getElementById(`${toolId}-parameters`).insertAdjacentHTML('beforeend', parameterHtml);\n    \n    // Add remove parameter event\n    document.querySelector(`#${parameterId} .remove-parameter`).addEventListener('click', function() {\n      document.getElementById(parameterId).remove();\n    });\n  }\n  \n  // Form submit handler\n  form.addEventListener('submit', async function(e) {\n    e.preventDefault();\n    submitBtn.disabled = true;\n    submitBtn.textContent = 'Creating Server...';\n    \n    // Gather all the form data\n    const serverName = document.getElementById('server-name').value;\n    const description = document.getElementById('description').value;\n    const serverType = document.getElementById('server-type').value;\n    \n    // Collect tools and their parameters\n    const tools = [];\n    document.querySelectorAll('.tool-container').forEach(toolElement => {\n      const tool = {\n        name: toolElement.querySelector('[name$=\"[name]\"]').value,\n        description: toolElement.querySelector('[name$=\"[description]\"]').value,\n        parameters: []\n      };\n      \n      toolElement.querySelectorAll('.parameter-container').forEach(paramElement => {\n        tool.parameters.push({\n          name: paramElement.querySelector('[name$=\"[parameters][][name]\"]').value,\n          type: paramElement.querySelector('[name$=\"[parameters][][type]\"]').value,\n          description: paramElement.querySelector('[name$=\"[parameters][][description]\"]').value\n        });\n      });\n      \n      tools.push(tool);\n    });\n    \n    // Send the data to the server\n    try {\n      const response = await fetch('/api/create-server', {\n        method: 'POST',\n        headers: {\n          'Content-Type': 'application/json'\n        },\n        body: JSON.stringify({\n          serverName,\n          description,\n          serverType,\n          tools\n        })\n      });\n      \n      const data = await response.json();\n      \n      if (data.success) {\n        resultContainer.innerHTML = `\n          <div class=\"alert alert-success\">\n            <h4>Server Created Successfully!</h4>\n            <p>${data.message}</p>\n            <a href=\"${data.downloadUrl}\" class=\"btn btn-primary\">Download MCP Server</a>\n          </div>\n        `;\n        \n        // Auto download\n        window.location.href = data.downloadUrl;\n      } else {\n        resultContainer.innerHTML = `\n          <div class=\"alert alert-danger\">\n            <h4>Error Creating Server</h4>\n            <p>${data.error}</p>\n          </div>\n        `;\n      }\n    } catch (error) {\n      resultContainer.innerHTML = `\n        <div class=\"alert alert-danger\">\n          <h4>Error Creating Server</h4>\n          <p>An unexpected error occurred. Please try again.</p>\n        </div>\n      `;\n    }\n    \n    submitBtn.disabled = false;\n    submitBtn.textContent = 'Create MCP Server';\n    \n    // Scroll to the result\n    resultContainer.scrollIntoView({ behavior: 'smooth' });\n  });\n  \n  // Add the first tool by default\n  addToolBtn.click();\n});
+document.addEventListener('DOMContentLoaded', function() {
+  const form = document.getElementById('mcp-builder-form');
+  const toolsContainer = document.getElementById('tools-container');
+  const addToolBtn = document.getElementById('add-tool-btn');
+  const submitBtn = document.getElementById('submit-btn');
+  const resultContainer = document.getElementById('result-container');
+  
+  // Add tool handler
+  addToolBtn.addEventListener('click', function() {
+    const toolId = `tool-${Date.now()}`;
+    const toolHtml = `
+      <div class="tool-container" id="${toolId}">
+        <div class="tool-header">
+          <h3>Tool</h3>
+          <button type="button" class="btn btn-danger remove-tool" data-tool-id="${toolId}">Remove Tool</button>
+        </div>
+        <div class="form-group">
+          <label for="${toolId}-name">Tool Name</label>
+          <input type="text" id="${toolId}-name" name="tools[][name]" class="form-control" required>
+        </div>
+        <div class="form-group">
+          <label for="${toolId}-description">Description</label>
+          <textarea id="${toolId}-description" name="tools[][description]" class="form-control" rows="2" required></textarea>
+        </div>
+        <div class="parameters-section">
+          <h4>Parameters</h4>
+          <div class="parameters-container" id="${toolId}-parameters">
+            <!-- Parameters will be added here -->
+          </div>
+          <button type="button" class="btn btn-add add-parameter" data-tool-id="${toolId}">Add Parameter</button>
+        </div>
+      </div>
+    `;
+    
+    toolsContainer.insertAdjacentHTML('beforeend', toolHtml);
+    
+    // Add parameter event for this new tool
+    document.querySelector(`#${toolId} .add-parameter`).addEventListener('click', function() {
+      addParameter(toolId);
+    });
+    
+    // Add remove tool event
+    document.querySelector(`#${toolId} .remove-tool`).addEventListener('click', function() {
+      document.getElementById(toolId).remove();
+    });
+    
+    // Add the first parameter by default
+    addParameter(toolId);
+  });
+  
+  // Function to add a parameter to a tool
+  function addParameter(toolId) {
+    const parameterId = `param-${Date.now()}`;
+    const parameterHtml = `
+      <div class="parameter-container" id="${parameterId}">
+        <div class="parameter-header">
+          <h5>Parameter</h5>
+          <button type="button" class="btn btn-danger remove-parameter" data-param-id="${parameterId}">Remove</button>
+        </div>
+        <div class="form-group">
+          <label for="${parameterId}-name">Parameter Name</label>
+          <input type="text" id="${parameterId}-name" name="tools[][parameters][][name]" class="form-control" required>
+        </div>
+        <div class="form-group">
+          <label for="${parameterId}-type">Type</label>
+          <select id="${parameterId}-type" name="tools[][parameters][][type]" class="form-control">
+            <option value="string">String</option>
+            <option value="number">Number</option>
+            <option value="boolean">Boolean</option>
+            <option value="object">Object</option>
+            <option value="array">Array</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="${parameterId}-description">Description</label>
+          <input type="text" id="${parameterId}-description" name="tools[][parameters][][description]" class="form-control" required>
+        </div>
+      </div>
+    `;
+    
+    document.getElementById(`${toolId}-parameters`).insertAdjacentHTML('beforeend', parameterHtml);
+    
+    // Add remove parameter event
+    document.querySelector(`#${parameterId} .remove-parameter`).addEventListener('click', function() {
+      document.getElementById(parameterId).remove();
+    });
+  }
+  
+  // Form submit handler
+  form.addEventListener('submit', async function(e) {
+    e.preventDefault();
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Creating Server...';
+    
+    // Gather all the form data
+    const serverName = document.getElementById('server-name').value;
+    const description = document.getElementById('description').value;
+    const serverType = document.getElementById('server-type').value;
+    
+    // Collect tools and their parameters
+    const tools = [];
+    document.querySelectorAll('.tool-container').forEach(toolElement => {
+      const tool = {
+        name: toolElement.querySelector('[name$="[name]"]').value,
+        description: toolElement.querySelector('[name$="[description]"]').value,
+        parameters: []
+      };
+      
+      toolElement.querySelectorAll('.parameter-container').forEach(paramElement => {
+        tool.parameters.push({
+          name: paramElement.querySelector('[name$="[parameters][][name]"]').value,
+          type: paramElement.querySelector('[name$="[parameters][][type]"]').value,
+          description: paramElement.querySelector('[name$="[parameters][][description]"]').value
+        });
+      });
+      
+      tools.push(tool);
+    });
+    
+    // Send the data to the server
+    try {
+      const response = await fetch('/api/create-server', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          serverName,
+          description,
+          serverType,
+          tools
+        })
+      });
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        resultContainer.innerHTML = `
+          <div class="alert alert-success">
+            <h4>Server Created Successfully!</h4>
+            <p>${data.message}</p>
+            <a href="${data.downloadUrl}" class="btn btn-primary">Download MCP Server</a>
+          </div>
+        `;
+        
+        // Auto download
+        window.location.href = data.downloadUrl;
+      } else {
+        resultContainer.innerHTML = `
+          <div class="alert alert-danger">
+            <h4>Error Creating Server</h4>
+            <p>${data.error}</p>
+          </div>
+        `;
+      }
+    } catch (error) {
+      resultContainer.innerHTML = `
+        <div class="alert alert-danger">
+          <h4>Error Creating Server</h4>
+          <p>An unexpected error occurred. Please try again.</p>
+        </div>
+      `;
+    }
+    
+    submitBtn.disabled = false;
+    submitBtn.textContent = 'Create MCP Server';
+    
+    // Scroll to the result
+    resultContainer.scrollIntoView({ behavior: 'smooth' });
+  });
+  
+  // Add the first tool by default
+  addToolBtn.click();
+});

@@ -46,8 +46,8 @@ ${tools.map(tool => `
 @server.tool()
 async def ${tool.name.replace(/\s+/g, '_').toLowerCase()}(${tool.parameters.map(p => p.name.replace(/\s+/g, '_').toLowerCase() + ': ' + (p.type || 'str')).join(', ')}) -> Dict[str, Any]:
     """${tool.description}"""
-    # TODO: Implement tool functionality
-    return {"result": f"${tool.name} executed with parameters: ${tool.parameters.map(p => '{' + p.name.replace(/\s+/g, '_').toLowerCase() + '}').join(', ')}"}
+    # Placeholder implementation
+    return {"error": "${tool.name} not implemented"}
 `).join('\n')}
 
 # Start the server
@@ -75,9 +75,9 @@ server.registerTool({
     }`).join(',\n    ')}
   },
   handler: async ({${tool.parameters.map(p => p.name.replace(/\s+/g, '_').toLowerCase()).join(', ')}}) => {
-    // TODO: Implement tool functionality
+    // Placeholder implementation
     return {
-      result: \`${tool.name} executed with parameters: ${tool.parameters.map(p => '\${' + p.name.replace(/\s+/g, '_').toLowerCase() + '}').join(', ')}\`
+      error: `${tool.name} not implemented`
     };
   }
 });

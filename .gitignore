@@ -1,21 +1,7 @@
-# Dependency directories
+# Node modules
 node_modules/
 .pnp/
 .pnp.js
-
-# Build output
-dist/
-build/
-
-# Temporary files
-.DS_Store
-tmp/
-*.tgz
-.env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
 
 # Logs
 logs
@@ -24,15 +10,28 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-# Generated files
-builds/
-downloads/
-
 # Runtime data
 pids
 *.pid
 *.seed
 *.pid.lock
+
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Build directories
+dist/
+build/
+
+# Custom directories
+uploads/
+builds/
+downloads/
+tmp/
 
 # IDE configuration
 .idea/
@@ -42,6 +41,13 @@ pids
 
 # Coverage directory
 coverage/
+
+# OS specific files
+.DS_Store
+Thumbs.db
+
+# Package files
+*.tgz
 
 # Replit-specific
 .replit

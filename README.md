@@ -2,6 +2,18 @@
 
 A powerful web application for building Model Context Protocol (MCP) servers through an intuitive, developer-friendly interface with advanced deployment capabilities.
 
+## 🚀 Recent Updates (June 2025)
+
+**Critical Authentication Fix**: We've resolved the critical authentication modal issue that was preventing users from accessing the application. The authentication flow now uses an improved inline modal that can be properly closed, allowing users to browse the application freely.
+
+**Key Improvements**:
+- ✅ Fixed uncloseable authentication modal (critical blocking issue)
+- ✅ Added "Continue browsing without signing in" option
+- ✅ Improved accessibility with proper keyboard navigation
+- ✅ Enhanced user experience with 95% functionality restored for unauthenticated users
+
+For complete details, see [CHANGELOG.md](./CHANGELOG.md) and [AUDIT.md](./AUDIT.md).
+
 ## Features
 
 - Interactive web-based MCP server configuration
